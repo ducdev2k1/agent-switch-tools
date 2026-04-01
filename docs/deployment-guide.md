@@ -11,11 +11,13 @@ Two GitHub Actions workflows automate building and releasing Claude Tools.
 
 ### Supported Platforms
 
-| Platform | Runner | Artifacts |
-|----------|--------|-----------|
-| Linux | `ubuntu-latest` | `.deb`, `.AppImage` |
-| macOS | `macos-latest` | `.dmg` (Apple Silicon) |
-| Windows | `windows-latest` | `.msi`, `.exe` (NSIS) |
+| Platform | Runner | Target | Artifacts |
+|----------|--------|--------|-----------|
+| Linux (22.04+) | `ubuntu-22.04` | x86_64 | `.deb`, `.AppImage` |
+| Linux (24.04+) | `ubuntu-latest` | x86_64 | `.deb`, `.AppImage` |
+| macOS Intel | `macos-13` | x86_64 | `.dmg` |
+| macOS Apple Silicon | `macos-latest` | aarch64 | `.dmg` |
+| Windows 10+ | `windows-latest` | x86_64 | `.msi`, `.exe` (NSIS) |
 
 ## Release Process
 
@@ -36,7 +38,7 @@ git push origin main --tags
 
 ### 3. Review & Publish
 
-1. GitHub Actions builds on all 3 platforms (~15-20 min)
+1. GitHub Actions builds on all 5 platform targets (~15-20 min)
 2. A **draft release** is created at `https://github.com/<owner>/claude-tools/releases`
 3. Review the draft, edit release notes if needed
 4. Click **Publish release**
@@ -48,7 +50,6 @@ CI installs these automatically. For local development on Ubuntu/Debian:
 ```bash
 sudo apt-get install -y \
   libwebkit2gtk-4.1-dev \
-  libappindicator3-dev \
   librsvg2-dev \
   patchelf \
   libssl-dev \
@@ -64,7 +65,7 @@ sudo apt-get install -y \
 
 ### Build fails on macOS
 - Xcode CLT missing → runner has it pre-installed, but locally run `xcode-select --install`
-- Wrong target → workflow uses `aarch64-apple-darwin` (Apple Silicon)
+- Wrong target → workflow builds both `x86_64-apple-darwin` (Intel) and `aarch64-apple-darwin` (Apple Silicon)
 
 ### Build fails on Windows
 - Long path issues → enable long paths: `git config --system core.longpaths true`

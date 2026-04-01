@@ -14,8 +14,12 @@ jobs:
       fail-fast: false
       matrix:
         include:
+          - platform: ubuntu-22.04
+            args: ""
           - platform: ubuntu-latest
             args: ""
+          - platform: macos-13
+            args: "--target x86_64-apple-darwin"
           - platform: macos-latest
             args: "--target aarch64-apple-darwin"
           - platform: windows-latest
@@ -39,7 +43,7 @@ jobs:
           echo "Version verified: $TAG_VERSION"
 
       - name: Install Linux dependencies
-        if: matrix.platform == 'ubuntu-latest'
+        if: startsWith(matrix.platform, 'ubuntu')
         run: |
           sudo apt-get update
           sudo apt-get install -y \
@@ -62,7 +66,7 @@ jobs:
       - name: Setup Rust
         uses: dtolnay/rust-toolchain@stable
         with:
-          targets: ${{ matrix.platform == 'macos-latest' && 'aarch64-apple-darwin' || '' }}
+          targets: ${{ matrix.platform == 'macos-latest' && 'aarch64-apple-darwin' || matrix.platform == 'macos-13' && 'x86_64-apple-darwin' || '' }}
 
       - name: Cache Rust
         uses: swatinem/rust-cache@v2
