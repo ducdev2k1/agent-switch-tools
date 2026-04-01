@@ -9,11 +9,12 @@ import { ProfileCard } from "@/components/profile-card"
 import { SaveProfileDialog } from "@/components/profile-form-dialog"
 import { SwitchConfirmationDialog } from "@/components/switch-confirmation-dialog"
 import { DeleteConfirmDialog } from "@/components/delete-confirm-dialog"
+import { AddAccountDialog } from "@/components/add-account-dialog"
 import { Button } from "@/components/ui/button"
 import { ModeToggle } from "@/components/mode-toggle"
 import { Separator } from "@/components/ui/separator"
 import type { CredentialProfile } from "@/lib/types"
-import { Save, RefreshCw, Shield } from "lucide-react"
+import { Save, RefreshCw, Shield, UserPlus } from "lucide-react"
 
 export function Dashboard() {
   const {
@@ -71,6 +72,7 @@ export function Dashboard() {
   const [switching, setSwitching] = useState(false)
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
   const [deletingName, setDeletingName] = useState<string | null>(null)
+  const [addAccountOpen, setAddAccountOpen] = useState(false)
 
   const activeProfile = profiles.find((p) => p.isActive)
   const savedProfiles = profiles.filter((p) => !p.isActive)
@@ -226,6 +228,15 @@ export function Dashboard() {
             <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">
               Hồ sơ đã lưu ({savedProfiles.length})
             </h2>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setAddAccountOpen(true)}
+              className="text-xs"
+            >
+              <UserPlus className="size-3.5" />
+              Thêm tài khoản
+            </Button>
           </div>
 
           {profilesLoading ? (
@@ -258,6 +269,9 @@ export function Dashboard() {
                   onSwitch={handleSwitchRequest}
                   onRename={handleRename}
                   onDelete={handleDeleteRequest}
+                  isCurrentlyActive={
+                    activeProfile?.info.organizationUuid === profile.info.organizationUuid
+                  }
                 />
               ))}
             </div>
@@ -295,6 +309,16 @@ export function Dashboard() {
         onOpenChange={setDeleteDialogOpen}
         profileName={deletingName}
         onConfirm={handleDeleteConfirm}
+      />
+
+      <AddAccountDialog
+        open={addAccountOpen}
+        onOpenChange={setAddAccountOpen}
+        hasActiveProfile={!!activeProfile}
+        onSaveCurrent={() => {
+          setAddAccountOpen(false)
+          setSaveDialogOpen(true)
+        }}
       />
     </div>
   )

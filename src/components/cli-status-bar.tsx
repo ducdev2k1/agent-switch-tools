@@ -72,9 +72,9 @@ export function CliStatusBar({
       {usageStats?.hasRestrictions && (
         <>
           <Separator orientation="vertical" className="h-5" />
-          <div className="flex items-center gap-1.5">
-            <AlertTriangle className="size-4 text-foreground" />
-            <span className="text-xs text-foreground font-medium">
+          <div className="flex items-center gap-1.5 px-2 py-1 rounded-md bg-warning/10 border border-warning/20">
+            <AlertTriangle className="size-4 text-warning" />
+            <span className="text-xs text-warning font-bold">
               Hạn chế đang hiệu lực
             </span>
           </div>

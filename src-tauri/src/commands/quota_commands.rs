@@ -3,6 +3,7 @@ use std::path::PathBuf;
 use tauri::Manager;
 
 #[derive(Debug, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct UsageStats {
     pub total_sessions: usize,
     pub recent_sessions_7d: usize,

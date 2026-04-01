@@ -7,6 +7,7 @@ use tauri::Manager;
 const META_FILENAME: &str = ".claude-manager-meta.json";
 
 #[derive(Debug, Serialize, Deserialize, Clone, Default)]
+#[serde(rename_all = "camelCase")]
 pub struct ProfileUsage {
     /// ISO 8601 timestamp of last activation
     pub last_active_at: Option<String>,
@@ -15,6 +16,7 @@ pub struct ProfileUsage {
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
+#[serde(rename_all = "camelCase")]
 pub struct ManagerMeta {
     /// Name of the saved profile currently active (e.g., "Work", "Personal")
     pub active_profile_name: Option<String>,

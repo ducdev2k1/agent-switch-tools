@@ -15,6 +15,7 @@ fn claude_dir(app: &tauri::AppHandle) -> Result<PathBuf, String> {
 // ========== Types ==========
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
+#[serde(rename_all = "camelCase")]
 pub struct CredentialInfo {
     pub subscription_type: Option<String>,
     pub rate_limit_tier: Option<String>,
@@ -26,6 +27,7 @@ pub struct CredentialInfo {
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
+#[serde(rename_all = "camelCase")]
 pub struct CredentialProfile {
     pub name: String,
     pub is_active: bool,
@@ -33,6 +35,7 @@ pub struct CredentialProfile {
 }
 
 #[derive(Debug, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct SwitchResult {
     pub success: bool,
     pub claude_was_running: bool,
@@ -325,6 +328,7 @@ pub async fn is_claude_running() -> Result<bool, String> {
 // ========== CLI State ==========
 
 #[derive(Debug, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct ClaudeCliState {
     pub current_model: Option<String>,
     pub session_count: usize,
