@@ -29,7 +29,7 @@ export function CliStatusBar({
       {/* Model hiện tại */}
       <div className="flex items-center gap-2">
         <Monitor className="size-4 text-muted-foreground" />
-        <span className="text-sm text-muted-foreground">Model:</span>
+        <span className="text-sm text-muted-foreground">Mẫu (Model):</span>
         <Badge variant="secondary" className="font-mono">
           {cliState?.currentModel || "N/A"}
         </Badge>
@@ -40,13 +40,13 @@ export function CliStatusBar({
       {/* Session count */}
       <div className="flex items-center gap-2">
         <Activity className="size-4 text-muted-foreground" />
-        <span className="text-sm text-muted-foreground">Sessions:</span>
+        <span className="text-sm text-muted-foreground">Phiên:</span>
         <span className="text-sm font-semibold">
           {usageStats?.totalSessions ?? cliState?.sessionCount ?? 0}
         </span>
         {usageStats && usageStats.recentSessions7d > 0 && (
           <span className="text-xs text-muted-foreground">
-            ({usageStats.recentSessions7d} this week)
+            ({usageStats.recentSessions7d} tuần này)
           </span>
         )}
       </div>
@@ -59,11 +59,11 @@ export function CliStatusBar({
         <span className="text-sm text-muted-foreground">.env:</span>
         {cliState?.envFileExists ? (
           <Badge variant="success" className="text-xs">
-            Active ({cliState.activeKeys.length} keys)
+            Hoạt động ({cliState.activeKeys.length} khóa)
           </Badge>
         ) : (
           <Badge variant="outline" className="text-xs">
-            Not found
+            Không tìm thấy
           </Badge>
         )}
       </div>
@@ -73,9 +73,9 @@ export function CliStatusBar({
         <>
           <Separator orientation="vertical" className="h-5" />
           <div className="flex items-center gap-1.5">
-            <AlertTriangle className="size-4 text-amber-500" />
-            <span className="text-xs text-amber-600 dark:text-amber-400 font-medium">
-              Restrictions active
+            <AlertTriangle className="size-4 text-foreground" />
+            <span className="text-xs text-foreground font-medium">
+              Hạn chế đang hiệu lực
             </span>
           </div>
         </>

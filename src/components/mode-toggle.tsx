@@ -16,13 +16,13 @@ export function ModeToggle() {
       variant="ghost"
       size="icon"
       onClick={cycleTheme}
-      title={`Theme: ${theme.charAt(0).toUpperCase() + theme.slice(1)} (Click to switch)`}
+      title={`Giao diện: ${theme === "light" ? "Sáng" : theme === "dark" ? "Tối" : "Hệ thống"} (Nhấp để chuyển đổi)`}
       className="size-8"
     >
       {theme === "light" && <Sun className="size-4" />}
       {theme === "dark" && <Moon className="size-4" />}
       {theme === "system" && <Laptop className="size-4" />}
-      <span className="sr-only">Toggle theme</span>
+      <span className="sr-only">Chuyển đổi giao diện</span>
     </Button>
   )
 }

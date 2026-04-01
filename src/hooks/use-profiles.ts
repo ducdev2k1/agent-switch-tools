@@ -1,6 +1,6 @@
 import { invoke } from "@tauri-apps/api/core"
 import { useState, useEffect, useCallback } from "react"
-import type { CredentialProfile } from "@/lib/types"
+import type { CredentialProfile, SwitchResult } from "@/lib/types"
 
 export function useCredentialProfiles() {
   const [profiles, setProfiles] = useState<CredentialProfile[]>([])
@@ -22,42 +22,36 @@ export function useCredentialProfiles() {
     load()
   }, [load])
 
-  /**
-   * Lưu credential hiện tại thành profile mới
-   * Copy .credentials.json → .credentials-[name].json
-   */
+  /** Save current active credentials as a named profile */
   const saveCurrentAs = async (name: string) => {
     await invoke("save_current_as_profile", { name })
     await load()
   }
 
-  /**
-   * Switch sang profile khác
-   * Rename .credentials.json → .credentials-[currentName].json
-   * Rename .credentials-[targetName].json → .credentials.json
-   */
-  const switchTo = async (currentName: string, targetName: string) => {
-    await invoke("switch_credential_profile", {
-      currentName,
+  /** Switch to target profile (backend handles backup of current) */
+  const switchTo = async (targetName: string): Promise<SwitchResult> => {
+    const result = await invoke<SwitchResult>("switch_credential_profile", {
       targetName,
     })
     await load()
+    return result
   }
 
-  /**
-   * Đổi tên profile
-   */
+  /** Rename a saved profile */
   const rename = async (oldName: string, newName: string) => {
     await invoke("rename_credential_profile", { oldName, newName })
     await load()
   }
 
-  /**
-   * Xóa profile đã lưu
-   */
+  /** Delete a saved profile */
   const remove = async (name: string) => {
     await invoke("delete_credential_profile", { name })
     await load()
+  }
+
+  /** Check if Claude Code CLI is currently running */
+  const checkClaudeRunning = async (): Promise<boolean> => {
+    return invoke<boolean>("is_claude_running")
   }
 
   return {
@@ -67,6 +61,7 @@ export function useCredentialProfiles() {
     switchTo,
     rename,
     remove,
+    checkClaudeRunning,
     refresh: load,
   }
 }

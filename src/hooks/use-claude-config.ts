@@ -24,20 +24,5 @@ export function useClaudeConfig() {
     refresh()
   }, [refresh])
 
-  const switchProfile = async (envVars: {
-    anthropicApiKey?: string
-    geminiApiKey?: string
-    openaiApiKey?: string
-  }) => {
-    await invoke("switch_active_profile", {
-      envVars: {
-        anthropic_api_key: envVars.anthropicApiKey || null,
-        gemini_api_key: envVars.geminiApiKey || null,
-        openai_api_key: envVars.openaiApiKey || null,
-      },
-    })
-    await refresh()
-  }
-
-  return { state, loading, error, refresh, switchProfile }
+  return { state, loading, error, refresh }
 }

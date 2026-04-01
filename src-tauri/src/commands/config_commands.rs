@@ -2,7 +2,9 @@ use serde::{Deserialize, Serialize};
 use std::path::PathBuf;
 use tauri::Manager;
 
-/// Resolve đường dẫn thư mục ~/.claude/ trên mọi nền tảng
+use super::metadata_commands::{read_meta, record_switch_usage, write_meta};
+
+/// Resolve ~/.claude/ directory
 fn claude_dir(app: &tauri::AppHandle) -> Result<PathBuf, String> {
     app.path()
         .home_dir()
@@ -10,13 +12,15 @@ fn claude_dir(app: &tauri::AppHandle) -> Result<PathBuf, String> {
         .map_err(|e| format!("Cannot resolve home directory: {}", e))
 }
 
-// ========== Credential Profile Types ==========
+// ========== Types ==========
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct CredentialInfo {
     pub subscription_type: Option<String>,
     pub rate_limit_tier: Option<String>,
     pub expires_at: Option<i64>,
+    pub is_expired: bool,
+    pub expires_in_hours: Option<f64>,
     pub scopes: Vec<String>,
     pub organization_uuid: Option<String>,
 }
@@ -28,35 +32,42 @@ pub struct CredentialProfile {
     pub info: CredentialInfo,
 }
 
-/// Đọc metadata từ file credentials JSON
+#[derive(Debug, Serialize, Deserialize)]
+pub struct SwitchResult {
+    pub success: bool,
+    pub claude_was_running: bool,
+    pub target_was_expired: bool,
+    pub message: String,
+}
+
+/// Parse credential info from a .credentials JSON file
 fn read_credential_info(path: &PathBuf) -> CredentialInfo {
-    let content = match std::fs::read_to_string(path) {
-        Ok(c) => c,
-        Err(_) => {
-            return CredentialInfo {
-                subscription_type: None,
-                rate_limit_tier: None,
-                expires_at: None,
-                scopes: vec![],
-                organization_uuid: None,
-            }
-        }
+    let default = CredentialInfo {
+        subscription_type: None,
+        rate_limit_tier: None,
+        expires_at: None,
+        is_expired: false,
+        expires_in_hours: None,
+        scopes: vec![],
+        organization_uuid: None,
     };
 
+    let content = match std::fs::read_to_string(path) {
+        Ok(c) => c,
+        Err(_) => return default,
+    };
     let v: serde_json::Value = match serde_json::from_str(&content) {
         Ok(v) => v,
-        Err(_) => {
-            return CredentialInfo {
-                subscription_type: None,
-                rate_limit_tier: None,
-                expires_at: None,
-                scopes: vec![],
-                organization_uuid: None,
-            }
-        }
+        Err(_) => return default,
     };
 
     let oauth = v.get("claudeAiOauth");
+    let expires_at = oauth
+        .and_then(|o| o.get("expiresAt"))
+        .and_then(|s| s.as_i64());
+    let now_ms = chrono::Utc::now().timestamp_millis();
+    let is_expired = expires_at.map(|exp| exp < now_ms).unwrap_or(false);
+    let expires_in_hours = expires_at.map(|exp| (exp - now_ms) as f64 / 3_600_000.0);
 
     CredentialInfo {
         subscription_type: oauth
@@ -67,9 +78,9 @@ fn read_credential_info(path: &PathBuf) -> CredentialInfo {
             .and_then(|o| o.get("rateLimitTier"))
             .and_then(|s| s.as_str())
             .map(String::from),
-        expires_at: oauth
-            .and_then(|o| o.get("expiresAt"))
-            .and_then(|s| s.as_i64()),
+        expires_at,
+        is_expired,
+        expires_in_hours,
         scopes: oauth
             .and_then(|o| o.get("scopes"))
             .and_then(|s| s.as_array())
@@ -86,33 +97,46 @@ fn read_credential_info(path: &PathBuf) -> CredentialInfo {
     }
 }
 
+/// Check if claude process is currently running
+fn check_claude_running() -> bool {
+    std::process::Command::new("pgrep")
+        .args(["-f", "claude"])
+        .output()
+        .map(|o| o.status.success())
+        .unwrap_or(false)
+}
+
 // ========== Commands ==========
 
-/// Liệt kê tất cả credential profiles (active + saved)
+/// List all credential profiles (active + saved)
 #[tauri::command]
 pub async fn list_credential_profiles(
     app: tauri::AppHandle,
 ) -> Result<Vec<CredentialProfile>, String> {
     let dir = claude_dir(&app)?;
+    let meta = read_meta(&dir);
     let mut profiles: Vec<CredentialProfile> = vec![];
 
-    // Đọc active profile (.credentials.json)
+    // Active profile (.credentials.json)
     let active_path = dir.join(".credentials.json");
     if active_path.exists() {
+        let active_name = meta
+            .active_profile_name
+            .clone()
+            .unwrap_or_else(|| "Active".to_string());
         let info = read_credential_info(&active_path);
         profiles.push(CredentialProfile {
-            name: "Active".to_string(),
+            name: active_name,
             is_active: true,
             info,
         });
     }
 
-    // Scan saved profiles (.credentials-[name].json)
+    // Saved profiles (.credentials-[name].json)
     if let Ok(entries) = std::fs::read_dir(&dir) {
         for entry in entries.flatten() {
             let filename = entry.file_name().to_string_lossy().to_string();
             if filename.starts_with(".credentials-") && filename.ends_with(".json") {
-                // Trích xuất tên từ filename: .credentials-Work.json → Work
                 let name = filename
                     .strip_prefix(".credentials-")
                     .and_then(|s| s.strip_suffix(".json"))
@@ -131,7 +155,7 @@ pub async fn list_credential_profiles(
         }
     }
 
-    // Sắp xếp: active first, sau đó theo tên
+    // Sort: active first, then by name
     profiles.sort_by(|a, b| {
         if a.is_active {
             std::cmp::Ordering::Less
@@ -145,8 +169,7 @@ pub async fn list_credential_profiles(
     Ok(profiles)
 }
 
-/// Lưu credentials hiện tại thành profile mới
-/// Rename .credentials.json → .credentials-[name].json
+/// Save current active credentials as a named profile (copy, not move)
 #[tauri::command]
 pub async fn save_current_as_profile(
     app: tauri::AppHandle,
@@ -159,15 +182,12 @@ pub async fn save_current_as_profile(
     if !active_path.exists() {
         return Err("No active credentials found (.credentials.json)".to_string());
     }
-
     if target_path.exists() {
         return Err(format!("Profile '{}' already exists", name));
     }
 
-    // Copy (không rename, vì user vẫn cần credential active)
     std::fs::copy(&active_path, &target_path).map_err(|e| e.to_string())?;
 
-    // Giữ permissions 600
     #[cfg(unix)]
     {
         use std::os::unix::fs::PermissionsExt;
@@ -175,43 +195,89 @@ pub async fn save_current_as_profile(
             .map_err(|e| e.to_string())?;
     }
 
+    // Update metadata: track this as the active profile name
+    let mut meta = read_meta(&dir);
+    meta.active_profile_name = Some(name);
+    meta.last_switched_at = Some(chrono::Utc::now().to_rfc3339());
+    write_meta(&dir, &meta)?;
+
     Ok(())
 }
 
-/// Switch sang profile khác
-/// 1. Rename .credentials.json → .credentials-[currentName].json (save current)
-/// 2. Rename .credentials-[targetName].json → .credentials.json (activate target)
+/// Switch to a different profile (atomic swap)
+/// 1. Copy target → .credentials.json.tmp
+/// 2. Rename active → .credentials-[current].json (backup)
+/// 3. Rename .tmp → .credentials.json (activate)
+/// 4. Update metadata
 #[tauri::command]
 pub async fn switch_credential_profile(
     app: tauri::AppHandle,
-    current_name: String,
     target_name: String,
-) -> Result<(), String> {
+) -> Result<SwitchResult, String> {
     let dir = claude_dir(&app)?;
     let active_path = dir.join(".credentials.json");
-    let current_backup = dir.join(format!(".credentials-{}.json", current_name));
+    let tmp_path = dir.join(".credentials.json.tmp");
     let target_path = dir.join(format!(".credentials-{}.json", target_name));
 
-    // Validate target tồn tại
     if !target_path.exists() {
         return Err(format!("Profile '{}' not found", target_name));
     }
 
-    // Step 1: Save current active → backup
+    // Check target expiry
+    let target_info = read_credential_info(&target_path);
+    let target_was_expired = target_info.is_expired;
+
+    // Check if Claude is running
+    let claude_was_running = check_claude_running();
+
+    // Read current active profile name from metadata
+    let mut meta = read_meta(&dir);
+    let current_name = meta
+        .active_profile_name
+        .clone()
+        .unwrap_or_else(|| "Unnamed".to_string());
+
+    // Step 1: Copy target to temp file
+    std::fs::copy(&target_path, &tmp_path)
+        .map_err(|e| format!("Failed to prepare target credentials: {}", e))?;
+
+    // Step 2: Backup current active (if exists)
     if active_path.exists() {
-        // Nếu backup đã tồn tại, ghi đè (cập nhật token mới nhất)
-        std::fs::rename(&active_path, &current_backup)
+        let backup_path = dir.join(format!(".credentials-{}.json", current_name));
+        // Overwrite existing backup (update with latest refreshed tokens)
+        std::fs::rename(&active_path, &backup_path)
             .map_err(|e| format!("Failed to backup current credentials: {}", e))?;
     }
 
-    // Step 2: Activate target → .credentials.json
-    std::fs::rename(&target_path, &active_path)
+    // Step 3: Activate target (rename tmp → active)
+    std::fs::rename(&tmp_path, &active_path)
         .map_err(|e| format!("Failed to activate target credentials: {}", e))?;
 
-    Ok(())
+    // Step 4: Remove the saved target file (now active)
+    let _ = std::fs::remove_file(&target_path);
+
+    // Step 5: Update metadata with usage tracking
+    record_switch_usage(&mut meta, &current_name);
+    meta.active_profile_name = Some(target_name.clone());
+    write_meta(&dir, &meta)?;
+
+    let message = if claude_was_running {
+        "Switched credentials. Restart Claude Code to use new account.".to_string()
+    } else if target_was_expired {
+        "Switched to expired credentials. Token may auto-refresh on next use.".to_string()
+    } else {
+        format!("Switched to '{}'.", target_name)
+    };
+
+    Ok(SwitchResult {
+        success: true,
+        claude_was_running,
+        target_was_expired,
+        message,
+    })
 }
 
-/// Đổi tên profile
+/// Rename a saved profile
 #[tauri::command]
 pub async fn rename_credential_profile(
     app: tauri::AppHandle,
@@ -233,7 +299,7 @@ pub async fn rename_credential_profile(
     Ok(())
 }
 
-/// Xóa profile đã lưu
+/// Delete a saved profile
 #[tauri::command]
 pub async fn delete_credential_profile(
     app: tauri::AppHandle,
@@ -250,7 +316,13 @@ pub async fn delete_credential_profile(
     Ok(())
 }
 
-// ========== CLI State (giữ nguyên) ==========
+/// Check if Claude Code CLI process is running
+#[tauri::command]
+pub async fn is_claude_running() -> Result<bool, String> {
+    Ok(check_claude_running())
+}
+
+// ========== CLI State ==========
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct ClaudeCliState {
@@ -263,10 +335,8 @@ pub struct ClaudeCliState {
 #[tauri::command]
 pub async fn get_claude_cli_state(app: tauri::AppHandle) -> Result<ClaudeCliState, String> {
     let dir = claude_dir(&app)?;
-
     let current_model = read_settings_model(&dir);
     let session_count = count_history_sessions(&dir);
-
     let env_path = dir.join(".env");
     let env_file_exists = env_path.exists();
     let active_keys = if env_file_exists {

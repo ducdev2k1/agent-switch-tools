@@ -18,22 +18,24 @@ interface ProfileCardProps {
   onDelete: (name: string) => void
 }
 
-/**
- * Hiển thị tên subscription dễ đọc
- */
+/** Human-readable subscription name */
 function formatSubscription(sub: string | null): string {
-  if (!sub) return "Unknown"
-  return sub
-    .replace(/_/g, " ")
-    .replace(/\b\w/g, (c) => c.toUpperCase())
+  if (!sub) return "Không rõ"
+  return sub.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase())
 }
 
-/**
- * Kiểm tra token còn hạn không
- */
-function isExpired(expiresAt: number | null): boolean {
-  if (!expiresAt) return false
-  return Date.now() > expiresAt
+/** Format expiry as relative time string */
+function formatExpiry(hoursLeft: number | null, isExpired: boolean): string | null {
+  if (hoursLeft === null) return null
+  if (isExpired) {
+    const ago = Math.abs(hoursLeft)
+    if (ago < 1) return `Expired ${Math.round(ago * 60)}m ago`
+    if (ago < 24) return `Expired ${Math.round(ago)}h ago`
+    return `Expired ${Math.round(ago / 24)}d ago`
+  }
+  if (hoursLeft < 1) return `Expires in ${Math.round(hoursLeft * 60)}m`
+  if (hoursLeft < 24) return `Expires in ${Math.round(hoursLeft)}h`
+  return `Expires in ${Math.round(hoursLeft / 24)}d`
 }
 
 export function ProfileCard({
@@ -43,7 +45,11 @@ export function ProfileCard({
   onDelete,
 }: ProfileCardProps) {
   const { name, isActive, info } = profile
-  const expired = isExpired(info.expiresAt)
+  const expired = info.isExpired
+  const expiryText = formatExpiry(info.expiresInHours, expired)
+
+  // Health color: green=active, amber=expiring soon (<24h), red=expired
+  const expiringSoon = !expired && info.expiresInHours !== null && info.expiresInHours < 24
 
   return (
     <Card
@@ -51,39 +57,46 @@ export function ProfileCard({
         isActive
           ? "border-emerald-500/50 bg-emerald-500/5 shadow-emerald-500/10"
           : expired
-            ? "border-amber-500/30 bg-amber-500/5"
-            : "hover:border-primary/30"
+            ? "border-destructive/30 bg-destructive/5"
+            : expiringSoon
+              ? "border-amber-500/30 bg-amber-500/5"
+              : "hover:border-primary/30"
       }`}
     >
       <CardContent className="p-4">
         <div className="flex items-start justify-between gap-4">
           {/* Left: indicator + info */}
           <div className="flex items-start gap-3 min-w-0 flex-1">
-            {/* Active indicator dot */}
             <div className="mt-1.5 shrink-0">
               <div
                 className={`size-3 rounded-full ${
                   isActive
                     ? "bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.6)]"
                     : expired
-                      ? "bg-amber-500/60"
-                      : "bg-muted-foreground/30"
+                      ? "bg-destructive/60"
+                      : expiringSoon
+                        ? "bg-amber-500/60"
+                        : "bg-muted-foreground/30"
                 }`}
               />
             </div>
 
-            {/* Profile info */}
             <div className="min-w-0 flex-1">
               <div className="flex items-center gap-2 flex-wrap">
                 <h3 className="font-semibold text-base truncate">{name}</h3>
                 {isActive && (
                   <Badge variant="success" className="text-[10px] uppercase tracking-wider">
-                    Active
+                    Hoạt động
                   </Badge>
                 )}
                 {expired && (
+                  <Badge variant="destructive" className="text-[10px] uppercase tracking-wider">
+                    Hết hạn
+                  </Badge>
+                )}
+                {expiringSoon && (
                   <Badge variant="warning" className="text-[10px] uppercase tracking-wider">
-                    Expired
+                    Expiring Soon
                   </Badge>
                 )}
               </div>
@@ -102,10 +115,13 @@ export function ProfileCard({
                     {info.rateLimitTier}
                   </Badge>
                 )}
-                {info.expiresAt && !expired && (
-                  <Badge variant="outline" className="text-[10px]">
+                {expiryText && (
+                  <Badge
+                    variant={expired ? "destructive" : expiringSoon ? "warning" : "outline"}
+                    className="text-[10px]"
+                  >
                     <Clock className="size-3 mr-0.5" />
-                    Expires {new Date(info.expiresAt).toLocaleDateString()}
+                    {expiryText}
                   </Badge>
                 )}
               </div>
@@ -113,15 +129,15 @@ export function ProfileCard({
               {/* Scopes summary */}
               {info.scopes.length > 0 && (
                 <p className="text-[11px] text-muted-foreground mt-1.5 truncate">
-                  {info.scopes.length} scopes · {info.organizationUuid ? "Org" : "Personal"}
+                  {info.scopes.length} quyền (scopes) · {info.organizationUuid ? "Tổ chức" : "Cá nhân"}
                 </p>
               )}
             </div>
           </div>
 
-          {/* Right: actions */}
-          <div className="flex items-center gap-1 shrink-0">
-            {!isActive && (
+          {/* Right: actions (only for saved profiles) */}
+          {!isActive && (
+            <div className="flex items-center gap-1 shrink-0">
               <Button
                 variant="outline"
                 size="sm"
@@ -129,10 +145,8 @@ export function ProfileCard({
                 className="text-xs"
               >
                 <ArrowRightLeft className="size-3.5" />
-                Switch
+                Chuyển đổi
               </Button>
-            )}
-            {!isActive && (
               <Button
                 variant="ghost"
                 size="icon"
@@ -141,8 +155,6 @@ export function ProfileCard({
               >
                 <Pencil className="size-3.5" />
               </Button>
-            )}
-            {!isActive && (
               <Button
                 variant="ghost"
                 size="icon"
@@ -151,8 +163,8 @@ export function ProfileCard({
               >
                 <Trash2 className="size-3.5" />
               </Button>
-            )}
-          </div>
+            </div>
+          )}
         </div>
       </CardContent>
     </Card>

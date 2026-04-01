@@ -42,16 +42,16 @@ export function SaveProfileDialog({
   const validate = (): boolean => {
     const trimmed = name.trim()
     if (!trimmed) {
-      setError("Name is required")
+      setError("Vui lòng nhập tên")
       return false
     }
     // Không cho phép ký tự đặc biệt trong tên file
     if (/[\/\\:*?"<>|]/.test(trimmed)) {
-      setError("Name cannot contain special characters: / \\ : * ? \" < > |")
+      setError("Tên không được chứa các ký tự đặc biệt: / \\ : * ? \" < > |")
       return false
     }
     if (trimmed.toLowerCase() === "active") {
-      setError("Cannot use 'Active' as profile name")
+      setError("Không thể sử dụng 'Active' làm tên hồ sơ")
       return false
     }
     setError("")
@@ -77,16 +77,16 @@ export function SaveProfileDialog({
       <DialogContent onClose={() => handleOpenChange(false)}>
         <DialogHeader>
           <DialogTitle>
-            {mode === "save" ? "Save Current Account" : "Rename Profile"}
+            {mode === "save" ? "Lưu Tài khoản Hiện tại" : "Đổi tên Hồ sơ"}
           </DialogTitle>
         </DialogHeader>
 
         <div className="space-y-4">
           <div className="space-y-2">
-            <Label htmlFor="profile-name">Profile Name</Label>
+            <Label htmlFor="profile-name">Tên Hồ sơ</Label>
             <Input
               id="profile-name"
-              placeholder='e.g. "Work", "Personal", "Client"'
+              placeholder='VD: "Công việc", "Cá nhân", "Khách hàng"'
               value={name}
               onChange={(e) => setName(e.target.value)}
               onKeyDown={(e) => e.key === "Enter" && handleSave()}
@@ -97,8 +97,8 @@ export function SaveProfileDialog({
             )}
             {mode === "save" && (
               <p className="text-xs text-muted-foreground">
-                This will save your current active credentials as a named profile.
-                You can switch back to it later.
+                Thao tác này sẽ lưu thông tin đăng nhập hiện tại của bạn thành một hồ sơ có tên.
+                Bạn có thể chuyển đổi lại sau này.
               </p>
             )}
           </div>
@@ -106,14 +106,14 @@ export function SaveProfileDialog({
 
         <DialogFooter>
           <Button variant="outline" onClick={() => handleOpenChange(false)}>
-            Cancel
+            Hủy
           </Button>
           <Button onClick={handleSave} disabled={saving}>
             {saving
-              ? "Saving..."
+              ? "Đang lưu..."
               : mode === "save"
-                ? "Save Profile"
-                : "Rename"}
+                ? "Lưu Hồ sơ"
+                : "Đổi tên"}
           </Button>
         </DialogFooter>
       </DialogContent>
