@@ -14,7 +14,7 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - platform: ubuntu-latest
+          - platform: ubuntu-22.04
             args: ""
           - platform: macos-14
             args: "--target x86_64-apple-darwin"
@@ -70,6 +70,7 @@ jobs:
         uses: swatinem/rust-cache@v2
         with:
           workspaces: src-tauri -> target
+          shared-key: tauri-${{ matrix.platform }}
 
       - name: Install frontend dependencies
         run: pnpm install
