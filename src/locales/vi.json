@@ -1,0 +1,88 @@
+{
+  "common": {
+    "actions": {
+      "add_account": "Thêm tài khoản",
+      "cancel": "Hủy",
+      "close": "Đóng",
+      "confirm": "Xác nhận",
+      "confirm_delete": "Xác nhận xóa",
+      "copy": "Copy",
+      "delete": "Xóa",
+      "got_it": "Đã hiểu",
+      "not_found": "Không tìm thấy",
+      "refresh": "Làm mới",
+      "save": "Lưu",
+      "save_current": "Lưu Hiện tại",
+      "saving": "Đang lưu...",
+      "switch": "Chuyển đổi",
+      "switching": "Đang chuyển...",
+      "unknown": "Không rõ"
+    },
+    "labels": {
+      "active": "Hoạt động",
+      "active_account": "Tài khoản đang hoạt động",
+      "expired": "Hết hạn",
+      "expired_ago": "Hết hạn {{time}} trước",
+      "expires_in": "Hết hạn sau {{time}}",
+      "expiring_soon": "Sắp hết hạn",
+      "loading": "Đang tải...",
+      "matched": "Trùng khớp",
+      "organization_account": "Tài khoản Tổ chức",
+      "personal_account": "Tài khoản Cá nhân",
+      "restrictions_active": "Hạn chế đang hiệu lực",
+      "saved_profiles": "Hồ sơ đã lưu ({{count}})",
+      "scopes": "{{count}} quyền (scopes)",
+      "sessions": "Phiên:",
+      "switch_account": "Chuyển tiếp hồ sơ",
+      "this_week": "{{count}} tuần này",
+      "time_unit": {
+        "day": "{{count}} ngày",
+        "hour": "{{count}} giờ",
+        "minute": "{{count}} phút"
+      }
+    }
+  },
+  "dashboard": {
+    "cli": {
+      "active_keys": "Hoạt động ({{count}} khóa)",
+      "env_status": ".env:",
+      "model": "Mẫu (Model):"
+    },
+    "errors": {
+      "delete_failed": "Xóa thất bại: {{error}}",
+      "not_found": "Hồ sơ \"{{name}}\" không tìm thấy",
+      "save_failed": "Lưu thất bại: {{error}}",
+      "switch_failed": "Chuyển đổi thất bại: {{error}}"
+    },
+    "header": {
+      "title": "Quản lý Tài khoản Claude"
+    },
+    "messages": {
+      "add_account_steps": {
+        "step_1_desc": "Bấm \"Lưu Hiện tại\" để backup hồ sơ đang dùng trước.",
+        "step_1_label": "1. Lưu hồ sơ hiện tại",
+        "step_2_desc": "Chạy lệnh bên dưới trong Terminal để đăng xuất tài khoản hiện tại.",
+        "step_2_label": "2. Đăng xuất trong Terminal",
+        "step_3_desc": "Chạy lệnh \"claude\" trong Terminal, ứng dụng sẽ yêu cầu đăng nhập lại.",
+        "step_3_label": "3. Đăng nhập tài khoản mới",
+        "step_4_desc": "Quay lại ứng dụng này và bấm \"Lưu Hiện tại\" để lưu thông tin tài khoản mới.",
+        "step_4_label": "4. Quay lại ứng dụng & Lưu"
+      },
+      "claude_running_title": "Claude Code đang chạy",
+      "claude_running_warning": "Phiên hoạt động sẽ tiếp tục sử dụng tài khoản hiện tại. Các phiên mới sẽ sử dụng tài khoản đã chuyển đổi.",
+      "delete_confirm": "Hành động này không thể hoàn tác. Hồ sơ \"{{name}}\" sẽ bị xóa vĩnh viễn khỏi thiết bị này.",
+      "no_credentials": "Không tìm thấy thông tin đăng nhập. Vui lòng đăng nhập vào Claude CLI trước.",
+      "no_saved_profiles": "Không có hồ sơ đã lưu",
+      "no_saved_profiles_info": "Lưu thông tin đăng nhập hiện tại để tạo hồ sơ. Sau đó đăng nhập bằng tài khoản khác và lưu lại.",
+      "preserve_context": "Ngữ cảnh dự án, lịch sử và cài đặt của bạn sẽ được bảo toàn.",
+      "restart_claude_warning": "Vui lòng khởi động lại Claude Code để sử dụng thông tin đăng nhập mới.",
+      "switch_confirm": "Bạn sắp chuyển sang hồ sơ \"{{name}}\"?",
+      "token_expired_title": "Mã xác thực (Token) đã hết hạn",
+      "token_expired_warning": "Mã xác thực này đã hết hạn. Nó có thể tự động làm mới khi sử dụng lần tới."
+    },
+    "success": {
+      "account_saved": "Đã lưu tài khoản \"{{email}}\"",
+      "deleted": "Đã xóa \"{{name}}\""
+    }
+  }
+}

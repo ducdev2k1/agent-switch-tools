@@ -8,7 +8,8 @@ import {
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import type { CredentialProfile } from "@/lib/types"
-import { AlertTriangle, ArrowRightLeft, Terminal } from "lucide-react"
+import { AlertTriangle, ArrowRightLeft, Terminal, Mail, Building2 } from "lucide-react"
+import { useTranslation } from "react-i18next"
 
 interface SwitchConfirmationDialogProps {
   open: boolean
@@ -28,6 +29,7 @@ export function SwitchConfirmationDialog({
   onConfirm,
   switching,
 }: SwitchConfirmationDialogProps) {
+  const { t } = useTranslation()
   if (!targetProfile) return null
 
   const isExpired = targetProfile.info.isExpired
@@ -38,7 +40,7 @@ export function SwitchConfirmationDialog({
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <ArrowRightLeft className="size-5" />
-            Chuyển sang "{targetProfile.name}"?
+            {t("dashboard.messages.switch_confirm", { name: targetProfile.name })}
           </DialogTitle>
         </DialogHeader>
 
@@ -49,11 +51,10 @@ export function SwitchConfirmationDialog({
               <Terminal className="size-5 text-foreground mt-0.5 shrink-0" />
               <div className="text-sm">
                 <p className="font-medium text-foreground">
-                  Claude Code đang chạy
+                  {t("dashboard.messages.claude_running_title")}
                 </p>
                 <p className="text-muted-foreground mt-1">
-                  Phiên hoạt động sẽ tiếp tục sử dụng tài khoản hiện tại.
-                  Các phiên mới sẽ sử dụng tài khoản đã chuyển đổi.
+                  {t("dashboard.messages.claude_running_warning")}
                 </p>
               </div>
             </div>
@@ -65,10 +66,10 @@ export function SwitchConfirmationDialog({
               <AlertTriangle className="size-5 text-destructive mt-0.5 shrink-0" />
               <div className="text-sm">
                 <p className="font-medium text-destructive">
-                  Mã xác thực (Token) đã hết hạn
+                  {t("dashboard.messages.token_expired_title")}
                 </p>
                 <p className="text-muted-foreground mt-1">
-                  Mã xác thực này đã hết hạn. Nó có thể tự động làm mới khi sử dụng lần tới.
+                  {t("dashboard.messages.token_expired_warning")}
                 </p>
               </div>
             </div>
@@ -77,7 +78,9 @@ export function SwitchConfirmationDialog({
           {/* Target profile info */}
           <div className="rounded-lg border bg-muted/30 p-3">
             <div className="flex items-center gap-2 flex-wrap">
-              <span className="text-sm font-medium">{targetProfile.name}</span>
+              <span className="text-sm font-medium">
+                {targetProfile.oauthAccount?.displayName || targetProfile.name}
+              </span>
               {targetProfile.info.subscriptionType && (
                 <Badge variant="secondary" className="text-[10px]">
                   {targetProfile.info.subscriptionType}
@@ -89,18 +92,32 @@ export function SwitchConfirmationDialog({
                 </Badge>
               )}
             </div>
+            {targetProfile.oauthAccount?.emailAddress && (
+              <div className="flex items-center gap-3 mt-1.5 text-xs text-muted-foreground">
+                <span className="flex items-center gap-1">
+                  <Mail className="size-3" />
+                  {targetProfile.oauthAccount.emailAddress}
+                </span>
+                {targetProfile.oauthAccount.organizationName && (
+                  <span className="flex items-center gap-1">
+                    <Building2 className="size-3" />
+                    {targetProfile.oauthAccount.organizationName}
+                  </span>
+                )}
+              </div>
+            )}
             <p className="text-xs text-muted-foreground mt-1">
-              Ngữ cảnh dự án, lịch sử và cài đặt của bạn sẽ được bảo toàn.
+              {t("dashboard.messages.preserve_context")}
             </p>
           </div>
         </div>
 
         <DialogFooter>
           <Button variant="outline" onClick={() => onOpenChange(false)} disabled={switching}>
-            Hủy
+            {t("common.actions.cancel")}
           </Button>
           <Button onClick={onConfirm} disabled={switching}>
-            {switching ? "Đang chuyển..." : "Chuyển đổi"}
+            {switching ? t("common.actions.switching") : t("common.actions.switch")}
           </Button>
         </DialogFooter>
       </DialogContent>

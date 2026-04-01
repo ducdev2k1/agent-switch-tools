@@ -1,4 +1,5 @@
 import { useState } from "react"
+import { useTranslation } from "react-i18next"
 import { open as shellOpen } from "@tauri-apps/plugin-shell"
 import {
   Dialog,
@@ -18,26 +19,6 @@ interface AddAccountDialogProps {
   onSaveCurrent: () => void
 }
 
-const steps = [
-  {
-    label: "Lưu tài khoản hiện tại",
-    description: 'Bấm "Lưu Hiện tại" để backup account đang dùng trước.',
-  },
-  {
-    label: "Đăng xuất trong terminal",
-    description: "Chạy lệnh bên dưới để đăng xuất tài khoản hiện tại.",
-    command: "claude auth logout",
-  },
-  {
-    label: "Đăng nhập tài khoản mới",
-    description: "Chạy Claude Code, nó sẽ yêu cầu đăng nhập lại.",
-    command: "claude",
-  },
-  {
-    label: "Quay lại app & lưu",
-    description: 'Bấm "Lưu Hiện tại" để lưu tài khoản mới vừa đăng nhập.',
-  },
-]
 
 export function AddAccountDialog({
   open,
@@ -45,7 +26,29 @@ export function AddAccountDialog({
   hasActiveProfile,
   onSaveCurrent,
 }: AddAccountDialogProps) {
+  const { t } = useTranslation()
   const [copiedIdx, setCopiedIdx] = useState<number | null>(null)
+
+  const steps = [
+    {
+      label: t("dashboard.messages.add_account_steps.step_1_label"),
+      description: t("dashboard.messages.add_account_steps.step_1_desc"),
+    },
+    {
+      label: t("dashboard.messages.add_account_steps.step_2_label"),
+      description: t("dashboard.messages.add_account_steps.step_2_desc"),
+      command: "claude auth logout",
+    },
+    {
+      label: t("dashboard.messages.add_account_steps.step_3_label"),
+      description: t("dashboard.messages.add_account_steps.step_3_desc"),
+      command: "claude",
+    },
+    {
+      label: t("dashboard.messages.add_account_steps.step_4_label"),
+      description: t("dashboard.messages.add_account_steps.step_4_desc"),
+    },
+  ]
 
   const copyCommand = async (cmd: string, idx: number) => {
     await navigator.clipboard.writeText(cmd)
@@ -59,7 +62,7 @@ export function AddAccountDialog({
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Terminal className="size-5" />
-            Thêm tài khoản mới
+            {t("common.actions.add_account")}
           </DialogTitle>
         </DialogHeader>
 
@@ -83,7 +86,7 @@ export function AddAccountDialog({
                     className="text-xs mt-1"
                     onClick={onSaveCurrent}
                   >
-                    Lưu Hiện tại
+                    {t("common.actions.save_current")}
                   </Button>
                 )}
 
@@ -102,7 +105,7 @@ export function AddAccountDialog({
                       {copiedIdx === i ? (
                         <CircleCheck className="size-3.5 text-emerald-500" />
                       ) : (
-                        "Copy"
+                        t("common.actions.copy")
                       )}
                     </Button>
                   </div>
@@ -121,7 +124,7 @@ export function AddAccountDialog({
             <ExternalLink className="size-3.5" />
             Anthropic Console
           </Button>
-          <Button onClick={() => onOpenChange(false)}>Đã hiểu</Button>
+          <Button onClick={() => onOpenChange(false)}>{t("common.actions.got_it")}</Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>

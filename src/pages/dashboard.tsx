@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from "react"
+import { useTranslation } from "react-i18next"
 import { toast } from "sonner"
 import { listen } from "@tauri-apps/api/event"
 import { useCredentialProfiles } from "@/hooks/use-profiles"
@@ -6,7 +7,6 @@ import { useClaudeConfig } from "@/hooks/use-claude-config"
 import { useUsageStats } from "@/hooks/use-usage-stats"
 import { CliStatusBar } from "@/components/cli-status-bar"
 import { ProfileCard } from "@/components/profile-card"
-import { SaveProfileDialog } from "@/components/profile-form-dialog"
 import { SwitchConfirmationDialog } from "@/components/switch-confirmation-dialog"
 import { DeleteConfirmDialog } from "@/components/delete-confirm-dialog"
 import { AddAccountDialog } from "@/components/add-account-dialog"
@@ -17,12 +17,12 @@ import type { CredentialProfile } from "@/lib/types"
 import { Save, RefreshCw, Shield, UserPlus } from "lucide-react"
 
 export function Dashboard() {
+  const { t, i18n } = useTranslation()
   const {
     profiles,
     loading: profilesLoading,
     saveCurrentAs,
     switchTo,
-    rename,
     remove,
     checkClaudeRunning,
     refresh,
@@ -40,10 +40,9 @@ export function Dashboard() {
   const handleTraySwitchRef = useCallback(
     async (profileName: string) => {
       const running = await checkClaudeRunning()
-      // Find matching profile from current list
       const target = profiles.find((p) => !p.isActive && p.name === profileName)
       if (!target) {
-        toast.error(`Hồ sơ "${profileName}" không tìm thấy`)
+        toast.error(t('dashboard.errors.not_found', { name: profileName }))
         return
       }
       setClaudeIsRunning(running)
@@ -63,9 +62,6 @@ export function Dashboard() {
   }, [handleTraySwitchRef])
 
   // Dialog states
-  const [saveDialogOpen, setSaveDialogOpen] = useState(false)
-  const [renameDialogOpen, setRenameDialogOpen] = useState(false)
-  const [renamingProfile, setRenamingProfile] = useState<CredentialProfile | null>(null)
   const [switchDialogOpen, setSwitchDialogOpen] = useState(false)
   const [switchTarget, setSwitchTarget] = useState<CredentialProfile | null>(null)
   const [claudeIsRunning, setClaudeIsRunning] = useState(false)
@@ -73,34 +69,26 @@ export function Dashboard() {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
   const [deletingName, setDeletingName] = useState<string | null>(null)
   const [addAccountOpen, setAddAccountOpen] = useState(false)
+  const [saving, setSaving] = useState(false)
 
   const activeProfile = profiles.find((p) => p.isActive)
   const savedProfiles = profiles.filter((p) => !p.isActive)
 
-  // Save current credentials as named profile
-  const handleSaveCurrent = async (name: string) => {
+  // Save current credentials (auto-detect email)
+  const handleSaveCurrent = async () => {
+    setSaving(true)
     try {
-      await saveCurrentAs(name)
-      toast.success(`Đã lưu thành "${name}"`)
+      const email = await saveCurrentAs()
+      toast.success(t('dashboard.success.account_saved', { email }))
     } catch (e) {
-      toast.error(`Lưu thất bại: ${e}`)
-      throw e
+      toast.error(t('dashboard.errors.save_failed', { error: e }))
+    } finally {
+      setSaving(false)
     }
   }
 
   // Initiate switch: check Claude running → show confirmation dialog
   const handleSwitchRequest = async (target: CredentialProfile) => {
-    if (activeProfile) {
-      const hasBackup = savedProfiles.some(
-        (p) => p.info.organizationUuid === activeProfile.info.organizationUuid
-      )
-      if (!hasBackup && activeProfile.name === "Active") {
-        setSaveDialogOpen(true)
-        toast.info("Vui lòng lưu tài khoản hiện tại trước, sau đó mới chuyển đổi.")
-        return
-      }
-    }
-
     const running = await checkClaudeRunning()
     setClaudeIsRunning(running)
     setSwitchTarget(target)
@@ -117,29 +105,12 @@ export function Dashboard() {
       setSwitchDialogOpen(false)
       toast.success(result.message)
       if (result.claudeWasRunning) {
-        toast.warning("Vui lòng khởi động lại Claude Code để sử dụng thông tin đăng nhập mới.", { duration: 5000 })
+        toast.warning(t('dashboard.messages.restart_claude_warning'), { duration: 5000 })
       }
     } catch (e) {
-      toast.error(`Chuyển đổi thất bại: ${e}`)
+      toast.error(t('dashboard.errors.switch_failed', { error: e }))
     } finally {
       setSwitching(false)
-    }
-  }
-
-  // Rename
-  const handleRename = (profile: CredentialProfile) => {
-    setRenamingProfile(profile)
-    setRenameDialogOpen(true)
-  }
-
-  const handleRenameSubmit = async (newName: string) => {
-    if (!renamingProfile) return
-    try {
-      await rename(renamingProfile.name, newName)
-      toast.success(`Đã đổi tên thành "${newName}"`)
-    } catch (e) {
-      toast.error(`Đổi tên thất bại: ${e}`)
-      throw e
     }
   }
 
@@ -153,9 +124,9 @@ export function Dashboard() {
     if (!deletingName) return
     try {
       await remove(deletingName)
-      toast.success(`Đã xóa "${deletingName}"`)
+      toast.success(t('dashboard.success.deleted', { name: deletingName }))
     } catch (e) {
-      toast.error(`Xóa thất bại: ${e}`)
+      toast.error(t('dashboard.errors.delete_failed', { error: e }))
     } finally {
       setDeleteDialogOpen(false)
       setDeletingName(null)
@@ -175,17 +146,25 @@ export function Dashboard() {
           <div className="flex items-center gap-3">
             <Shield className="size-5 text-primary" />
             <h1 className="text-lg font-bold tracking-tight">
-              Quản lý Tài khoản Claude
+              {t('dashboard.header.title')}
             </h1>
           </div>
           <div className="flex items-center gap-2">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => i18n.changeLanguage(i18n.language === 'vi' ? 'en' : 'vi')}
+              className="text-xs font-medium"
+            >
+              {i18n.language === 'vi' ? 'EN' : 'VI'}
+            </Button>
             <ModeToggle />
             <Button variant="ghost" size="icon" onClick={handleRefresh} className="size-8">
               <RefreshCw className="size-4" />
             </Button>
-            <Button onClick={() => setSaveDialogOpen(true)} size="sm" disabled={!activeProfile}>
+            <Button onClick={handleSaveCurrent} size="sm" disabled={!activeProfile || saving}>
               <Save className="size-4" />
-              Lưu Hiện tại
+              {saving ? t('common.actions.saving') : t('common.actions.save_current')}
             </Button>
           </div>
         </div>
@@ -201,12 +180,11 @@ export function Dashboard() {
         {activeProfile && (
           <div>
             <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-3">
-              Tài khoản đang hoạt động
+              {t('common.labels.active_account')}
             </h2>
             <ProfileCard
               profile={activeProfile}
               onSwitch={() => {}}
-              onRename={() => {}}
               onDelete={() => {}}
             />
           </div>
@@ -215,7 +193,7 @@ export function Dashboard() {
         {!activeProfile && !profilesLoading && (
           <div className="rounded-lg border border-amber-500/30 bg-amber-500/5 p-4 text-center">
             <p className="text-sm text-amber-700 dark:text-amber-400">
-              Không tìm thấy thông tin đăng nhập. Vui lòng đăng nhập vào Claude CLI trước.
+              {t('dashboard.messages.no_credentials')}
             </p>
           </div>
         )}
@@ -226,7 +204,7 @@ export function Dashboard() {
         <div>
           <div className="flex items-center justify-between mb-3">
             <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">
-              Hồ sơ đã lưu ({savedProfiles.length})
+              {t('common.labels.saved_profiles', { count: savedProfiles.length })}
             </h2>
             <Button
               variant="outline"
@@ -235,7 +213,7 @@ export function Dashboard() {
               className="text-xs"
             >
               <UserPlus className="size-3.5" />
-              Thêm tài khoản
+              {t('common.actions.add_account')}
             </Button>
           </div>
 
@@ -248,15 +226,14 @@ export function Dashboard() {
           ) : savedProfiles.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-12 text-center">
               <Shield className="size-10 text-muted-foreground/40 mb-3" />
-              <h3 className="text-base font-semibold mb-1">Không có hồ sơ đã lưu</h3>
+              <h3 className="text-base font-semibold mb-1">{t('dashboard.messages.no_saved_profiles')}</h3>
               <p className="text-sm text-muted-foreground mb-4 max-w-sm">
-                Lưu thông tin đăng nhập hiện tại để tạo hồ sơ.
-                Sau đó đăng nhập bằng tài khoản khác và lưu lại.
+                {t('dashboard.messages.no_saved_profiles_info')}
               </p>
               {activeProfile && (
-                <Button onClick={() => setSaveDialogOpen(true)} variant="outline" size="sm">
+                <Button onClick={handleSaveCurrent} variant="outline" size="sm" disabled={saving}>
                   <Save className="size-4" />
-                  Lưu Tài khoản Hiện tại
+                  {t('common.actions.save_current')}
                 </Button>
               )}
             </div>
@@ -267,7 +244,6 @@ export function Dashboard() {
                   key={profile.name}
                   profile={profile}
                   onSwitch={handleSwitchRequest}
-                  onRename={handleRename}
                   onDelete={handleDeleteRequest}
                   isCurrentlyActive={
                     activeProfile?.info.organizationUuid === profile.info.organizationUuid
@@ -280,21 +256,6 @@ export function Dashboard() {
       </main>
 
       {/* Dialogs */}
-      <SaveProfileDialog
-        open={saveDialogOpen}
-        onOpenChange={setSaveDialogOpen}
-        onSave={handleSaveCurrent}
-        mode="save"
-      />
-
-      <SaveProfileDialog
-        open={renameDialogOpen}
-        onOpenChange={setRenameDialogOpen}
-        onSave={handleRenameSubmit}
-        mode="rename"
-        initialName={renamingProfile?.name}
-      />
-
       <SwitchConfirmationDialog
         open={switchDialogOpen}
         onOpenChange={setSwitchDialogOpen}
@@ -315,10 +276,7 @@ export function Dashboard() {
         open={addAccountOpen}
         onOpenChange={setAddAccountOpen}
         hasActiveProfile={!!activeProfile}
-        onSaveCurrent={() => {
-          setAddAccountOpen(false)
-          setSaveDialogOpen(true)
-        }}
+        onSaveCurrent={handleSaveCurrent}
       />
     </div>
   )

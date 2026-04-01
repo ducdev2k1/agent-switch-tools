@@ -23,6 +23,8 @@ pub fn run() {
             // Metadata
             commands::metadata_commands::get_manager_meta,
             commands::metadata_commands::set_active_profile_name,
+            // OAuth account
+            commands::oauth_commands::get_oauth_account,
             // Usage stats
             commands::quota_commands::get_usage_stats,
         ])

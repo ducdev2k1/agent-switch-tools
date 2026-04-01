@@ -1,0 +1,88 @@
+{
+  "common": {
+    "actions": {
+      "add_account": "Add account",
+      "cancel": "Cancel",
+      "close": "Close",
+      "confirm": "Confirm",
+      "confirm_delete": "Confirm delete",
+      "copy": "Copy",
+      "delete": "Delete",
+      "got_it": "Got it",
+      "not_found": "Not found",
+      "refresh": "Refresh",
+      "save": "Save",
+      "save_current": "Save Current",
+      "saving": "Saving...",
+      "switch": "Switch",
+      "switching": "Switching...",
+      "unknown": "Unknown"
+    },
+    "labels": {
+      "active": "Active",
+      "active_account": "Active account",
+      "expired": "Expired",
+      "expired_ago": "{{time}} ago",
+      "expires_in": "Expires in {{time}}",
+      "expiring_soon": "Expiring soon",
+      "loading": "Loading...",
+      "matched": "Matched",
+      "organization_account": "Organization Account",
+      "personal_account": "Personal Account",
+      "restrictions_active": "Restrictions active",
+      "saved_profiles": "Saved profiles ({{count}})",
+      "scopes": "{{count}} scopes",
+      "sessions": "Sessions:",
+      "switch_account": "Switch profile",
+      "this_week": "{{count}} this week",
+      "time_unit": {
+        "day": "{{count}} days",
+        "hour": "{{count}} hours",
+        "minute": "{{count}} minutes"
+      }
+    }
+  },
+  "dashboard": {
+    "cli": {
+      "active_keys": "Active ({{count}} keys)",
+      "env_status": ".env:",
+      "model": "Model:"
+    },
+    "errors": {
+      "delete_failed": "Delete failed: {{error}}",
+      "not_found": "Profile \"{{name}}\" not found",
+      "save_failed": "Save failed: {{error}}",
+      "switch_failed": "Switch failed: {{error}}"
+    },
+    "header": {
+      "title": "Claude Tools"
+    },
+    "messages": {
+      "add_account_steps": {
+        "step_1_desc": "Click \"Save Current\" to backup the account you're currently using.",
+        "step_1_label": "1. Save current account",
+        "step_2_desc": "Run the command below in Terminal to log out of the current account.",
+        "step_2_label": "2. Log out in Terminal",
+        "step_3_desc": "Run the \"claude\" command in Terminal; it will prompt you to log in again.",
+        "step_3_label": "3. Log in with new account",
+        "step_4_desc": "Return to this app and click \"Save Current\" to save the newly logged-in account.",
+        "step_4_label": "4. Return to app & Save"
+      },
+      "claude_running_title": "Claude Code is running",
+      "claude_running_warning": "Ongoing sessions will continue using the current account. New sessions will use the switched account.",
+      "delete_confirm": "This action cannot be undone. Profile \"{{name}}\" will be permanently deleted from this device.",
+      "no_credentials": "No credentials found. Please log in to Claude CLI first.",
+      "no_saved_profiles": "No saved profiles",
+      "no_saved_profiles_info": "Save current credentials to create a profile. Then log in with a different account and save again.",
+      "preserve_context": "Your project context, history, and settings will be preserved.",
+      "restart_claude_warning": "Please restart Claude Code to use the new credentials.",
+      "switch_confirm": "Switch to profile \"{{name}}\"?",
+      "token_expired_title": "Token has expired",
+      "token_expired_warning": "This token has expired. It may automatically refresh next time it's used."
+    },
+    "success": {
+      "account_saved": "Account \"{{email}}\" saved",
+      "deleted": "\"{{name}}\" deleted"
+    }
+  }
+}

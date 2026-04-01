@@ -7,6 +7,7 @@ import {
 } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
 import { Trash2 } from "lucide-react"
+import { useTranslation } from "react-i18next"
 
 interface DeleteConfirmDialogProps {
   open: boolean
@@ -21,6 +22,7 @@ export function DeleteConfirmDialog({
   profileName,
   onConfirm,
 }: DeleteConfirmDialogProps) {
+  const { t } = useTranslation()
   if (!profileName) return null
 
   return (
@@ -29,20 +31,20 @@ export function DeleteConfirmDialog({
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Trash2 className="size-5 text-destructive" />
-            Xóa "{profileName}"?
+            {t("common.actions.delete")} "{profileName}"?
           </DialogTitle>
         </DialogHeader>
 
         <p className="text-sm text-muted-foreground">
-          Thao tác này sẽ xóa vĩnh viễn tệp thông tin đăng nhập đã lưu. Hành động này không thể hoàn tác.
+          {t("dashboard.messages.delete_confirm", { name: profileName })}
         </p>
 
         <DialogFooter>
           <Button variant="outline" onClick={() => onOpenChange(false)}>
-            Hủy
+            {t("common.actions.cancel")}
           </Button>
           <Button variant="destructive" onClick={onConfirm}>
-            Xóa
+            {t("common.actions.delete")}
           </Button>
         </DialogFooter>
       </DialogContent>

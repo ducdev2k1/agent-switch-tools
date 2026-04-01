@@ -1,54 +1,57 @@
 import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
+import { useTranslation } from "react-i18next"
 import type { CredentialProfile } from "@/lib/types"
 import {
   ArrowRightLeft,
-  Pencil,
   Trash2,
   Crown,
   Zap,
   Clock,
+  Mail,
+  Building2,
 } from "lucide-react"
 
 interface ProfileCardProps {
   profile: CredentialProfile
   onSwitch: (profile: CredentialProfile) => void
-  onRename: (profile: CredentialProfile) => void
   onDelete: (name: string) => void
   isCurrentlyActive?: boolean
 }
 
 /** Human-readable subscription name */
-function formatSubscription(sub: string | null): string {
-  if (!sub) return "Không rõ"
+function formatSubscription(sub: string | null, t: any): string {
+  if (!sub) return t("common.actions.unknown")
   return sub.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase())
 }
 
 /** Format expiry as relative time string */
-function formatExpiry(hoursLeft: number | null, isExpired: boolean): string | null {
+function formatExpiry(hoursLeft: number | null, isExpired: boolean, t: any): string | null {
   if (hoursLeft === null) return null
+  const ago = Math.abs(hoursLeft)
+  
+  let timeStr = ""
+  if (ago < 1) timeStr = t("common.labels.time_unit.minute", { count: Math.round(ago * 60) })
+  else if (ago < 24) timeStr = t("common.labels.time_unit.hour", { count: Math.round(ago) })
+  else timeStr = t("common.labels.time_unit.day", { count: Math.round(ago / 24) })
+
   if (isExpired) {
-    const ago = Math.abs(hoursLeft)
-    if (ago < 1) return `Hết hạn ${Math.round(ago * 60)} phút trước`
-    if (ago < 24) return `Hết hạn ${Math.round(ago)} giờ trước`
-    return `Hết hạn ${Math.round(ago / 24)} ngày trước`
+    return t("common.labels.expired_ago", { time: timeStr })
   }
-  if (hoursLeft < 1) return `Hết hạn sau ${Math.round(hoursLeft * 60)} phút`
-  if (hoursLeft < 24) return `Hết hạn sau ${Math.round(hoursLeft)} giờ`
-  return `Hết hạn sau ${Math.round(hoursLeft / 24)} ngày`
+  return t("common.labels.expires_in", { time: timeStr })
 }
 
 export function ProfileCard({
   profile,
   onSwitch,
-  onRename,
   onDelete,
   isCurrentlyActive = false,
 }: ProfileCardProps) {
+  const { t } = useTranslation()
   const { name, isActive, info } = profile
   const expired = info.isExpired
-  const expiryText = formatExpiry(info.expiresInHours, expired)
+  const expiryText = formatExpiry(info.expiresInHours, expired, t)
 
   // Health color indicator logic
   const expiringSoon = !expired && info.expiresInHours !== null && info.expiresInHours < 24
@@ -90,36 +93,52 @@ export function ProfileCard({
             <div className="min-w-0 flex-1">
               <div className="flex items-center gap-2 flex-wrap">
                 <h3 className="font-bold text-base tracking-tight group-hover:text-primary transition-colors">
-                  {name}
+                  {profile.oauthAccount?.displayName || name}
                 </h3>
                 {isActive && (
                   <Badge variant="success" className="text-[10px] font-bold uppercase tracking-wider px-2 py-0">
-                    Hoạt động
+                    {t("common.labels.active")}
                   </Badge>
                 )}
                 {isCurrentlyActive && !isActive && (
                   <Badge variant="secondary" className="text-[10px] font-bold uppercase tracking-wider px-2 py-0">
-                    Trùng khớp
+                    {t("common.labels.matched")}
                   </Badge>
                 )}
                 {expired && (
                   <Badge variant="destructive" className="text-[10px] font-bold uppercase tracking-wider px-2 py-0">
-                    Hết hạn
+                    {t("common.labels.expired")}
                   </Badge>
                 )}
                 {expiringSoon && (
                   <Badge variant="warning" className="text-[10px] font-bold uppercase tracking-wider px-2 py-0">
-                    Sắp hết hạn
+                    {t("common.labels.expiring_soon")}
                   </Badge>
                 )}
               </div>
+
+              {/* Email + Org */}
+              {profile.oauthAccount?.emailAddress && (
+                <div className="flex items-center gap-3 mt-1.5 text-xs text-muted-foreground">
+                  <span className="flex items-center gap-1">
+                    <Mail className="size-3" />
+                    {profile.oauthAccount.emailAddress}
+                  </span>
+                  {profile.oauthAccount.organizationName && (
+                    <span className="flex items-center gap-1">
+                      <Building2 className="size-3" />
+                      {profile.oauthAccount.organizationName}
+                    </span>
+                  )}
+                </div>
+              )}
 
               {/* Extras indicators */}
               <div className="flex items-center gap-1.5 mt-2.5 flex-wrap">
                 {info.subscriptionType && (
                   <Badge variant="secondary" className="text-[10px] bg-secondary/50 font-medium">
                     <Crown className="size-3 mr-1 text-primary/70" />
-                    {formatSubscription(info.subscriptionType)}
+                    {formatSubscription(info.subscriptionType, t)}
                   </Badge>
                 )}
                 {info.rateLimitTier && (
@@ -143,9 +162,9 @@ export function ProfileCard({
               {info.scopes.length > 0 && (
                 <p className="text-[11px] text-muted-foreground mt-2 font-medium flex items-center gap-1">
                   <span className="w-1.5 h-1.5 rounded-full bg-muted-foreground/30" />
-                  {info.scopes.length} quyền (scopes)
+                  {t("common.labels.scopes", { count: info.scopes.length })}
                   <span className="text-muted-foreground/40 mx-1">|</span>
-                  {info.organizationUuid ? "Tài khoản Tổ chức" : "Tài khoản Cá nhân"}
+                  {info.organizationUuid ? t("common.labels.organization_account") : t("common.labels.personal_account")}
                 </p>
               )}
             </div>
@@ -162,17 +181,9 @@ export function ProfileCard({
                   className="h-8 text-xs font-bold hover:bg-primary hover:text-primary-foreground border-primary/20"
                 >
                   <ArrowRightLeft className="size-3.5 mr-1" />
-                  Chuyển đổi
+                  {t("common.actions.switch")}
                 </Button>
               )}
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={() => onRename(profile)}
-                className="size-8 hover:bg-accent"
-              >
-                <Pencil className="size-3.5 text-muted-foreground" />
-              </Button>
               <Button
                 variant="ghost"
                 size="icon"

@@ -22,10 +22,11 @@ export function useCredentialProfiles() {
     load()
   }, [load])
 
-  /** Save current active credentials as a named profile */
-  const saveCurrentAs = async (name: string) => {
-    await invoke("save_current_as_profile", { name })
+  /** Save current active credentials (auto-detect email from oauthAccount) */
+  const saveCurrentAs = async (): Promise<string> => {
+    const email = await invoke<string>("save_current_as_profile")
     await load()
+    return email
   }
 
   /** Switch to target profile (backend handles backup of current) */

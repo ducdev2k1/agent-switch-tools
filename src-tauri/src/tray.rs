@@ -14,7 +14,7 @@ pub fn setup_tray(app: &tauri::App) -> Result<(), Box<dyn std::error::Error>> {
     let menu = build_tray_menu(&handle)?;
 
     TrayIconBuilder::new()
-        .tooltip("Claude Account Manager")
+        .tooltip("Claude Tools")
         .menu(&menu)
         .show_menu_on_left_click(true)
         .on_menu_event(move |app_handle: &tauri::AppHandle, event: tauri::menu::MenuEvent| {
@@ -59,7 +59,7 @@ fn build_tray_menu(
     let mut builder = MenuBuilder::new(handle);
 
     // Header
-    let header = MenuItemBuilder::with_id("header", "Claude Account Manager")
+    let header = MenuItemBuilder::with_id("header", "Claude Tools")
         .enabled(false)
         .build(handle)?;
     builder = builder.item(&header);

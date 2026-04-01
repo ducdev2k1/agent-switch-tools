@@ -3,13 +3,21 @@ use std::path::PathBuf;
 use tauri::Manager;
 
 use super::metadata_commands::{read_meta, record_switch_usage, write_meta};
+use super::oauth_commands::{
+    read_oauth_from_claude_json, read_saved_oauth, update_claude_json_oauth, write_saved_oauth,
+    OAuthAccount,
+};
+
+/// Resolve home directory (~)
+fn home_dir(app: &tauri::AppHandle) -> Result<PathBuf, String> {
+    app.path()
+        .home_dir()
+        .map_err(|e| format!("Cannot resolve home directory: {}", e))
+}
 
 /// Resolve ~/.claude/ directory
 fn claude_dir(app: &tauri::AppHandle) -> Result<PathBuf, String> {
-    app.path()
-        .home_dir()
-        .map(|h| h.join(".claude"))
-        .map_err(|e| format!("Cannot resolve home directory: {}", e))
+    home_dir(app).map(|h| h.join(".claude"))
 }
 
 // ========== Types ==========
@@ -32,6 +40,7 @@ pub struct CredentialProfile {
     pub name: String,
     pub is_active: bool,
     pub info: CredentialInfo,
+    pub oauth_account: Option<OAuthAccount>,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -116,26 +125,38 @@ fn check_claude_running() -> bool {
 pub async fn list_credential_profiles(
     app: tauri::AppHandle,
 ) -> Result<Vec<CredentialProfile>, String> {
+    let home = home_dir(&app)?;
     let dir = claude_dir(&app)?;
     let meta = read_meta(&dir);
     let mut profiles: Vec<CredentialProfile> = vec![];
 
+    // Read active oauthAccount from ~/.claude.json
+    let active_oauth = read_oauth_from_claude_json(&home);
+
+    // Resolve active profile name: metadata → oauthAccount email → fallback
+    let active_name = meta
+        .active_profile_name
+        .clone()
+        .or_else(|| {
+            active_oauth
+                .as_ref()
+                .and_then(|o| o.email_address.clone())
+        })
+        .unwrap_or_else(|| "Active".to_string());
+
     // Active profile (.credentials.json)
     let active_path = dir.join(".credentials.json");
     if active_path.exists() {
-        let active_name = meta
-            .active_profile_name
-            .clone()
-            .unwrap_or_else(|| "Active".to_string());
         let info = read_credential_info(&active_path);
         profiles.push(CredentialProfile {
-            name: active_name,
+            name: active_name.clone(),
             is_active: true,
             info,
+            oauth_account: active_oauth,
         });
     }
 
-    // Saved profiles (.credentials-[name].json)
+    // Saved profiles (.credentials-[name].json), skip active
     if let Ok(entries) = std::fs::read_dir(&dir) {
         for entry in entries.flatten() {
             let filename = entry.file_name().to_string_lossy().to_string();
@@ -146,14 +167,19 @@ pub async fn list_credential_profiles(
                     .unwrap_or("")
                     .to_string();
 
-                if !name.is_empty() {
-                    let info = read_credential_info(&entry.path());
-                    profiles.push(CredentialProfile {
-                        name,
-                        is_active: false,
-                        info,
-                    });
+                // Skip empty names and the currently active profile
+                if name.is_empty() || name == active_name {
+                    continue;
                 }
+
+                let info = read_credential_info(&entry.path());
+                let oauth = read_saved_oauth(&dir, &name);
+                profiles.push(CredentialProfile {
+                    name,
+                    is_active: false,
+                    info,
+                    oauth_account: oauth,
+                });
             }
         }
     }
@@ -172,23 +198,27 @@ pub async fn list_credential_profiles(
     Ok(profiles)
 }
 
-/// Save current active credentials as a named profile (copy, not move)
+/// Save current active credentials using email from oauthAccount (auto-detect)
 #[tauri::command]
-pub async fn save_current_as_profile(
-    app: tauri::AppHandle,
-    name: String,
-) -> Result<(), String> {
+pub async fn save_current_as_profile(app: tauri::AppHandle) -> Result<String, String> {
+    let home = home_dir(&app)?;
     let dir = claude_dir(&app)?;
     let active_path = dir.join(".credentials.json");
-    let target_path = dir.join(format!(".credentials-{}.json", name));
 
     if !active_path.exists() {
         return Err("No active credentials found (.credentials.json)".to_string());
     }
-    if target_path.exists() {
-        return Err(format!("Profile '{}' already exists", name));
-    }
 
+    // Auto-detect email from oauthAccount
+    let oauth = read_oauth_from_claude_json(&home)
+        .ok_or("Cannot read oauthAccount from ~/.claude.json")?;
+    let email = oauth
+        .email_address
+        .clone()
+        .ok_or("No email address found in oauthAccount")?;
+
+    // Copy credentials (overwrite allowed — refreshes tokens)
+    let target_path = dir.join(format!(".credentials-{}.json", email));
     std::fs::copy(&active_path, &target_path).map_err(|e| e.to_string())?;
 
     #[cfg(unix)]
@@ -198,69 +228,75 @@ pub async fn save_current_as_profile(
             .map_err(|e| e.to_string())?;
     }
 
-    // Update metadata: track this as the active profile name
+    // Save oauthAccount as .claude-[email].json
+    write_saved_oauth(&dir, &email, &oauth)?;
+
+    // Update metadata
     let mut meta = read_meta(&dir);
-    meta.active_profile_name = Some(name);
+    meta.active_profile_name = Some(email.clone());
     meta.last_switched_at = Some(chrono::Utc::now().to_rfc3339());
     write_meta(&dir, &meta)?;
 
-    Ok(())
+    Ok(email)
 }
 
-/// Switch to a different profile (atomic swap)
-/// 1. Copy target → .credentials.json.tmp
-/// 2. Rename active → .credentials-[current].json (backup)
-/// 3. Rename .tmp → .credentials.json (activate)
+/// Switch to a different profile
+/// 1. Backup current credentials + oauthAccount
+/// 2. Copy target → .credentials.json (keep target file)
+/// 3. Restore target's oauthAccount into ~/.claude.json
 /// 4. Update metadata
 #[tauri::command]
 pub async fn switch_credential_profile(
     app: tauri::AppHandle,
     target_name: String,
 ) -> Result<SwitchResult, String> {
+    let home = home_dir(&app)?;
     let dir = claude_dir(&app)?;
     let active_path = dir.join(".credentials.json");
-    let tmp_path = dir.join(".credentials.json.tmp");
     let target_path = dir.join(format!(".credentials-{}.json", target_name));
 
     if !target_path.exists() {
         return Err(format!("Profile '{}' not found", target_name));
     }
 
-    // Check target expiry
     let target_info = read_credential_info(&target_path);
     let target_was_expired = target_info.is_expired;
-
-    // Check if Claude is running
     let claude_was_running = check_claude_running();
 
-    // Read current active profile name from metadata
+    // Resolve outgoing email: metadata → oauthAccount → empty
     let mut meta = read_meta(&dir);
-    let current_name = meta
+    let current_email = meta
         .active_profile_name
         .clone()
-        .unwrap_or_else(|| "Unnamed".to_string());
+        .or_else(|| {
+            read_oauth_from_claude_json(&home).and_then(|o| o.email_address)
+        })
+        .unwrap_or_default();
 
-    // Step 1: Copy target to temp file
-    std::fs::copy(&target_path, &tmp_path)
-        .map_err(|e| format!("Failed to prepare target credentials: {}", e))?;
-
-    // Step 2: Backup current active (if exists)
-    if active_path.exists() {
-        let backup_path = dir.join(format!(".credentials-{}.json", current_name));
-        // Overwrite existing backup (update with latest refreshed tokens)
-        std::fs::rename(&active_path, &backup_path)
+    // Backup outgoing: save credentials + oauthAccount
+    if active_path.exists() && !current_email.is_empty() {
+        let backup_path = dir.join(format!(".credentials-{}.json", current_email));
+        std::fs::copy(&active_path, &backup_path)
             .map_err(|e| format!("Failed to backup current credentials: {}", e))?;
+
+        if let Some(oauth) = read_oauth_from_claude_json(&home) {
+            let _ = write_saved_oauth(&dir, &current_email, &oauth);
+        }
     }
 
-    // Step 3: Activate target (rename tmp → active)
-    std::fs::rename(&tmp_path, &active_path)
+    // Activate target: copy (keep original file intact)
+    std::fs::copy(&target_path, &active_path)
         .map_err(|e| format!("Failed to activate target credentials: {}", e))?;
 
-    // Step 4: Remove the saved target file (now active)
-    let _ = std::fs::remove_file(&target_path);
+    // Restore target's oauthAccount into ~/.claude.json
+    if let Some(target_oauth) = read_saved_oauth(&dir, &target_name) {
+        let _ = update_claude_json_oauth(&home, &target_oauth);
+    }
 
-    // Step 5: Update metadata with usage tracking
-    record_switch_usage(&mut meta, &current_name);
+    // Update metadata with usage tracking
+    if !current_email.is_empty() {
+        record_switch_usage(&mut meta, &current_email);
+    }
     meta.active_profile_name = Some(target_name.clone());
     write_meta(&dir, &meta)?;
 
@@ -302,20 +338,25 @@ pub async fn rename_credential_profile(
     Ok(())
 }
 
-/// Delete a saved profile
+/// Delete a saved profile (credentials + oauthAccount files)
 #[tauri::command]
 pub async fn delete_credential_profile(
     app: tauri::AppHandle,
     name: String,
 ) -> Result<(), String> {
     let dir = claude_dir(&app)?;
-    let path = dir.join(format!(".credentials-{}.json", name));
+    let cred_path = dir.join(format!(".credentials-{}.json", name));
 
-    if !path.exists() {
+    if !cred_path.exists() {
         return Err(format!("Profile '{}' not found", name));
     }
 
-    std::fs::remove_file(&path).map_err(|e| e.to_string())?;
+    std::fs::remove_file(&cred_path).map_err(|e| e.to_string())?;
+
+    // Also remove oauthAccount file if exists
+    let oauth_path = dir.join(format!(".claude-{}.json", name));
+    let _ = std::fs::remove_file(&oauth_path);
+
     Ok(())
 }
 

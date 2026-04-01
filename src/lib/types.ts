@@ -8,10 +8,25 @@ export interface CredentialInfo {
   organizationUuid: string | null
 }
 
+export interface OAuthAccount {
+  accountUuid: string | null
+  emailAddress: string | null
+  organizationUuid: string | null
+  hasExtraUsageEnabled: boolean | null
+  billingType: string | null
+  accountCreatedAt: string | null
+  subscriptionCreatedAt: string | null
+  displayName: string | null
+  organizationRole: string | null
+  workspaceRole: unknown
+  organizationName: string | null
+}
+
 export interface CredentialProfile {
   name: string
   isActive: boolean
   info: CredentialInfo
+  oauthAccount: OAuthAccount | null
 }
 
 export interface SwitchResult {
