@@ -1,8 +1,8 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
   "productName": "Claude Tools",
-  "version": "1.0.0",
-  "identifier": "com.ducnd.claude-tools",
+  "version": "1.0.1",
+  "identifier": "com.ducdev2k1.claude-tools",
   "build": {
     "beforeDevCommand": "pnpm dev",
     "devUrl": "http://localhost:1420",
@@ -37,7 +37,7 @@
       "icons/icon.ico"
     ],
     "category": "Utility",
-    "shortDescription": "Manage multiple Claude Code CLI accounts",
-    "longDescription": "A desktop app to manage multiple Claude Code CLI profiles, switch active accounts, and view usage stats."
+    "shortDescription": "A powerful, secure, and 100% offline desktop app to manage Claude Code CLI accounts",
+    "longDescription": "A powerful, lightning-fast, and 100% offline desktop application to manage multiple Claude Code CLI accounts — effortlessly switch profiles, monitor quota usage, and stay meticulously organized."
   }
 }

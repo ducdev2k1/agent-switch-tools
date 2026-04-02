@@ -1,8 +1,28 @@
 {
   "name": "claude-tools",
-  "private": true,
+  "version": "1.0.1",
+  "description": "A powerful, lightning-fast, and 100% offline desktop application to manage multiple Claude Code CLI accounts — effortlessly switch profiles, monitor quota usage, and stay meticulously organized.",
+  "author": "ducdev2k1",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ducdev2k1/claude-tools.git"
+  },
+  "bugs": {
+    "url": "https://github.com/ducdev2k1/claude-tools/issues"
+  },
+  "homepage": "https://github.com/ducdev2k1/claude-tools#readme",
+  "keywords": [
+    "claude",
+    "claude-code",
+    "manager",
+    "tauri",
+    "react",
+    "desktop-app",
+    "offline"
+  ],
+  "private": false,
   "packageManager": "pnpm@10.30.3",
-  "version": "1.0.0",
   "type": "module",
   "scripts": {
     "dev": "vite",

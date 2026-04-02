@@ -1,7 +1,7 @@
 <div align="center">
   <img src="public/favicon.png" alt="Claude Tools Logo" width="120" />
   <h1>Claude Tools</h1>
-  <p>Desktop app to manage multiple Claude Code CLI accounts — switch profiles, monitor usage, and stay organized.</p>
+  <p><b>A powerful, lightning-fast, and 100% offline desktop application</b> to manage multiple Claude Code CLI accounts — effortlessly switch profiles, monitor quota usage, and stay meticulously organized.</p>
 </div>
 
 ![Tauri](https://img.shields.io/badge/Tauri-v2-blue)
@@ -17,6 +17,13 @@
 - **System tray** — Quick access from system tray icon
 - **i18n** — English and Vietnamese language support
 - **Dark mode** — Light/dark theme toggle
+
+## 🔒 Security & Privacy (100% Local)
+
+Because this application manages your `.credentials.json` files (which contain highly sensitive Claude API tokens), **Security is our top priority**:
+- **Zero Telemetry & No Tracking**: We guarantee that the app **never** sends your credentials, tokens, or personal data to any external server.
+- **100% Offline/Local Operation**: All file parsing, account switching, and management happen purely on your local filesystem using secure Rust bindings. Your API keys never leave your machine.
+- **Open Source Transparency**: The codebase is completely open source, allowing you to audit and verify every single system call. You can trust this tool to protect your data.
 
 ## Tech Stack
 
