@@ -1,17 +1,17 @@
-import { Card, CardContent } from "@/components/ui/card"
-import { Badge } from "@/components/ui/badge"
-import { Button } from "@/components/ui/button"
-import { useTranslation } from "react-i18next"
-import type { CredentialProfile } from "@/lib/types"
+import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
+import { Card, CardContent } from '@/components/ui/card'
+import type { CredentialProfile } from '@/lib/types'
 import {
   ArrowRightLeft,
-  Trash2,
-  Crown,
-  Zap,
-  Clock,
-  Mail,
   Building2,
-} from "lucide-react"
+  Clock,
+  Crown,
+  Mail,
+  Trash2,
+  Zap,
+} from 'lucide-react'
+import { useTranslation } from 'react-i18next'
 
 interface ProfileCardProps {
   profile: CredentialProfile
@@ -22,24 +22,33 @@ interface ProfileCardProps {
 
 /** Human-readable subscription name */
 function formatSubscription(sub: string | null, t: any): string {
-  if (!sub) return t("common.actions.unknown")
-  return sub.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase())
+  if (!sub) return t('common.actions.unknown')
+  return sub.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase())
 }
 
 /** Format expiry as relative time string */
-function formatExpiry(hoursLeft: number | null, isExpired: boolean, t: any): string | null {
+function formatExpiry(
+  hoursLeft: number | null,
+  isExpired: boolean,
+  t: any,
+): string | null {
   if (hoursLeft === null) return null
   const ago = Math.abs(hoursLeft)
-  
-  let timeStr = ""
-  if (ago < 1) timeStr = t("common.labels.time_unit.minute", { count: Math.round(ago * 60) })
-  else if (ago < 24) timeStr = t("common.labels.time_unit.hour", { count: Math.round(ago) })
-  else timeStr = t("common.labels.time_unit.day", { count: Math.round(ago / 24) })
+
+  let timeStr = ''
+  if (ago < 1)
+    timeStr = t('common.labels.time_unit.minute', {
+      count: Math.round(ago * 60),
+    })
+  else if (ago < 24)
+    timeStr = t('common.labels.time_unit.hour', { count: Math.round(ago) })
+  else
+    timeStr = t('common.labels.time_unit.day', { count: Math.round(ago / 24) })
 
   if (isExpired) {
-    return t("common.labels.expired_ago", { time: timeStr })
+    return t('common.labels.expired_ago', { time: timeStr })
   }
-  return t("common.labels.expires_in", { time: timeStr })
+  return t('common.labels.expires_in', { time: timeStr })
 }
 
 export function ProfileCard({
@@ -54,20 +63,21 @@ export function ProfileCard({
   const expiryText = formatExpiry(info.expiresInHours, expired, t)
 
   // Health color indicator logic
-  const expiringSoon = !expired && info.expiresInHours !== null && info.expiresInHours < 24
+  const expiringSoon =
+    !expired && info.expiresInHours !== null && info.expiresInHours < 24
 
   return (
     <Card
       className={`transition-all duration-300 hover:shadow-lg group ${
         isActive
-          ? "border-success/50 bg-success/5 shadow-[0_0_15px_rgba(34,197,94,0.1)] dark:shadow-[0_0_15px_rgba(34,197,94,0.05)]"
+          ? 'border-success/50 bg-success/5 shadow-[0_0_15px_rgba(34,197,94,0.1)] dark:shadow-[0_0_15px_rgba(34,197,94,0.05)]'
           : isCurrentlyActive
-            ? "border-primary/30 bg-accent/30"
+            ? 'border-primary/30 bg-accent/30'
             : expired
-              ? "border-destructive/30 bg-destructive/5"
+              ? 'border-destructive/30 bg-destructive/5'
               : expiringSoon
-                ? "border-warning/30 bg-warning/5"
-                : "hover:border-primary/50"
+                ? 'border-warning/30 bg-warning/5'
+                : 'hover:border-primary/50'
       }`}
     >
       <CardContent className="p-4">
@@ -78,14 +88,14 @@ export function ProfileCard({
               <div
                 className={`size-3.5 rounded-full transition-all duration-300 ${
                   isActive
-                    ? "bg-success shadow-[0_0_10px_rgba(34,197,94,0.8)] animate-pulse"
+                    ? 'bg-success shadow-[0_0_10px_rgba(34,197,94,0.8)] animate-pulse'
                     : isCurrentlyActive
-                      ? "bg-primary/50"
+                      ? 'bg-primary/50'
                       : expired
-                        ? "bg-destructive/60"
+                        ? 'bg-destructive/60'
                         : expiringSoon
-                          ? "bg-warning/80"
-                          : "bg-muted-foreground/30"
+                          ? 'bg-warning/80'
+                          : 'bg-muted-foreground/30'
                 }`}
               />
             </div>
@@ -96,23 +106,35 @@ export function ProfileCard({
                   {profile.oauthAccount?.displayName || name}
                 </h3>
                 {isActive && (
-                  <Badge variant="success" className="text-[10px] font-bold uppercase tracking-wider px-2 py-0">
-                    {t("common.labels.active")}
+                  <Badge
+                    variant="success"
+                    className="text-[10px] font-bold uppercase tracking-wider px-2 py-0"
+                  >
+                    {t('common.labels.active')}
                   </Badge>
                 )}
                 {isCurrentlyActive && !isActive && (
-                  <Badge variant="secondary" className="text-[10px] font-bold uppercase tracking-wider px-2 py-0">
-                    {t("common.labels.matched")}
+                  <Badge
+                    variant="secondary"
+                    className="text-[10px] font-bold uppercase tracking-wider px-2 py-0"
+                  >
+                    {t('common.labels.matched')}
                   </Badge>
                 )}
                 {expired && (
-                  <Badge variant="destructive" className="text-[10px] font-bold uppercase tracking-wider px-2 py-0">
-                    {t("common.labels.expired")}
+                  <Badge
+                    variant="destructive"
+                    className="text-[10px] font-bold uppercase tracking-wider px-2 py-0"
+                  >
+                    {t('common.labels.expired')}
                   </Badge>
                 )}
                 {expiringSoon && (
-                  <Badge variant="warning" className="text-[10px] font-bold uppercase tracking-wider px-2 py-0">
-                    {t("common.labels.expiring_soon")}
+                  <Badge
+                    variant="warning"
+                    className="text-[10px] font-bold uppercase tracking-wider px-2 py-0"
+                  >
+                    {t('common.labels.expiring_soon')}
                   </Badge>
                 )}
               </div>
@@ -136,20 +158,32 @@ export function ProfileCard({
               {/* Extras indicators */}
               <div className="flex items-center gap-1.5 mt-2.5 flex-wrap">
                 {info.subscriptionType && (
-                  <Badge variant="secondary" className="text-[10px] bg-secondary/50 font-medium">
+                  <Badge
+                    variant="secondary"
+                    className="text-[10px] bg-secondary/50 font-medium"
+                  >
                     <Crown className="size-3 mr-1 text-primary/70" />
                     {formatSubscription(info.subscriptionType, t)}
                   </Badge>
                 )}
                 {info.rateLimitTier && (
-                  <Badge variant="outline" className="text-[10px] font-mono font-medium border-primary/20">
+                  <Badge
+                    variant="outline"
+                    className="text-[10px] font-mono font-medium border-primary/20"
+                  >
                     <Zap className="size-3 mr-1 text-primary/70" />
                     {info.rateLimitTier}
                   </Badge>
                 )}
                 {expiryText && (
                   <Badge
-                    variant={expired ? "destructive" : expiringSoon ? "warning" : "outline"}
+                    variant={
+                      expired
+                        ? 'destructive'
+                        : expiringSoon
+                          ? 'warning'
+                          : 'outline'
+                    }
                     className="text-[10px] font-medium"
                   >
                     <Clock className="size-3 mr-1" />
@@ -162,9 +196,11 @@ export function ProfileCard({
               {info.scopes.length > 0 && (
                 <p className="text-[11px] text-muted-foreground mt-2 font-medium flex items-center gap-1">
                   <span className="w-1.5 h-1.5 rounded-full bg-muted-foreground/30" />
-                  {t("common.labels.scopes", { count: info.scopes.length })}
+                  {t('common.labels.scopes', { count: info.scopes.length })}
                   <span className="text-muted-foreground/40 mx-1">|</span>
-                  {info.organizationUuid ? t("common.labels.organization_account") : t("common.labels.personal_account")}
+                  {info.organizationUuid
+                    ? t('common.labels.organization_account')
+                    : t('common.labels.personal_account')}
                 </p>
               )}
             </div>
@@ -181,7 +217,7 @@ export function ProfileCard({
                   className="h-8 text-xs font-bold hover:bg-primary hover:text-primary-foreground border-primary/20"
                 >
                   <ArrowRightLeft className="size-3.5 mr-1" />
-                  {t("common.actions.switch")}
+                  {t('common.actions.switch')}
                 </Button>
               )}
               <Button

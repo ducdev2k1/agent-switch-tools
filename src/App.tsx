@@ -1,12 +1,18 @@
-import { Dashboard } from "@/pages/dashboard"
-import { Toaster } from "sonner"
-import { ThemeProvider } from "@/components/theme-provider"
+import { ThemeProvider } from '@/components/theme-provider'
+import { Dashboard } from '@/pages/dashboard'
+import { Toaster } from 'sonner'
 
 function App() {
   return (
-    <ThemeProvider defaultTheme="system" storageKey="claude-ui-theme">
+    <ThemeProvider
+      defaultTheme="system"
+      storageKey="claude-ui-theme"
+    >
       <Dashboard />
-      <Toaster position="bottom-right" richColors />
+      <Toaster
+        position="bottom-right"
+        richColors
+      />
     </ThemeProvider>
   )
 }

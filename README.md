@@ -1,6 +1,8 @@
-# Claude Tools
-
-Desktop app to manage multiple Claude Code CLI accounts — switch profiles, monitor usage, and stay organized.
+<div align="center">
+  <img src="public/favicon.png" alt="Claude Tools Logo" width="120" />
+  <h1>Claude Tools</h1>
+  <p>Desktop app to manage multiple Claude Code CLI accounts — switch profiles, monitor usage, and stay organized.</p>
+</div>
 
 ![Tauri](https://img.shields.io/badge/Tauri-v2-blue)
 ![React](https://img.shields.io/badge/React-19-61DAFB)

@@ -1,6 +1,6 @@
-import * as React from "react"
-import { cn } from "@/lib/utils"
-import { X } from "lucide-react"
+import * as React from 'react'
+import { cn } from '@/lib/utils'
+import { X } from 'lucide-react'
 
 interface DialogProps {
   open: boolean
@@ -29,12 +29,12 @@ function DialogContent({
   children,
   onClose,
   ...props
-}: React.ComponentProps<"div"> & { onClose?: () => void }) {
+}: React.ComponentProps<'div'> & { onClose?: () => void }) {
   return (
     <div
       className={cn(
-        "relative z-50 w-full max-w-lg rounded-xl border bg-background p-6 shadow-2xl animate-in fade-in-0 zoom-in-95",
-        className
+        'relative z-50 w-full max-w-lg rounded-xl border bg-background p-6 shadow-2xl animate-in fade-in-0 zoom-in-95',
+        className,
       )}
       onClick={(e) => e.stopPropagation()}
       {...props}
@@ -52,28 +52,37 @@ function DialogContent({
   )
 }
 
-function DialogHeader({ className, ...props }: React.ComponentProps<"div">) {
+function DialogHeader({ className, ...props }: React.ComponentProps<'div'>) {
   return (
     <div
-      className={cn("flex flex-col space-y-1.5 text-center sm:text-left mb-4", className)}
+      className={cn(
+        'flex flex-col space-y-1.5 text-center sm:text-left mb-4',
+        className,
+      )}
       {...props}
     />
   )
 }
 
-function DialogTitle({ className, ...props }: React.ComponentProps<"h2">) {
+function DialogTitle({ className, ...props }: React.ComponentProps<'h2'>) {
   return (
     <h2
-      className={cn("text-lg font-semibold leading-none tracking-tight", className)}
+      className={cn(
+        'text-lg font-semibold leading-none tracking-tight',
+        className,
+      )}
       {...props}
     />
   )
 }
 
-function DialogFooter({ className, ...props }: React.ComponentProps<"div">) {
+function DialogFooter({ className, ...props }: React.ComponentProps<'div'>) {
   return (
     <div
-      className={cn("flex flex-col-reverse sm:flex-row sm:justify-end sm:space-x-2 mt-6", className)}
+      className={cn(
+        'flex flex-col-reverse sm:flex-row sm:justify-end sm:space-x-2 mt-6',
+        className,
+      )}
       {...props}
     />
   )

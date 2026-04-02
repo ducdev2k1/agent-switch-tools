@@ -1,6 +1,6 @@
-import { invoke } from "@tauri-apps/api/core"
-import { useState, useEffect, useCallback } from "react"
-import type { CredentialProfile, SwitchResult } from "@/lib/types"
+import { invoke } from '@tauri-apps/api/core'
+import { useState, useEffect, useCallback } from 'react'
+import type { CredentialProfile, SwitchResult } from '@/lib/types'
 
 export function useCredentialProfiles() {
   const [profiles, setProfiles] = useState<CredentialProfile[]>([])
@@ -9,10 +9,10 @@ export function useCredentialProfiles() {
   const load = useCallback(async () => {
     setLoading(true)
     try {
-      const data = await invoke<CredentialProfile[]>("list_credential_profiles")
+      const data = await invoke<CredentialProfile[]>('list_credential_profiles')
       setProfiles(data)
     } catch (e) {
-      console.error("Failed to load credential profiles:", e)
+      console.error('Failed to load credential profiles:', e)
     } finally {
       setLoading(false)
     }
@@ -24,14 +24,14 @@ export function useCredentialProfiles() {
 
   /** Save current active credentials (auto-detect email from oauthAccount) */
   const saveCurrentAs = async (): Promise<string> => {
-    const email = await invoke<string>("save_current_as_profile")
+    const email = await invoke<string>('save_current_as_profile')
     await load()
     return email
   }
 
   /** Switch to target profile (backend handles backup of current) */
   const switchTo = async (targetName: string): Promise<SwitchResult> => {
-    const result = await invoke<SwitchResult>("switch_credential_profile", {
+    const result = await invoke<SwitchResult>('switch_credential_profile', {
       targetName,
     })
     await load()
@@ -40,19 +40,19 @@ export function useCredentialProfiles() {
 
   /** Rename a saved profile */
   const rename = async (oldName: string, newName: string) => {
-    await invoke("rename_credential_profile", { oldName, newName })
+    await invoke('rename_credential_profile', { oldName, newName })
     await load()
   }
 
   /** Delete a saved profile */
   const remove = async (name: string) => {
-    await invoke("delete_credential_profile", { name })
+    await invoke('delete_credential_profile', { name })
     await load()
   }
 
   /** Check if Claude Code CLI is currently running */
   const checkClaudeRunning = async (): Promise<boolean> => {
-    return invoke<boolean>("is_claude_running")
+    return invoke<boolean>('is_claude_running')
   }
 
   return {

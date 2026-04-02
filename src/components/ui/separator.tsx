@@ -1,24 +1,24 @@
-import * as React from "react"
-import { cn } from "@/lib/utils"
+import * as React from 'react'
+import { cn } from '@/lib/utils'
 
 function Separator({
   className,
-  orientation = "horizontal",
+  orientation = 'horizontal',
   decorative = true,
   ...props
-}: React.ComponentProps<"div"> & {
-  orientation?: "horizontal" | "vertical"
+}: React.ComponentProps<'div'> & {
+  orientation?: 'horizontal' | 'vertical'
   decorative?: boolean
 }) {
   return (
     <div
-      role={decorative ? "none" : "separator"}
+      role={decorative ? 'none' : 'separator'}
       aria-orientation={!decorative ? orientation : undefined}
       data-slot="separator"
       className={cn(
-        "shrink-0 bg-border",
-        orientation === "horizontal" ? "h-px w-full" : "h-full w-px",
-        className
+        'shrink-0 bg-border',
+        orientation === 'horizontal' ? 'h-px w-full' : 'h-full w-px',
+        className,
       )}
       {...props}
     />

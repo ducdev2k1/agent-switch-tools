@@ -4,12 +4,18 @@ import {
   DialogHeader,
   DialogTitle,
   DialogFooter,
-} from "@/components/ui/dialog"
-import { Button } from "@/components/ui/button"
-import { Badge } from "@/components/ui/badge"
-import type { CredentialProfile } from "@/lib/types"
-import { AlertTriangle, ArrowRightLeft, Terminal, Mail, Building2 } from "lucide-react"
-import { useTranslation } from "react-i18next"
+} from '@/components/ui/dialog'
+import { Button } from '@/components/ui/button'
+import { Badge } from '@/components/ui/badge'
+import type { CredentialProfile } from '@/lib/types'
+import {
+  AlertTriangle,
+  ArrowRightLeft,
+  Terminal,
+  Mail,
+  Building2,
+} from 'lucide-react'
+import { useTranslation } from 'react-i18next'
 
 interface SwitchConfirmationDialogProps {
   open: boolean
@@ -35,12 +41,17 @@ export function SwitchConfirmationDialog({
   const isExpired = targetProfile.info.isExpired
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog
+      open={open}
+      onOpenChange={onOpenChange}
+    >
       <DialogContent onClose={() => onOpenChange(false)}>
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <ArrowRightLeft className="size-5" />
-            {t("dashboard.messages.switch_confirm", { name: targetProfile.name })}
+            {t('dashboard.messages.switch_confirm', {
+              name: targetProfile.name,
+            })}
           </DialogTitle>
         </DialogHeader>
 
@@ -51,10 +62,10 @@ export function SwitchConfirmationDialog({
               <Terminal className="size-5 text-foreground mt-0.5 shrink-0" />
               <div className="text-sm">
                 <p className="font-medium text-foreground">
-                  {t("dashboard.messages.claude_running_title")}
+                  {t('dashboard.messages.claude_running_title')}
                 </p>
                 <p className="text-muted-foreground mt-1">
-                  {t("dashboard.messages.claude_running_warning")}
+                  {t('dashboard.messages.claude_running_warning')}
                 </p>
               </div>
             </div>
@@ -66,10 +77,10 @@ export function SwitchConfirmationDialog({
               <AlertTriangle className="size-5 text-destructive mt-0.5 shrink-0" />
               <div className="text-sm">
                 <p className="font-medium text-destructive">
-                  {t("dashboard.messages.token_expired_title")}
+                  {t('dashboard.messages.token_expired_title')}
                 </p>
                 <p className="text-muted-foreground mt-1">
-                  {t("dashboard.messages.token_expired_warning")}
+                  {t('dashboard.messages.token_expired_warning')}
                 </p>
               </div>
             </div>
@@ -82,12 +93,18 @@ export function SwitchConfirmationDialog({
                 {targetProfile.oauthAccount?.displayName || targetProfile.name}
               </span>
               {targetProfile.info.subscriptionType && (
-                <Badge variant="secondary" className="text-[10px]">
+                <Badge
+                  variant="secondary"
+                  className="text-[10px]"
+                >
                   {targetProfile.info.subscriptionType}
                 </Badge>
               )}
               {targetProfile.info.rateLimitTier && (
-                <Badge variant="outline" className="text-[10px] font-mono">
+                <Badge
+                  variant="outline"
+                  className="text-[10px] font-mono"
+                >
                   {targetProfile.info.rateLimitTier}
                 </Badge>
               )}
@@ -107,17 +124,26 @@ export function SwitchConfirmationDialog({
               </div>
             )}
             <p className="text-xs text-muted-foreground mt-1">
-              {t("dashboard.messages.preserve_context")}
+              {t('dashboard.messages.preserve_context')}
             </p>
           </div>
         </div>
 
         <DialogFooter>
-          <Button variant="outline" onClick={() => onOpenChange(false)} disabled={switching}>
-            {t("common.actions.cancel")}
+          <Button
+            variant="outline"
+            onClick={() => onOpenChange(false)}
+            disabled={switching}
+          >
+            {t('common.actions.cancel')}
           </Button>
-          <Button onClick={onConfirm} disabled={switching}>
-            {switching ? t("common.actions.switching") : t("common.actions.switch")}
+          <Button
+            onClick={onConfirm}
+            disabled={switching}
+          >
+            {switching
+              ? t('common.actions.switching')
+              : t('common.actions.switch')}
           </Button>
         </DialogFooter>
       </DialogContent>

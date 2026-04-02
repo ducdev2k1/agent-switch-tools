@@ -13,10 +13,7 @@
     "fs:allow-copy-file",
     {
       "identifier": "fs:scope",
-      "allow": [
-        { "path": "$HOME/.claude/*" },
-        { "path": "$HOME/.claude/**/*" }
-      ]
+      "allow": [{ "path": "$HOME/.claude/*" }, { "path": "$HOME/.claude/**/*" }]
     }
   ]
 }

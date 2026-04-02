@@ -1,6 +1,6 @@
-import { invoke } from "@tauri-apps/api/core"
-import { useState, useEffect } from "react"
-import type { UsageStats } from "@/lib/types"
+import { invoke } from '@tauri-apps/api/core'
+import { useState, useEffect } from 'react'
+import type { UsageStats } from '@/lib/types'
 
 export function useUsageStats() {
   const [stats, setStats] = useState<UsageStats | null>(null)
@@ -8,9 +8,9 @@ export function useUsageStats() {
 
   useEffect(() => {
     setLoading(true)
-    invoke<UsageStats>("get_usage_stats")
+    invoke<UsageStats>('get_usage_stats')
       .then(setStats)
-      .catch((e) => console.error("Failed to load usage stats:", e))
+      .catch((e) => console.error('Failed to load usage stats:', e))
       .finally(() => setLoading(false))
   }, [])
 

@@ -1,20 +1,20 @@
-import { useState, useEffect, useCallback } from "react"
-import { useTranslation } from "react-i18next"
-import { toast } from "sonner"
-import { listen } from "@tauri-apps/api/event"
-import { useCredentialProfiles } from "@/hooks/use-profiles"
-import { useClaudeConfig } from "@/hooks/use-claude-config"
-import { useUsageStats } from "@/hooks/use-usage-stats"
-import { CliStatusBar } from "@/components/cli-status-bar"
-import { ProfileCard } from "@/components/profile-card"
-import { SwitchConfirmationDialog } from "@/components/switch-confirmation-dialog"
-import { DeleteConfirmDialog } from "@/components/delete-confirm-dialog"
-import { AddAccountDialog } from "@/components/add-account-dialog"
-import { Button } from "@/components/ui/button"
-import { ModeToggle } from "@/components/mode-toggle"
-import { Separator } from "@/components/ui/separator"
-import type { CredentialProfile } from "@/lib/types"
-import { Save, RefreshCw, Shield, UserPlus } from "lucide-react"
+import { AddAccountDialog } from '@/components/add-account-dialog'
+import { CliStatusBar } from '@/components/cli-status-bar'
+import { DeleteConfirmDialog } from '@/components/delete-confirm-dialog'
+import { ModeToggle } from '@/components/mode-toggle'
+import { ProfileCard } from '@/components/profile-card'
+import { SwitchConfirmationDialog } from '@/components/switch-confirmation-dialog'
+import { Button } from '@/components/ui/button'
+import { Separator } from '@/components/ui/separator'
+import { useClaudeConfig } from '@/hooks/use-claude-config'
+import { useCredentialProfiles } from '@/hooks/use-profiles'
+import { useUsageStats } from '@/hooks/use-usage-stats'
+import type { CredentialProfile } from '@/lib/types'
+import { listen } from '@tauri-apps/api/event'
+import { RefreshCw, Save, Shield, UserPlus } from 'lucide-react'
+import { useCallback, useEffect, useState } from 'react'
+import { useTranslation } from 'react-i18next'
+import { toast } from 'sonner'
 
 export function Dashboard() {
   const { t, i18n } = useTranslation()
@@ -49,11 +49,11 @@ export function Dashboard() {
       setSwitchTarget(target)
       setSwitchDialogOpen(true)
     },
-    [profiles, checkClaudeRunning]
+    [profiles, checkClaudeRunning, t],
   )
 
   useEffect(() => {
-    const unlisten = listen<string>("tray-switch-profile", (event) => {
+    const unlisten = listen<string>('tray-switch-profile', (event) => {
       handleTraySwitchRef(event.payload)
     })
     return () => {
@@ -63,7 +63,9 @@ export function Dashboard() {
 
   // Dialog states
   const [switchDialogOpen, setSwitchDialogOpen] = useState(false)
-  const [switchTarget, setSwitchTarget] = useState<CredentialProfile | null>(null)
+  const [switchTarget, setSwitchTarget] = useState<CredentialProfile | null>(
+    null,
+  )
   const [claudeIsRunning, setClaudeIsRunning] = useState(false)
   const [switching, setSwitching] = useState(false)
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
@@ -105,7 +107,9 @@ export function Dashboard() {
       setSwitchDialogOpen(false)
       toast.success(result.message)
       if (result.claudeWasRunning) {
-        toast.warning(t('dashboard.messages.restart_claude_warning'), { duration: 5000 })
+        toast.warning(t('dashboard.messages.restart_claude_warning'), {
+          duration: 5000,
+        })
       }
     } catch (e) {
       toast.error(t('dashboard.errors.switch_failed', { error: e }))
@@ -153,18 +157,31 @@ export function Dashboard() {
             <Button
               variant="ghost"
               size="sm"
-              onClick={() => i18n.changeLanguage(i18n.language === 'vi' ? 'en' : 'vi')}
+              onClick={() =>
+                i18n.changeLanguage(i18n.language === 'vi' ? 'en' : 'vi')
+              }
               className="text-xs font-medium"
             >
               {i18n.language === 'vi' ? 'EN' : 'VI'}
             </Button>
             <ModeToggle />
-            <Button variant="ghost" size="icon" onClick={handleRefresh} className="size-8">
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={handleRefresh}
+              className="size-8"
+            >
               <RefreshCw className="size-4" />
             </Button>
-            <Button onClick={handleSaveCurrent} size="sm" disabled={!activeProfile || saving}>
+            <Button
+              onClick={handleSaveCurrent}
+              size="sm"
+              disabled={!activeProfile || saving}
+            >
               <Save className="size-4" />
-              {saving ? t('common.actions.saving') : t('common.actions.save_current')}
+              {saving
+                ? t('common.actions.saving')
+                : t('common.actions.save_current')}
             </Button>
           </div>
         </div>
@@ -172,7 +189,11 @@ export function Dashboard() {
 
       {/* Main content */}
       <main className="mx-auto max-w-3xl px-6 py-6 space-y-6">
-        <CliStatusBar cliState={cliState} usageStats={usageStats} loading={cliLoading} />
+        <CliStatusBar
+          cliState={cliState}
+          usageStats={usageStats}
+          loading={cliLoading}
+        />
 
         <Separator />
 
@@ -204,7 +225,9 @@ export function Dashboard() {
         <div>
           <div className="flex items-center justify-between mb-3">
             <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">
-              {t('common.labels.saved_profiles', { count: savedProfiles.length })}
+              {t('common.labels.saved_profiles', {
+                count: savedProfiles.length,
+              })}
             </h2>
             <Button
               variant="outline"
@@ -220,18 +243,28 @@ export function Dashboard() {
           {profilesLoading ? (
             <div className="space-y-3">
               {[1, 2].map((i) => (
-                <div key={i} className="h-20 rounded-xl border bg-card animate-pulse" />
+                <div
+                  key={i}
+                  className="h-20 rounded-xl border bg-card animate-pulse"
+                />
               ))}
             </div>
           ) : savedProfiles.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-12 text-center">
               <Shield className="size-10 text-muted-foreground/40 mb-3" />
-              <h3 className="text-base font-semibold mb-1">{t('dashboard.messages.no_saved_profiles')}</h3>
+              <h3 className="text-base font-semibold mb-1">
+                {t('dashboard.messages.no_saved_profiles')}
+              </h3>
               <p className="text-sm text-muted-foreground mb-4 max-w-sm">
                 {t('dashboard.messages.no_saved_profiles_info')}
               </p>
               {activeProfile && (
-                <Button onClick={handleSaveCurrent} variant="outline" size="sm" disabled={saving}>
+                <Button
+                  onClick={handleSaveCurrent}
+                  variant="outline"
+                  size="sm"
+                  disabled={saving}
+                >
                   <Save className="size-4" />
                   {t('common.actions.save_current')}
                 </Button>
@@ -246,7 +279,9 @@ export function Dashboard() {
                   onSwitch={handleSwitchRequest}
                   onDelete={handleDeleteRequest}
                   isCurrentlyActive={
-                    activeProfile?.info.organizationUuid === profile.info.organizationUuid
+                    !!activeProfile?.oauthAccount?.accountUuid &&
+                    activeProfile.oauthAccount.accountUuid ===
+                      profile.oauthAccount?.accountUuid
                   }
                 />
               ))}
