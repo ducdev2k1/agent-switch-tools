@@ -1,6 +1,8 @@
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
+import { UsageLimitsDisplay } from '@/components/usage-limits-display'
+import { useProfileUsage } from '@/hooks/use-usage-stats'
 import type { CredentialProfile } from '@/lib/types'
 import {
   ArrowRightLeft,
@@ -59,6 +61,7 @@ export function ProfileCard({
 }: ProfileCardProps) {
   const { t } = useTranslation()
   const { name, isActive, info } = profile
+  const { limits: usageLimits, loading: usageLoading } = useProfileUsage(name)
   const expired = info.isExpired
   const expiryText = formatExpiry(info.expiresInHours, expired, t)
 
@@ -203,6 +206,12 @@ export function ProfileCard({
                     : t('common.labels.personal_account')}
                 </p>
               )}
+
+              {/* Usage limits */}
+              <UsageLimitsDisplay
+                limits={usageLimits}
+                loading={usageLoading}
+              />
             </div>
           </div>
 

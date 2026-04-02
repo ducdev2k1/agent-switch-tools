@@ -1,7 +1,35 @@
 use serde::{Deserialize, Serialize};
+use std::collections::HashMap;
 use std::path::PathBuf;
+use std::sync::Mutex;
+use std::time::Instant;
 use tauri::Manager;
 
+/// In-memory cache: token_hash → (data, fetched_at)
+/// Cache for 2 minutes to avoid rate limiting
+static USAGE_CACHE: std::sync::LazyLock<Mutex<HashMap<u64, (Option<UsageLimits>, Instant)>>> =
+    std::sync::LazyLock::new(|| Mutex::new(HashMap::new()));
+
+const CACHE_TTL_SECS: u64 = 120;
+
+/// Usage bucket from Anthropic OAuth usage API
+#[derive(Debug, Serialize, Deserialize, Clone, Default)]
+#[serde(rename_all = "camelCase")]
+pub struct UsageBucket {
+    pub utilization: Option<f64>,
+    pub resets_at: Option<String>,
+}
+
+/// Usage limits response: 5h session, 7d total, 7d sonnet
+#[derive(Debug, Serialize, Deserialize, Clone, Default)]
+#[serde(rename_all = "camelCase")]
+pub struct UsageLimits {
+    pub five_hour: Option<UsageBucket>,
+    pub seven_day: Option<UsageBucket>,
+    pub seven_day_sonnet: Option<UsageBucket>,
+}
+
+/// Local usage stats from history.jsonl
 #[derive(Debug, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct UsageStats {
@@ -11,9 +39,120 @@ pub struct UsageStats {
     pub has_restrictions: bool,
 }
 
+/// Simple hash for cache key (avoid storing full token)
+fn hash_token(token: &str) -> u64 {
+    use std::hash::{Hash, Hasher};
+    let mut hasher = std::collections::hash_map::DefaultHasher::new();
+    token.hash(&mut hasher);
+    hasher.finish()
+}
+
+/// Fetch usage from Anthropic API with caching (2min TTL)
+async fn fetch_usage_with_token(token: &str) -> Option<UsageLimits> {
+    let key = hash_token(token);
+
+    // Check cache first
+    if let Ok(cache) = USAGE_CACHE.lock() {
+        if let Some((data, fetched_at)) = cache.get(&key) {
+            if fetched_at.elapsed().as_secs() < CACHE_TTL_SECS {
+                return data.clone();
+            }
+        }
+    }
+
+    // Fetch from API
+    let client = reqwest::Client::new();
+    let res = client
+        .get("https://api.anthropic.com/api/oauth/usage")
+        .header("Accept", "application/json")
+        .header("Authorization", format!("Bearer {}", token))
+        .header("anthropic-beta", "oauth-2025-04-20")
+        .send()
+        .await
+        .ok()?;
+
+    if !res.status().is_success() {
+        return None;
+    }
+
+    let raw: serde_json::Value = res.json().await.ok()?;
+    let result = Some(UsageLimits {
+        five_hour: parse_bucket(&raw, "five_hour"),
+        seven_day: parse_bucket(&raw, "seven_day"),
+        seven_day_sonnet: parse_bucket(&raw, "seven_day_sonnet"),
+    });
+
+    // Store in cache
+    if let Ok(mut cache) = USAGE_CACHE.lock() {
+        cache.insert(key, (result.clone(), Instant::now()));
+    }
+
+    result
+}
+
+/// Parse a usage bucket from raw JSON
+fn parse_bucket(raw: &serde_json::Value, key: &str) -> Option<UsageBucket> {
+    let bucket = raw.get(key)?;
+    Some(UsageBucket {
+        utilization: bucket.get("utilization").and_then(|v| v.as_f64()),
+        resets_at: bucket
+            .get("resets_at")
+            .and_then(|v| v.as_str())
+            .map(String::from),
+    })
+}
+
+/// Read OAuth access token from credentials file
+fn read_token_from_creds(creds_path: &PathBuf) -> Option<String> {
+    let content = std::fs::read_to_string(creds_path).ok()?;
+    let v: serde_json::Value = serde_json::from_str(&content).ok()?;
+    v.get("claudeAiOauth")?
+        .get("accessToken")?
+        .as_str()
+        .map(String::from)
+}
+
+/// Get usage limits for the current active account
+#[tauri::command]
+pub async fn get_usage_limits(app: tauri::AppHandle) -> Result<Option<UsageLimits>, String> {
+    let home = app.path().home_dir().map_err(|e: tauri::Error| e.to_string())?;
+    let creds_path = home.join(".claude").join(".credentials.json");
+
+    let token = match read_token_from_creds(&creds_path) {
+        Some(t) => t,
+        None => return Ok(None),
+    };
+
+    Ok(fetch_usage_with_token(&token).await)
+}
+
+/// Get usage limits for a specific saved profile
+#[tauri::command]
+pub async fn get_profile_usage(
+    app: tauri::AppHandle,
+    profile_name: String,
+) -> Result<Option<UsageLimits>, String> {
+    let home = app.path().home_dir().map_err(|e: tauri::Error| e.to_string())?;
+    let claude_dir = home.join(".claude");
+
+    // Saved profiles store creds as .credentials-{name}.json
+    let creds_path = claude_dir.join(format!(".credentials-{}.json", profile_name));
+    if !creds_path.exists() {
+        return Ok(None);
+    }
+
+    let token = match read_token_from_creds(&creds_path) {
+        Some(t) => t,
+        None => return Ok(None),
+    };
+
+    Ok(fetch_usage_with_token(&token).await)
+}
+
+/// Get local usage stats (sessions, model, restrictions)
 #[tauri::command]
 pub async fn get_usage_stats(app: tauri::AppHandle) -> Result<UsageStats, String> {
-    let home = app.path().home_dir().map_err(|e| e.to_string())?;
+    let home = app.path().home_dir().map_err(|e: tauri::Error| e.to_string())?;
     let claude_dir = home.join(".claude");
 
     let history_path = claude_dir.join("history.jsonl");
@@ -32,7 +171,7 @@ pub async fn get_usage_stats(app: tauri::AppHandle) -> Result<UsageStats, String
     })
 }
 
-/// Parse history.jsonl để đếm session tổng và 7 ngày gần đây
+/// Parse history.jsonl to count sessions
 fn parse_history(path: &PathBuf) -> (usize, usize) {
     let content = match std::fs::read_to_string(path) {
         Ok(c) => c,
@@ -46,7 +185,6 @@ fn parse_history(path: &PathBuf) -> (usize, usize) {
     for line in content.lines() {
         if let Ok(v) = serde_json::from_str::<serde_json::Value>(line) {
             total += 1;
-            // history.jsonl lưu timestamp dạng milliseconds
             if let Some(ts) = v.get("timestamp").and_then(|t| t.as_i64()) {
                 let ts_secs = ts / 1000;
                 if let Some(dt) = chrono::DateTime::from_timestamp(ts_secs, 0) {
@@ -61,14 +199,14 @@ fn parse_history(path: &PathBuf) -> (usize, usize) {
     (total, recent)
 }
 
-/// Đọc model từ settings.json
+/// Read model from settings.json
 fn read_model_from_settings(path: &PathBuf) -> Option<String> {
     let content = std::fs::read_to_string(path).ok()?;
     let v: serde_json::Value = serde_json::from_str(&content).ok()?;
     v.get("model")?.as_str().map(String::from)
 }
 
-/// Kiểm tra policy restrictions
+/// Check policy restrictions
 fn check_policy_restrictions(path: &PathBuf) -> bool {
     let content = match std::fs::read_to_string(path) {
         Ok(c) => c,
@@ -76,27 +214,10 @@ fn check_policy_restrictions(path: &PathBuf) -> bool {
     };
     if let Ok(v) = serde_json::from_str::<serde_json::Value>(&content) {
         if let Some(restrictions) = v.get("restrictions").and_then(|r| r.as_object()) {
-            return restrictions.values().any(|v| {
-                v.get("allowed").and_then(|a| a.as_bool()) == Some(false)
-            });
+            return restrictions
+                .values()
+                .any(|v| v.get("allowed").and_then(|a| a.as_bool()) == Some(false));
         }
     }
     false
-}
-
-// Placeholder cho Anthropic Quota API (chưa có public endpoint)
-#[derive(Debug, Serialize, Deserialize)]
-pub struct QuotaInfo {
-    pub requests_limit: Option<u64>,
-    pub requests_used: Option<u64>,
-    pub tokens_limit: Option<u64>,
-    pub tokens_used: Option<u64>,
-    pub reset_at: Option<String>,
-}
-
-#[tauri::command]
-pub async fn fetch_anthropic_quota(_api_key: String) -> Result<Option<QuotaInfo>, String> {
-    // Hiện tại (2026-04) chưa có public quota endpoint
-    // Trả về None để UI hiển thị "N/A"
-    Ok(None)
 }

@@ -50,6 +50,17 @@ export interface UsageStats {
   hasRestrictions: boolean
 }
 
+export interface UsageBucket {
+  utilization: number | null
+  resetsAt: string | null
+}
+
+export interface UsageLimits {
+  fiveHour: UsageBucket | null
+  sevenDay: UsageBucket | null
+  sevenDaySonnet: UsageBucket | null
+}
+
 export interface ProfileUsage {
   lastActiveAt: string | null
   totalActiveMinutes: number

@@ -27,6 +27,8 @@ pub fn run() {
             commands::oauth_commands::get_oauth_account,
             // Usage stats
             commands::quota_commands::get_usage_stats,
+            commands::quota_commands::get_usage_limits,
+            commands::quota_commands::get_profile_usage,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
