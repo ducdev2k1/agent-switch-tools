@@ -1,5 +1,5 @@
 <div align="center">
-  <img src="public/favicon.png" alt="Claude Tools Logo" width="120" />
+  <img src="public/apple-touch-icon.png" alt="Claude Tools Logo" width="120" />
   <h1>Claude Tools</h1>
   <p><b>A powerful, lightning-fast, and 100% offline desktop application</b> to manage multiple Claude Code CLI accounts — effortlessly switch profiles, monitor quota usage, and stay meticulously organized.</p>
 </div>
@@ -71,6 +71,10 @@ pnpm tauri:dev
 pnpm tauri build
 ```
 
+## 📝 License
+
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+
 ---
 ---
 
@@ -137,3 +141,7 @@ pnpm tauri:dev
 ```bash
 pnpm tauri build
 ```
+
+## 📝 Giấy phép
+
+Dự án này được phân phối dưới sự cấp phép của Giấy phép MIT - xem file [LICENSE](LICENSE) để biết thêm chi tiết.
