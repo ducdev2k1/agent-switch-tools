@@ -7,7 +7,6 @@ import type { CredentialProfile } from '@/lib/types'
 import {
   ArrowRightLeft,
   Building2,
-  Clock,
   Crown,
   Mail,
   RefreshCw,
@@ -29,31 +28,6 @@ function formatSubscription(sub: string | null, t: any): string {
   return sub.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase())
 }
 
-/** Format expiry as relative time string */
-function formatExpiry(
-  hoursLeft: number | null,
-  isExpired: boolean,
-  t: any,
-): string | null {
-  if (hoursLeft === null) return null
-  const ago = Math.abs(hoursLeft)
-
-  let timeStr = ''
-  if (ago < 1)
-    timeStr = t('common.labels.time_unit.minute', {
-      count: Math.round(ago * 60),
-    })
-  else if (ago < 24)
-    timeStr = t('common.labels.time_unit.hour', { count: Math.round(ago) })
-  else
-    timeStr = t('common.labels.time_unit.day', { count: Math.round(ago / 24) })
-
-  if (isExpired) {
-    return t('common.labels.expired_ago', { time: timeStr })
-  }
-  return t('common.labels.expires_in', { time: timeStr })
-}
-
 export function ProfileCard({
   profile,
   onSwitch,
@@ -68,11 +42,9 @@ export function ProfileCard({
     refresh: refreshUsage,
   } = useProfileUsage(name)
   const expired = info.isExpired
-  const expiryText = formatExpiry(info.expiresInHours, expired, t)
 
   // Health color indicator logic
-  const expiringSoon =
-    !expired && info.expiresInHours !== null && info.expiresInHours < 24
+  const expiringSoon = false
 
   return (
     <Card
@@ -141,14 +113,6 @@ export function ProfileCard({
                       {t('common.labels.expired')}
                     </Badge>
                   )}
-                  {expiringSoon && (
-                    <Badge
-                      variant="warning"
-                      className="text-[10px] font-bold uppercase tracking-wider px-2 py-0"
-                    >
-                      {t('common.labels.expiring_soon')}
-                    </Badge>
-                  )}
                 </div>
 
                 {/* Email + Org */}
@@ -185,21 +149,6 @@ export function ProfileCard({
                     >
                       <Zap className="size-3 mr-1 text-primary/70" />
                       {info.rateLimitTier}
-                    </Badge>
-                  )}
-                  {expiryText && (
-                    <Badge
-                      variant={
-                        expired
-                          ? 'destructive'
-                          : expiringSoon
-                            ? 'warning'
-                            : 'outline'
-                      }
-                      className="text-[10px] font-medium"
-                    >
-                      <Clock className="size-3 mr-1" />
-                      {expiryText}
                     </Badge>
                   )}
                 </div>
