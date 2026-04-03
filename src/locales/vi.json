@@ -40,6 +40,7 @@
       "usage_weekly": "Tuần (7 ngày)",
       "usage_weekly_sonnet": "Tuần Sonnet",
       "usage_loading": "Đang tải mức sử dụng...",
+      "usage_unavailable": "Không thể tải dữ liệu sử dụng",
       "usage_resets_in_hours": "Đặt lại sau {{count}} giờ",
       "usage_resets_in_minutes": "Đặt lại sau {{count}} phút",
       "usage_resetting": "Đang đặt lại...",
@@ -91,6 +92,60 @@
     "success": {
       "account_saved": "Đã lưu tài khoản \"{{email}}\"",
       "deleted": "Đã xóa \"{{name}}\""
+    }
+  },
+  "settings": {
+    "title": "Cài đặt",
+    "back": "Quay lại",
+    "tabs": {
+      "general": "Chung",
+      "webhook": "Webhook",
+      "about": "Giới thiệu"
+    },
+    "general": {
+      "appearance": "Giao diện",
+      "theme": "Chủ đề",
+      "theme_light": "Sáng",
+      "theme_dark": "Tối",
+      "theme_system": "Hệ thống",
+      "language": "Ngôn ngữ",
+      "updates": "Cập nhật",
+      "auto_update": "Tự động kiểm tra bản cập nhật"
+    },
+    "webhook": {
+      "title": "Cấu hình Webhook",
+      "description": "Gửi báo cáo sử dụng đến endpoint của bạn.",
+      "pii_warning": "Dữ liệu bao gồm email sẽ được gửi đến endpoint này.",
+      "enabled": "Kích hoạt Webhook",
+      "url": "URL Endpoint",
+      "url_placeholder": "https://api.example.com/webhook",
+      "url_hint": "Yêu cầu HTTPS (cho phép localhost để test)",
+      "secret": "Mã xác thực",
+      "secret_placeholder": "Bearer token (tuỳ chọn)",
+      "trigger_mode": "Chế độ kích hoạt",
+      "trigger_manual": "Thủ công",
+      "trigger_startup": "Khi mở ứng dụng",
+      "trigger_on_change": "Khi mức sử dụng thay đổi",
+      "test_connection": "Kiểm tra kết nối",
+      "send_now": "Gửi ngay",
+      "save": "Lưu cài đặt",
+      "testing": "Đang kiểm tra...",
+      "sending": "Đang gửi...",
+      "cooldown": "Vui lòng chờ {{seconds}}s",
+      "test_success": "Kết nối thành công",
+      "test_failed": "Kết nối thất bại: {{error}}",
+      "send_success": "Gửi webhook thành công",
+      "send_failed": "Gửi webhook thất bại: {{error}}",
+      "saved": "Đã lưu cài đặt",
+      "last_sent": "Lần gửi cuối: {{time}}",
+      "sample_payload": "Dữ liệu mẫu"
+    },
+    "about": {
+      "description": "Ứng dụng desktop mạnh mẽ, bảo mật, 100% offline để quản lý tài khoản Claude Code CLI.",
+      "author": "Tác giả",
+      "license": "Giấy phép",
+      "source_code": "Mã nguồn",
+      "version": "Phiên bản"
     }
   }
 }

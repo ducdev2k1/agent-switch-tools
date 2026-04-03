@@ -1,6 +1,6 @@
 {
   "name": "claude-tools",
-  "version": "1.0.3",
+  "version": "1.0.4",
   "description": "A powerful, lightning-fast, and 100% offline desktop application to manage multiple Claude Code CLI accounts — effortlessly switch profiles, monitor quota usage, and stay meticulously organized.",
   "author": "ducdev2k1",
   "license": "MIT",
@@ -15,6 +15,10 @@
   "keywords": [
     "claude",
     "claude-code",
+    "tools",
+    "tool",
+    "claude-tools",
+    "claude-tool",
     "manager",
     "tauri",
     "react",
@@ -37,7 +41,10 @@
     "lint:fix": "eslint . --fix"
   },
   "dependencies": {
+    "@radix-ui/react-select": "^2.2.6",
     "@radix-ui/react-slot": "^1.2.4",
+    "@radix-ui/react-switch": "^1.2.6",
+    "@radix-ui/react-tabs": "^1.1.13",
     "@tauri-apps/api": "^2",
     "@tauri-apps/plugin-fs": "^2.4.5",
     "@tauri-apps/plugin-opener": "^2",

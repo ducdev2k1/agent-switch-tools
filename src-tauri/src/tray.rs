@@ -15,7 +15,7 @@ pub fn setup_tray(app: &tauri::App) -> Result<(), Box<dyn std::error::Error>> {
 
     // Load platform-appropriate icon from bundle config (icns on macOS, ico on Windows, png on Linux)
     let icon = app.default_window_icon().cloned();
-    let mut builder = TrayIconBuilder::new()
+    let mut builder = TrayIconBuilder::with_id("main")
         .tooltip("Claude Tools")
         .menu(&menu)
         .show_menu_on_left_click(true);
@@ -48,6 +48,15 @@ pub fn setup_tray(app: &tauri::App) -> Result<(), Box<dyn std::error::Error>> {
         .build(app)?;
 
     Ok(())
+}
+
+/// Rebuild tray menu after profile changes (save/switch/delete)
+pub fn refresh_tray_menu(handle: &tauri::AppHandle) {
+    if let Ok(menu) = build_tray_menu(handle) {
+        if let Some(tray) = handle.tray_by_id("main") {
+            let _ = tray.set_menu(Some(menu));
+        }
+    }
 }
 
 /// Build tray menu dynamically from saved profiles

@@ -356,6 +356,7 @@ pub async fn save_current_as_profile(app: tauri::AppHandle) -> Result<String, St
     meta.last_switched_at = Some(chrono::Utc::now().to_rfc3339());
     write_meta(&tools_dir, &meta)?;
 
+    crate::tray::refresh_tray_menu(&app);
     Ok(email)
 }
 
@@ -430,6 +431,7 @@ pub async fn switch_credential_profile(
         format!("Switched to '{}'.", target_name)
     };
 
+    crate::tray::refresh_tray_menu(&app);
     Ok(SwitchResult {
         success: true,
         claude_was_running,
@@ -457,6 +459,7 @@ pub async fn rename_credential_profile(
     }
 
     std::fs::rename(&old_dir, &new_dir).map_err(|e| e.to_string())?;
+    crate::tray::refresh_tray_menu(&app);
     Ok(())
 }
 
@@ -474,6 +477,7 @@ pub async fn delete_credential_profile(
     }
 
     std::fs::remove_dir_all(&prof_dir).map_err(|e| e.to_string())?;
+    crate::tray::refresh_tray_menu(&app);
     Ok(())
 }
 

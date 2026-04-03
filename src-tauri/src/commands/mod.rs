@@ -3,3 +3,4 @@ pub mod metadata_commands;
 pub mod oauth_commands;
 pub mod path_helpers;
 pub mod quota_commands;
+pub mod webhook_commands;

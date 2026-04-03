@@ -43,6 +43,8 @@ pub fn run() {
             commands::quota_commands::get_usage_stats,
             commands::quota_commands::get_usage_limits,
             commands::quota_commands::get_profile_usage,
+            // Webhook
+            commands::webhook_commands::send_webhook,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

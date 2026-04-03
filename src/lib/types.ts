@@ -71,3 +71,18 @@ export interface ManagerMeta {
   lastSwitchedAt: string | null
   usageHistory: Record<string, ProfileUsage>
 }
+
+export type WebhookTriggerMode = 'manual' | 'on_startup' | 'on_change'
+
+export interface WebhookConfig {
+  enabled: boolean
+  url: string
+  secret: string
+  triggerMode: WebhookTriggerMode
+}
+
+export interface WebhookResponse {
+  success: boolean
+  statusCode: number | null
+  message: string
+}

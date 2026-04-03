@@ -1,7 +1,6 @@
 import { AddAccountDialog } from '@/components/add-account-dialog'
 import { CliStatusBar } from '@/components/cli-status-bar'
 import { DeleteConfirmDialog } from '@/components/delete-confirm-dialog'
-import { ModeToggle } from '@/components/mode-toggle'
 import { ProfileCard } from '@/components/profile-card'
 import { SwitchConfirmationDialog } from '@/components/switch-confirmation-dialog'
 import { Button } from '@/components/ui/button'
@@ -12,13 +11,17 @@ import { useCredentialProfiles } from '@/hooks/use-profiles'
 import { useUsageStats } from '@/hooks/use-usage-stats'
 import type { CredentialProfile } from '@/lib/types'
 import { listen } from '@tauri-apps/api/event'
-import { RefreshCw, Save, Shield, UserPlus } from 'lucide-react'
+import { RefreshCw, Save, Settings, Shield, UserPlus } from 'lucide-react'
 import { useCallback, useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { toast } from 'sonner'
 
-export function Dashboard() {
-  const { t, i18n } = useTranslation()
+interface DashboardProps {
+  onOpenSettings: () => void
+}
+
+export function Dashboard({ onOpenSettings }: DashboardProps) {
+  const { t } = useTranslation()
   const {
     profiles,
     loading: profilesLoading,
@@ -158,17 +161,6 @@ export function Dashboard() {
           <div className="flex items-center gap-2">
             <Button
               variant="ghost"
-              size="sm"
-              onClick={() =>
-                i18n.changeLanguage(i18n.language === 'vi' ? 'en' : 'vi')
-              }
-              className="text-xs font-medium"
-            >
-              {i18n.language === 'vi' ? 'EN' : 'VI'}
-            </Button>
-            <ModeToggle />
-            <Button
-              variant="ghost"
               size="icon"
               onClick={handleRefresh}
               className="size-8"
@@ -185,12 +177,21 @@ export function Dashboard() {
                 ? t('common.actions.saving')
                 : t('common.actions.save_current')}
             </Button>
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={onOpenSettings}
+              className="size-8"
+              title={t('settings.title')}
+            >
+              <Settings className="size-4" />
+            </Button>
           </div>
         </div>
       </header>
 
       {/* Main content */}
-      <main className="mx-auto max-w-3xl px-6 py-6 space-y-6">
+      <main className="mx-auto max-w-5xl px-6 py-6 space-y-6">
         <CliStatusBar
           cliState={cliState}
           usageStats={usageStats}

@@ -49,7 +49,7 @@ fn hash_token(token: &str) -> u64 {
 
 /// Fetch usage from Anthropic API with caching (2min TTL).
 /// Pass `force_refresh = true` to bypass cache (e.g. on manual refresh button click).
-async fn fetch_usage_with_token(token: &str, force_refresh: bool) -> Option<UsageLimits> {
+pub async fn fetch_usage_with_token(token: &str, force_refresh: bool) -> Option<UsageLimits> {
     let key = hash_token(token);
 
     // Check cache first (skip if force_refresh)
@@ -106,7 +106,7 @@ fn parse_bucket(raw: &serde_json::Value, key: &str) -> Option<UsageBucket> {
 }
 
 /// Read OAuth access token from credentials file
-fn read_token_from_creds(creds_path: &PathBuf) -> Option<String> {
+pub fn read_token_from_creds(creds_path: &PathBuf) -> Option<String> {
     let content = std::fs::read_to_string(creds_path).ok()?;
     let v: serde_json::Value = serde_json::from_str(&content).ok()?;
     v.get("claudeAiOauth")?
@@ -142,16 +142,21 @@ pub async fn get_profile_usage(
 ) -> Result<Option<UsageLimits>, String> {
     let home = app.path().home_dir().map_err(|e: tauri::Error| e.to_string())?;
 
-    // Saved profiles are now stored in ~/.claude/.claude-tools/profiles/{name}/credentials.json
-    let creds_path = home
+    // Try saved profile first, fall back to active credentials
+    let saved_path = home
         .join(".claude")
         .join(".claude-tools")
         .join("profiles")
         .join(&profile_name)
         .join("credentials.json");
-    if !creds_path.exists() {
+    let active_path = home.join(".claude").join(".credentials.json");
+    let creds_path = if saved_path.exists() {
+        saved_path
+    } else if active_path.exists() {
+        active_path
+    } else {
         return Ok(None);
-    }
+    };
 
     let token = match read_token_from_creds(&creds_path) {
         Some(t) => t,

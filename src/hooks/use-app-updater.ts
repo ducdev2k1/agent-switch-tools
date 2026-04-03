@@ -1,19 +1,22 @@
-import { check } from '@tauri-apps/plugin-updater'
+import { useAutoUpdateConfig } from '@/hooks/use-auto-update-config'
 import { relaunch } from '@tauri-apps/plugin-process'
-import { useEffect, useState, useCallback } from 'react'
+import { check } from '@tauri-apps/plugin-updater'
+import { useCallback, useEffect, useState } from 'react'
 
 export function useAppUpdater() {
   const [updateVersion, setUpdateVersion] = useState<string | null>(null)
   const [installing, setInstalling] = useState(false)
+  const { enabled: autoUpdateEnabled } = useAutoUpdateConfig()
 
+  // Check for update on startup only if auto-update is enabled
   useEffect(() => {
-    // Silently check for update on startup; errors are ignored (dev mode, offline, no release yet)
+    if (!autoUpdateEnabled) return
     check()
       .then((u) => {
         if (u?.available) setUpdateVersion(u.version)
       })
       .catch(() => {})
-  }, [])
+  }, [autoUpdateEnabled])
 
   const install = useCallback(async () => {
     setInstalling(true)

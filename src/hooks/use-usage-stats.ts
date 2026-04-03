@@ -32,7 +32,9 @@ export function useUsageLimits() {
     setLoading(true)
     lastRefreshedAt.current = now
     invoke<UsageLimits | null>('get_usage_limits')
-      .then((data) => setLimits(data ?? null))
+      .then((data) => {
+        if (data) setLimits(data)
+      })
       .catch((e) => console.error('Failed to load usage limits:', e))
       .finally(() => setLoading(false))
   }, [])
@@ -75,7 +77,9 @@ export function useProfileUsage(profileName: string | null) {
         profileName,
         forceRefresh,
       })
-        .then((data) => setLimits(data ?? null))
+        .then((data) => {
+          if (data) setLimits(data)
+        })
         .catch((e) => console.error('Failed to load profile usage:', e))
         .finally(() => setLoading(false))
     },

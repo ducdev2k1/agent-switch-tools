@@ -40,6 +40,7 @@
       "usage_weekly": "Weekly (7 day)",
       "usage_weekly_sonnet": "Weekly Sonnet",
       "usage_loading": "Loading usage...",
+      "usage_unavailable": "Unable to load usage data",
       "usage_resets_in_hours": "Resets in {{count}}h",
       "usage_resets_in_minutes": "Resets in {{count}}m",
       "usage_resetting": "Resetting...",
@@ -91,6 +92,60 @@
     "success": {
       "account_saved": "Account \"{{email}}\" saved",
       "deleted": "\"{{name}}\" deleted"
+    }
+  },
+  "settings": {
+    "title": "Settings",
+    "back": "Back",
+    "tabs": {
+      "general": "General",
+      "webhook": "Webhook",
+      "about": "About"
+    },
+    "general": {
+      "appearance": "Appearance",
+      "theme": "Theme",
+      "theme_light": "Light",
+      "theme_dark": "Dark",
+      "theme_system": "System",
+      "language": "Language",
+      "updates": "Updates",
+      "auto_update": "Auto-check for updates"
+    },
+    "webhook": {
+      "title": "Webhook Configuration",
+      "description": "Send usage reports to your own endpoint.",
+      "pii_warning": "Usage data including email will be sent to this endpoint.",
+      "enabled": "Enable Webhook",
+      "url": "Endpoint URL",
+      "url_placeholder": "https://api.example.com/webhook",
+      "url_hint": "HTTPS required (localhost allowed for testing)",
+      "secret": "Auth Secret",
+      "secret_placeholder": "Bearer token (optional)",
+      "trigger_mode": "Trigger Mode",
+      "trigger_manual": "Manual only",
+      "trigger_startup": "On app startup",
+      "trigger_on_change": "When usage changes",
+      "test_connection": "Test Connection",
+      "send_now": "Send Now",
+      "save": "Save Settings",
+      "testing": "Testing...",
+      "sending": "Sending...",
+      "cooldown": "Please wait {{seconds}}s",
+      "test_success": "Connection successful",
+      "test_failed": "Connection failed: {{error}}",
+      "send_success": "Webhook sent successfully",
+      "send_failed": "Webhook failed: {{error}}",
+      "saved": "Settings saved",
+      "last_sent": "Last sent: {{time}}",
+      "sample_payload": "Sample Payload"
+    },
+    "about": {
+      "description": "A powerful, secure, and 100% offline desktop app to manage Claude Code CLI accounts.",
+      "author": "Author",
+      "license": "License",
+      "source_code": "Source Code",
+      "version": "Version"
     }
   }
 }
