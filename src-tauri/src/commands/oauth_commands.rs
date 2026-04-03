@@ -28,20 +28,24 @@ pub fn read_oauth_from_claude_json(home: &PathBuf) -> Option<OAuthAccount> {
     serde_json::from_value(oauth.clone()).ok()
 }
 
-/// Read saved oauthAccount from ~/.claude/.claude-[email].json
-pub fn read_saved_oauth(claude_dir: &PathBuf, email: &str) -> Option<OAuthAccount> {
-    let path = claude_dir.join(format!(".claude-{}.json", email));
+/// Read saved oauthAccount from ~/.claude-tools/profiles/{name}/oauth.json
+pub fn read_saved_oauth(profiles_dir: &PathBuf, name: &str) -> Option<OAuthAccount> {
+    let path = profiles_dir.join(name).join("oauth.json");
     let content = std::fs::read_to_string(path).ok()?;
     serde_json::from_str(&content).ok()
 }
 
-/// Write oauthAccount to ~/.claude/.claude-[email].json
+/// Write oauthAccount to ~/.claude-tools/profiles/{name}/oauth.json
 pub fn write_saved_oauth(
-    claude_dir: &PathBuf,
-    email: &str,
+    profiles_dir: &PathBuf,
+    name: &str,
     account: &OAuthAccount,
 ) -> Result<(), String> {
-    let path = claude_dir.join(format!(".claude-{}.json", email));
+    // Ensure the profile directory exists
+    let prof_dir = profiles_dir.join(name);
+    std::fs::create_dir_all(&prof_dir).map_err(|e| e.to_string())?;
+
+    let path = prof_dir.join("oauth.json");
     let json = serde_json::to_string_pretty(account).map_err(|e| e.to_string())?;
     std::fs::write(&path, json).map_err(|e| e.to_string())?;
 

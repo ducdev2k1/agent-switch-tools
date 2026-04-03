@@ -1,10 +1,11 @@
 use serde::{Deserialize, Serialize};
 use std::path::PathBuf;
-use tauri::Manager;
 
-/// Manager metadata file: ~/.claude/.claude-manager-meta.json
+use super::path_helpers::claude_tools_dir;
+
+/// Manager metadata file: ~/.claude-tools/meta.json
 /// Tracks which saved profile is currently active and usage history
-const META_FILENAME: &str = ".claude-manager-meta.json";
+const META_FILENAME: &str = "meta.json";
 
 #[derive(Debug, Serialize, Deserialize, Clone, Default)]
 #[serde(rename_all = "camelCase")]
@@ -35,14 +36,6 @@ impl Default for ManagerMeta {
             usage_history: std::collections::HashMap::new(),
         }
     }
-}
-
-/// Resolve ~/.claude/ directory
-fn claude_dir(app: &tauri::AppHandle) -> Result<PathBuf, String> {
-    app.path()
-        .home_dir()
-        .map(|h| h.join(".claude"))
-        .map_err(|e| format!("Cannot resolve home directory: {}", e))
 }
 
 /// Read metadata from disk, returns default if file missing/corrupt
@@ -103,7 +96,7 @@ pub fn record_switch_usage(meta: &mut ManagerMeta, outgoing_name: &str) {
 
 #[tauri::command]
 pub async fn get_manager_meta(app: tauri::AppHandle) -> Result<ManagerMeta, String> {
-    let dir = claude_dir(&app)?;
+    let dir = claude_tools_dir(&app)?;
     Ok(read_meta(&dir))
 }
 
@@ -112,7 +105,7 @@ pub async fn set_active_profile_name(
     app: tauri::AppHandle,
     name: String,
 ) -> Result<(), String> {
-    let dir = claude_dir(&app)?;
+    let dir = claude_tools_dir(&app)?;
     let mut meta = read_meta(&dir);
     meta.active_profile_name = Some(name);
     meta.last_switched_at = Some(chrono::Utc::now().to_rfc3339());

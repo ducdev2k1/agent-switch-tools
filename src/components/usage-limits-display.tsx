@@ -1,4 +1,4 @@
-import type { UsageLimits, UsageBucket } from '@/lib/types'
+import type { UsageBucket, UsageLimits } from '@/lib/types'
 import { Activity } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 
@@ -59,9 +59,7 @@ function UsageRow({
     <div className="space-y-1">
       <div className="flex items-center justify-between">
         <span className="text-xs font-medium text-foreground">{label}</span>
-        <span
-          className={`text-xs font-bold font-mono ${getTextColor(pct)}`}
-        >
+        <span className={`text-xs font-bold font-mono ${getTextColor(pct)}`}>
           {pct}%
         </span>
       </div>
@@ -124,7 +122,7 @@ export function UsageLimitsDisplay({
   }
 
   return (
-    <div className="mt-3 space-y-3">
+    <div className="mt-3 space-y-3 w-full">
       <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
         {t('common.labels.usage')}
       </p>

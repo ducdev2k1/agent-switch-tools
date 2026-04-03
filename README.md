@@ -9,23 +9,25 @@
 ![TypeScript](https://img.shields.io/badge/TypeScript-5.8-3178C6)
 ![License](https://img.shields.io/badge/License-MIT-green)
 
-## Features
+*(Looking for the Vietnamese version? Scroll down / Kéo xuống dưới để xem bản Tiếng Việt)*
 
-- **Multi-account management** — Add, edit, and delete Claude Code CLI profiles
-- **One-click switching** — Switch active account with confirmation dialog
-- **Usage monitoring** — View quota and usage stats per profile
-- **System tray** — Quick access from system tray icon
-- **i18n** — English and Vietnamese language support
-- **Dark mode** — Light/dark theme toggle
+## 🌟 Features
+
+- **Multi-Account Management:** Seamlessly add, edit, securely backup, and delete Claude Code CLI credential profiles.
+- **Smart Quota Refresh:** Automatically fetches and updates your token usage limits in the background (via Anthropic OAuth API) with intelligent rate-limiting protection.
+- **One-Click Switching:** Effortlessly switch between active accounts with an elegant confirmation dialog. No more manual file renaming.
+- **System Tray Integration:** Access quick-switching directly from your OS menu bar/system tray without opening the main window.
+- **Built-in Auto Updater:** Automatically checks for and installs new releases via GitHub.
+- **i18n & Theming:** English and Vietnamese language support with native Light/Dark mode toggles.
 
 ## 🔒 Security & Privacy (100% Local)
 
 Because this application manages your `.credentials.json` files (which contain highly sensitive Claude API tokens), **Security is our top priority**:
-- **Zero Telemetry & No Tracking**: We guarantee that the app **never** sends your credentials, tokens, or personal data to any external server.
-- **100% Offline/Local Operation**: All file parsing, account switching, and management happen purely on your local filesystem using secure Rust bindings. Your API keys never leave your machine.
+- **Zero Telemetry & No Tracking**: We guarantee that the app **never** sends your credentials, tokens, or personal data to any external server (except official Anthropic endpoints for quota fetching).
+- **100% Offline/Local Storage**: All file parsing, account switching, and management happen purely on your local filesystem using secure Rust bindings. Your API keys never leave your machine.
 - **Open Source Transparency**: The codebase is completely open source, allowing you to audit and verify every single system call. You can trust this tool to protect your data.
 
-## Tech Stack
+## 🛠️ Tech Stack
 
 | Layer | Technology |
 |-------|------------|
@@ -34,7 +36,7 @@ Because this application manages your `.credentials.json` files (which contain h
 | UI | Radix UI, shadcn/ui, Lucide Icons |
 | Package Manager | pnpm |
 
-## Getting Started
+## 🚀 Getting Started
 
 ### Prerequisites
 
@@ -56,7 +58,7 @@ sudo apt-get install -y \
   libayatana-appindicator3-dev
 ```
 
-### Install & Run
+### Install & Run (Development)
 
 ```bash
 pnpm install
@@ -69,40 +71,69 @@ pnpm tauri:dev
 pnpm tauri build
 ```
 
-## CI/CD
+---
+---
 
-| Workflow | Trigger | Purpose |
-|----------|---------|---------|
-| **CI** | Push/PR to `main` | Build check on Linux, macOS, Windows |
-| **Release** | Push tag `v*` | Build + create GitHub Release with installers |
+<div align="center">
+  <h2>🇻🇳 Phiên bản Tiếng Việt</h2>
+</div>
 
-### Creating a Release
+## 🌟 Tính năng nổi bật
+
+- **Quản lý Đa tài khoản:** Dễ dàng thêm, chỉnh sửa, sao lưu an toàn và xóa các profile cấu hình của Claude Code CLI.
+- **Làm mới Hạn mức Thông minh:** Ứng dụng tự động chạy ngầm và gọi API (Anthropic OAuth API) để cập nhật phần trăm hạn mức sử dụng (Quota) của tài khoản, tích hợp cơ chế chống spam (Throttling) an toàn.
+- **Chuyển đổi 1-Click:** Đổi tài khoản làm việc trong tích tắc kèm hộp thoại xác nhận. Không còn cảnh phải đổi tên file thủ công.
+- **Tích hợp Khay hệ thống (System Tray):** Chuyển đổi tài khoản nhanh chóng chỉ bằng cách nhấp chuột phải vào biểu tượng ứng dụng ở góc nhỏ màn hình.
+- **Tự động Cập nhật:** Ứng dụng tự động kiểm tra và cài đặt phiên bản mới nhất từ Github Releases.
+- **Đa cấu hình:** Hỗ trợ song ngữ (Anh/Việt) và Chế độ Sáng/Tối mượt mà.
+
+## 🔒 Bảo mật & Riêng tư (Local 100%)
+
+Bởi vì ứng dụng này trực tiếp quản lý các file `.credentials.json` (chứa Private Token rất nhạy cảm của bạn), **Bảo mật là tiêu chí số 1**:
+- **Không theo dõi & Đo lường**: Chúng tôi đảm bảo rằng ứng dụng **không bao giờ** lén thu thập hay gửi token/dữ liệu cá nhân sang bất kì máy chủ bên thứ ba nào (Ngoại trừ việc gọi qua API chính chủ của Anthropic để lấy số liệu Quota).
+- **Lưu trữ Offline 100%**: Mọi thao tác xử lý, đọc định dạng, chuyển đổi file đều được thao tác trực tiếp ở cấp độ lõi Rust trên ổ cứng cá nhân của bạn. Token không bao giờ rời khỏi máy của bạn.
+- **Mã nguồn mở minh bạch**: Toàn bộ mã nguồn được công khai. Ai cũng có thể kiểm định và soi từng dòng System Call. Bạn hoàn toàn có thể yên tâm.
+
+## 🛠️ Công nghệ sử dụng
+
+| Lớp | Công nghệ |
+|-------|------------|
+| Frontend | React 19, TypeScript, Vite 7, Tailwind CSS 4 |
+| Backend | Rust, Tauri v2 |
+| Giao diện | Radix UI, shadcn/ui, Lucide Icons |
+| Quản lý Package | pnpm |
+
+## 🚀 Hướng dẫn Cài đặt & Khởi chạy
+
+### Yêu cầu hệ thống
+
+- [Node.js](https://nodejs.org/) 22+
+- [pnpm](https://pnpm.io/) 10+
+- [Rust](https://rustup.rs/) (phiên bản ổn định)
+- Đối với Linux: Phải cài thêm thư viện hệ thống (Xem bên dưới)
+
+### Thư viện hệ thống cho Linux
 
 ```bash
-# 1. Update version in package.json and src-tauri/tauri.conf.json
-# 2. Commit and tag
-git commit -am "chore: bump version to X.Y.Z"
-git tag vX.Y.Z
-git push origin main --tags
-# 3. Review draft release on GitHub, then publish
+sudo apt-get install -y \
+  libwebkit2gtk-4.1-dev \
+  libappindicator3-dev \
+  librsvg2-dev \
+  patchelf \
+  libssl-dev \
+  libgtk-3-dev \
+  libayatana-appindicator3-dev
 ```
 
-See [docs/deployment-guide.md](docs/deployment-guide.md) for details.
+### Chạy Môi trường Phát triển (Dev)
 
-## Project Structure
-
+```bash
+pnpm install
+pnpm tauri:dev
 ```
-├── src/                    # React frontend
-│   ├── components/         # UI components
-│   ├── hooks/              # Custom React hooks
-│   ├── lib/                # Utilities, types, i18n
-│   ├── locales/            # Translation files (en, vi)
-│   └── pages/              # Page components
-├── src-tauri/              # Rust backend
-│   └── src/
-│       ├── commands/       # Tauri IPC commands
-│       ├── tray.rs         # System tray
-│       └── lib.rs          # App setup
-├── .github/workflows/      # CI/CD pipelines
-└── docs/                   # Project documentation
+
+### Build ra File cài đặt (.exe, .dmg, .AppImage)
+
+```bash
+pnpm tauri build
 ```

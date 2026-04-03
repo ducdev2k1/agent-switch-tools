@@ -47,15 +47,18 @@ fn hash_token(token: &str) -> u64 {
     hasher.finish()
 }
 
-/// Fetch usage from Anthropic API with caching (2min TTL)
-async fn fetch_usage_with_token(token: &str) -> Option<UsageLimits> {
+/// Fetch usage from Anthropic API with caching (2min TTL).
+/// Pass `force_refresh = true` to bypass cache (e.g. on manual refresh button click).
+async fn fetch_usage_with_token(token: &str, force_refresh: bool) -> Option<UsageLimits> {
     let key = hash_token(token);
 
-    // Check cache first
-    if let Ok(cache) = USAGE_CACHE.lock() {
-        if let Some((data, fetched_at)) = cache.get(&key) {
-            if fetched_at.elapsed().as_secs() < CACHE_TTL_SECS {
-                return data.clone();
+    // Check cache first (skip if force_refresh)
+    if !force_refresh {
+        if let Ok(cache) = USAGE_CACHE.lock() {
+            if let Some((data, fetched_at)) = cache.get(&key) {
+                if fetched_at.elapsed().as_secs() < CACHE_TTL_SECS {
+                    return data.clone();
+                }
             }
         }
     }
@@ -114,7 +117,10 @@ fn read_token_from_creds(creds_path: &PathBuf) -> Option<String> {
 
 /// Get usage limits for the current active account
 #[tauri::command]
-pub async fn get_usage_limits(app: tauri::AppHandle) -> Result<Option<UsageLimits>, String> {
+pub async fn get_usage_limits(
+    app: tauri::AppHandle,
+    force_refresh: Option<bool>,
+) -> Result<Option<UsageLimits>, String> {
     let home = app.path().home_dir().map_err(|e: tauri::Error| e.to_string())?;
     let creds_path = home.join(".claude").join(".credentials.json");
 
@@ -123,20 +129,26 @@ pub async fn get_usage_limits(app: tauri::AppHandle) -> Result<Option<UsageLimit
         None => return Ok(None),
     };
 
-    Ok(fetch_usage_with_token(&token).await)
+    Ok(fetch_usage_with_token(&token, force_refresh.unwrap_or(false)).await)
 }
 
-/// Get usage limits for a specific saved profile
+/// Get usage limits for a specific saved profile.
+/// Pass `force_refresh: true` to bypass the 2-minute cache.
 #[tauri::command]
 pub async fn get_profile_usage(
     app: tauri::AppHandle,
     profile_name: String,
+    force_refresh: Option<bool>,
 ) -> Result<Option<UsageLimits>, String> {
     let home = app.path().home_dir().map_err(|e: tauri::Error| e.to_string())?;
-    let claude_dir = home.join(".claude");
 
-    // Saved profiles store creds as .credentials-{name}.json
-    let creds_path = claude_dir.join(format!(".credentials-{}.json", profile_name));
+    // Saved profiles are now stored in ~/.claude/.claude-tools/profiles/{name}/credentials.json
+    let creds_path = home
+        .join(".claude")
+        .join(".claude-tools")
+        .join("profiles")
+        .join(&profile_name)
+        .join("credentials.json");
     if !creds_path.exists() {
         return Ok(None);
     }
@@ -146,7 +158,7 @@ pub async fn get_profile_usage(
         None => return Ok(None),
     };
 
-    Ok(fetch_usage_with_token(&token).await)
+    Ok(fetch_usage_with_token(&token, force_refresh.unwrap_or(false)).await)
 }
 
 /// Get local usage stats (sessions, model, restrictions)

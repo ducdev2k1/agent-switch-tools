@@ -6,6 +6,7 @@ import { ProfileCard } from '@/components/profile-card'
 import { SwitchConfirmationDialog } from '@/components/switch-confirmation-dialog'
 import { Button } from '@/components/ui/button'
 import { Separator } from '@/components/ui/separator'
+import { useAppUpdater } from '@/hooks/use-app-updater'
 import { useClaudeConfig } from '@/hooks/use-claude-config'
 import { useCredentialProfiles } from '@/hooks/use-profiles'
 import { useUsageStats } from '@/hooks/use-usage-stats'
@@ -35,6 +36,7 @@ export function Dashboard() {
   } = useClaudeConfig()
 
   const { stats: usageStats } = useUsageStats()
+  const { updateVersion, installing, install } = useAppUpdater()
 
   // Listen for tray quick-switch events
   const handleTraySwitchRef = useCallback(
@@ -194,6 +196,25 @@ export function Dashboard() {
           usageStats={usageStats}
           loading={cliLoading}
         />
+
+        {/* Update available banner */}
+        {updateVersion && (
+          <div className="flex items-center justify-between rounded-lg border border-blue-500/30 bg-blue-500/5 px-4 py-2.5 text-sm">
+            <span className="text-blue-700 dark:text-blue-400">
+              Update available:{' '}
+              <span className="font-bold">v{updateVersion}</span>
+            </span>
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={install}
+              disabled={installing}
+              className="h-7 text-xs border-blue-500/40 text-blue-700 dark:text-blue-400 hover:bg-blue-500/10"
+            >
+              {installing ? 'Installing...' : 'Install & Restart'}
+            </Button>
+          </div>
+        )}
 
         <Separator />
 

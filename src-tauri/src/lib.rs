@@ -1,4 +1,5 @@
 mod commands;
+mod quota_refresh_worker;
 mod tray;
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
@@ -7,9 +8,19 @@ pub fn run() {
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_fs::init())
         .plugin(tauri_plugin_store::Builder::default().build())
+        .plugin(tauri_plugin_updater::Builder::new().build())
+        .plugin(tauri_plugin_process::init())
         .setup(|app| {
             tray::setup_tray(app)?;
+            quota_refresh_worker::spawn_quota_worker(app.handle().clone());
             Ok(())
+        })
+        // Close to tray: hide window instead of quitting when user clicks X
+        .on_window_event(|window, event| {
+            if let tauri::WindowEvent::CloseRequested { api, .. } = event {
+                window.hide().unwrap();
+                api.prevent_close();
+            }
         })
         .invoke_handler(tauri::generate_handler![
             // Credential profile management

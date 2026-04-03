@@ -13,10 +13,16 @@ pub fn setup_tray(app: &tauri::App) -> Result<(), Box<dyn std::error::Error>> {
     // Build initial tray menu
     let menu = build_tray_menu(&handle)?;
 
-    TrayIconBuilder::new()
+    // Load platform-appropriate icon from bundle config (icns on macOS, ico on Windows, png on Linux)
+    let icon = app.default_window_icon().cloned();
+    let mut builder = TrayIconBuilder::new()
         .tooltip("Claude Tools")
         .menu(&menu)
-        .show_menu_on_left_click(true)
+        .show_menu_on_left_click(true);
+    if let Some(icon) = icon {
+        builder = builder.icon(icon).icon_as_template(true); // icon_as_template for macOS dark/light bar
+    }
+    builder
         .on_menu_event(move |app_handle: &tauri::AppHandle, event: tauri::menu::MenuEvent| {
             let id = event.id().as_ref();
             match id {
@@ -49,8 +55,9 @@ fn build_tray_menu(
     handle: &tauri::AppHandle,
 ) -> Result<tauri::menu::Menu<tauri::Wry>, Box<dyn std::error::Error>> {
     let home = handle.path().home_dir()?;
-    let claude_dir = home.join(".claude");
-    let meta = read_meta(&claude_dir);
+    let tools_dir = home.join(".claude").join(".claude-tools");
+    let profiles_dir = tools_dir.join("profiles");
+    let meta = read_meta(&tools_dir);
 
     let active_name = meta
         .active_profile_name
@@ -72,24 +79,20 @@ fn build_tray_menu(
         .build(handle)?;
     builder = builder.item(&active_item);
 
-    // Scan saved profiles
-    if let Ok(entries) = std::fs::read_dir(&claude_dir) {
-        for entry in entries.flatten() {
-            let filename = entry.file_name().to_string_lossy().to_string();
-            if filename.starts_with(".credentials-") && filename.ends_with(".json") {
-                let name = filename
-                    .strip_prefix(".credentials-")
-                    .and_then(|s| s.strip_suffix(".json"))
-                    .unwrap_or("")
-                    .to_string();
+    // Scan saved profiles: ~/.claude/.claude-tools/profiles/{name}/credentials.json
+    if let Ok(entries) = std::fs::read_dir(&profiles_dir) {
+        let mut names: Vec<String> = entries
+            .flatten()
+            .filter(|e| e.path().is_dir())
+            .map(|e| e.file_name().to_string_lossy().to_string())
+            .filter(|name| !name.is_empty() && name != &active_name)
+            .collect();
+        names.sort();
 
-                if !name.is_empty() {
-                    let id = format!("switch:{}", name);
-                    let item =
-                        MenuItemBuilder::with_id(id, &format!("  {}", name)).build(handle)?;
-                    builder = builder.item(&item);
-                }
-            }
+        for name in names {
+            let id = format!("switch:{}", name);
+            let item = MenuItemBuilder::with_id(id, &format!("  {}", name)).build(handle)?;
+            builder = builder.item(&item);
         }
     }
 
