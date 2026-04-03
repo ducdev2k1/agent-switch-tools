@@ -9,7 +9,7 @@ const INITIAL_DELAY: u64 = 10; // 10 seconds
 /// Spawns a background worker that refreshes quota usage every 5 minutes
 /// and emits a `usage-updated` event so the frontend can update without polling.
 pub fn spawn_quota_worker(app: AppHandle) {
-    tokio::spawn(async move {
+    tauri::async_runtime::spawn(async move {
         // Wait 10 seconds after startup before first fetch (let app fully initialize)
         tokio::time::sleep(Duration::from_secs(INITIAL_DELAY)).await;
 

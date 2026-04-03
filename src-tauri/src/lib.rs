@@ -11,7 +11,10 @@ pub fn run() {
         .plugin(tauri_plugin_updater::Builder::new().build())
         .plugin(tauri_plugin_process::init())
         .setup(|app| {
-            tray::setup_tray(app)?;
+            // Non-fatal: tray may fail on Linux without libayatana-appindicator3
+            if let Err(e) = tray::setup_tray(app) {
+                eprintln!("Warning: Could not initialize system tray: {e}");
+            }
             quota_refresh_worker::spawn_quota_worker(app.handle().clone());
             Ok(())
         })
