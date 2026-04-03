@@ -28,7 +28,7 @@
   },
   "plugins": {
     "updater": {
-      "pubkey": "RWS4NN9A/Ly2UApIwg83EVWfW2tPkVRFFE5wGw8GGlZLkD665K31/3KP",
+      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IDI1RDk5RjcyNEZEMEVFNkIKUldScjd0QlBjcC9aSlpORCt6OHU3bFBHWEozU0l0TU1IMmVVSTJ4MGRlUTVDQjR3cUNhaVB4TFoK",
       "endpoints": [
         "https://github.com/ducdev2k1/claude-tools/releases/latest/download/latest.json"
       ]
