@@ -81,9 +81,34 @@ sudo apt-get install -y \
 - Version in `tauri.conf.json` must match tag (without `v` prefix)
 - Check Actions tab for workflow run status
 
-## Code Signing (Future)
+## Windows SmartScreen
+
+Windows SmartScreen blocks unsigned binaries with zero reputation. Each new release resets reputation since the file hash changes.
+
+**Current mitigation:**
+- `publisher` and `copyright` metadata in `tauri.conf.json`
+- Install guide in README + release notes with "More info → Run anyway" steps
+- `.msi` installer as alternative (better trusted by Windows)
+
+## Code Signing
 
 Currently unsigned. Users may see OS warnings on first launch.
+
+### Windows — SignPath Foundation (FREE for OSS)
+
+Release workflow (`release.yml`) has a separate `release-windows` job with commented SignPath integration steps. To enable:
+
+1. Register project at https://signpath.org (free for open-source)
+2. Add secrets to GitHub repo:
+   - `SIGNPATH_API_TOKEN`
+   - `SIGNPATH_ORG_ID`
+   - `SIGNPATH_PROJECT_SLUG`
+   - `SIGNPATH_POLICY_SLUG`
+3. Uncomment SignPath steps in `release.yml`, remove `tagName` from Windows build step
+
+**Fallback options:**
+- Azure Trusted Signing ($9.99/mo) — immediate SmartScreen bypass
+- Certum Open Source (25-49€/yr) — cheap OV certificate
 
 ### macOS (requires Apple Developer account)
 
@@ -95,10 +120,3 @@ Add these secrets to GitHub repo:
 - `APPLE_ID` — Apple ID email
 - `APPLE_PASSWORD` — App-specific password
 - `APPLE_TEAM_ID` — Team ID
-
-### Windows (requires code signing certificate)
-
-Add these secrets to GitHub repo:
-
-- `WINDOWS_CERTIFICATE` — Base64-encoded .pfx certificate
-- `WINDOWS_CERTIFICATE_PASSWORD` — Certificate password

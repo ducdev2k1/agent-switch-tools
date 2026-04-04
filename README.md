@@ -71,6 +71,18 @@ pnpm tauri:dev
 pnpm tauri build
 ```
 
+## ⚠️ Windows Installation Note
+
+Windows SmartScreen may show a warning when installing new releases of unsigned open-source apps. This is expected behavior — **not a virus**.
+
+**To install:**
+1. Click **"More info"** on the SmartScreen popup
+2. Click **"Run anyway"**
+
+Alternatively, you can download the `.msi` installer instead of the `.exe` — MSI installers are generally better trusted by Windows.
+
+> We are working on integrating code signing to eliminate this warning in future releases.
+
 ## 📝 License
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
@@ -141,6 +153,18 @@ pnpm tauri:dev
 ```bash
 pnpm tauri build
 ```
+
+## ⚠️ Lưu ý khi Cài đặt trên Windows
+
+Windows SmartScreen có thể hiện cảnh báo khi cài đặt bản mới của ứng dụng mã nguồn mở chưa ký số. Đây là hành vi bình thường — **không phải virus**.
+
+**Để cài đặt:**
+1. Nhấn **"More info"** trên popup SmartScreen
+2. Nhấn **"Run anyway"**
+
+Hoặc bạn có thể tải file `.msi` thay vì `.exe` — file MSI thường được Windows tin tưởng hơn.
+
+> Chúng tôi đang triển khai code signing để loại bỏ cảnh báo này trong các bản phát hành tương lai.
 
 ## 📝 Giấy phép
 

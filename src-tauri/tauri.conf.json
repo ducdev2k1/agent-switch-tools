@@ -45,8 +45,15 @@
       "icons/icon.icns",
       "icons/icon.ico"
     ],
+    "publisher": "ducdev2k1",
+    "copyright": "Copyright 2025-2026 ducdev2k1. MIT License.",
     "category": "Utility",
     "shortDescription": "A powerful, secure, and 100% offline desktop app to manage Claude Code CLI accounts",
-    "longDescription": "A powerful, lightning-fast, and 100% offline desktop application to manage multiple Claude Code CLI accounts — effortlessly switch profiles, monitor quota usage, and stay meticulously organized."
+    "longDescription": "A powerful, lightning-fast, and 100% offline desktop application to manage multiple Claude Code CLI accounts — effortlessly switch profiles, monitor quota usage, and stay meticulously organized.",
+    "windows": {
+      "nsis": {
+        "displayLanguageSelector": true
+      }
+    }
   }
 }
