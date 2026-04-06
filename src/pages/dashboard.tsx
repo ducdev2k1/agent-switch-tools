@@ -5,11 +5,10 @@ import { ProfileCard } from '@/components/profile-card'
 import { SwitchConfirmationDialog } from '@/components/switch-confirmation-dialog'
 import { Button } from '@/components/ui/button'
 import { Separator } from '@/components/ui/separator'
-import { useAppUpdater } from '@/hooks/use-app-updater'
 import { useClaudeConfig } from '@/hooks/use-claude-config'
 import { useCredentialProfiles } from '@/hooks/use-profiles'
 import { useUsageStats } from '@/hooks/use-usage-stats'
-import type { CredentialProfile } from '@/lib/types'
+import type { AppUpdaterState, CredentialProfile } from '@/lib/types'
 import { listen } from '@tauri-apps/api/event'
 import { RefreshCw, Save, Settings, Shield, UserPlus } from 'lucide-react'
 import { useCallback, useEffect, useState } from 'react'
@@ -18,9 +17,10 @@ import { toast } from 'sonner'
 
 interface DashboardProps {
   onOpenSettings: () => void
+  updater: AppUpdaterState
 }
 
-export function Dashboard({ onOpenSettings }: DashboardProps) {
+export function Dashboard({ onOpenSettings, updater }: DashboardProps) {
   const { t } = useTranslation()
   const {
     profiles,
@@ -39,7 +39,7 @@ export function Dashboard({ onOpenSettings }: DashboardProps) {
   } = useClaudeConfig()
 
   const { stats: usageStats } = useUsageStats()
-  const { updateVersion, installing, install } = useAppUpdater()
+  const { updateVersion, installing, install } = updater
 
   // Listen for tray quick-switch events
   const handleTraySwitchRef = useCallback(

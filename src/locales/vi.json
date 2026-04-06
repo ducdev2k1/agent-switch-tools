@@ -109,14 +109,25 @@
       "theme_dark": "Tối",
       "theme_system": "Hệ thống",
       "language": "Ngôn ngữ",
+      "startup": "Khởi động",
+      "autostart": "Khởi động cùng hệ thống",
+      "autostart_desc": "Tự động khởi động khi đăng nhập",
       "updates": "Cập nhật",
-      "auto_update": "Tự động kiểm tra bản cập nhật"
+      "auto_update": "Tự động kiểm tra bản cập nhật",
+      "check_updates": "Cập nhật phần mềm",
+      "check_now": "Kiểm tra",
+      "update_available": "Có phiên bản mới v{{version}}",
+      "up_to_date": "Bạn đang dùng phiên bản mới nhất"
     },
     "webhook": {
       "title": "Cấu hình Webhook",
       "description": "Gửi báo cáo sử dụng đến endpoint của bạn.",
       "pii_warning": "Dữ liệu bao gồm email sẽ được gửi đến endpoint này.",
       "enabled": "Kích hoạt Webhook",
+      "member_email": "Email thành viên",
+      "member_email_placeholder": "name@example.com",
+      "member_email_hint": "Email cá nhân để xác định ai đang sử dụng tài khoản này",
+      "member_email_required": "Email thành viên là bắt buộc khi webhook được kích hoạt",
       "url": "URL Endpoint",
       "url_placeholder": "https://api.example.com/webhook",
       "url_hint": "Yêu cầu HTTPS (cho phép localhost để test)",
@@ -126,6 +137,8 @@
       "trigger_manual": "Thủ công",
       "trigger_startup": "Khi mở ứng dụng",
       "trigger_on_change": "Khi mức sử dụng thay đổi",
+      "include_credentials": "Bao gồm credentials",
+      "include_credentials_desc": "⚠️ CẢNH BÁO BẢO MẬT: Tính năng này gửi OAuth access token và refresh token trong payload webhook. Chỉ bật nếu bạn hoàn toàn tin tưởng endpoint nhận dữ liệu. Token có thể được dùng để truy cập tài khoản Claude của bạn.",
       "test_connection": "Kiểm tra kết nối",
       "send_now": "Gửi ngay",
       "save": "Lưu cài đặt",
@@ -147,5 +160,13 @@
       "source_code": "Mã nguồn",
       "version": "Phiên bản"
     }
+  },
+  "update_dialog": {
+    "title": "Có bản cập nhật mới",
+    "description": "Phiên bản mới v{{version}} đã sẵn sàng. Bạn có muốn cài đặt ngay không?",
+    "version_label": "Phiên bản mới",
+    "later": "Để sau",
+    "install_now": "Cài đặt & Khởi động lại",
+    "installing": "Đang cài đặt..."
   }
 }

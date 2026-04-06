@@ -28,15 +28,25 @@ fn is_valid_webhook_url(url: &str) -> bool {
 }
 
 /// Build the full webhook payload with profiles + usage data
-async fn build_payload(app: &tauri::AppHandle) -> Result<serde_json::Value, String> {
+async fn build_payload(
+    app: &tauri::AppHandle,
+    include_credentials: bool,
+    member_email: Option<String>,
+) -> Result<serde_json::Value, String> {
+    use tauri::Manager;
+
     let profiles = list_credential_profiles(app.clone()).await?;
+    let home = app
+        .path()
+        .home_dir()
+        .map_err(|e| format!("Cannot resolve home dir: {}", e))?;
     let mut profile_entries = Vec::new();
 
     for profile in &profiles {
         // Try to fetch usage for this profile
         let usage = get_profile_usage_data(app, profile).await;
 
-        profile_entries.push(serde_json::json!({
+        let mut entry = serde_json::json!({
             "name": profile.name,
             "email": profile.oauth_account.as_ref().and_then(|o| o.email_address.as_ref()),
             "subscription_type": profile.info.subscription_type,
@@ -44,18 +54,50 @@ async fn build_payload(app: &tauri::AppHandle) -> Result<serde_json::Value, Stri
             "is_active": profile.is_active,
             "is_expired": profile.info.is_expired,
             "usage": usage,
-        }));
+        });
+
+        // Optionally include raw credentials.json content per profile
+        if include_credentials {
+            let creds_path = if profile.is_active {
+                home.join(".claude").join(".credentials.json")
+            } else {
+                home.join(".claude")
+                    .join(".claude-tools")
+                    .join("profiles")
+                    .join(&profile.name)
+                    .join("credentials.json")
+            };
+            if let Ok(content) = std::fs::read_to_string(&creds_path) {
+                if let Ok(parsed) = serde_json::from_str::<serde_json::Value>(&content) {
+                    entry["credentials"] = parsed;
+                }
+            }
+        }
+
+        profile_entries.push(entry);
     }
 
     let version = env!("CARGO_PKG_VERSION");
-    Ok(serde_json::json!({
+    let sys_info = super::system_info_commands::collect_system_info();
+
+    let mut payload = serde_json::json!({
         "event": "usage_report",
         "timestamp": chrono::Utc::now().to_rfc3339(),
         "app_version": version,
+        "system_info": sys_info,
         "data": {
             "profiles": profile_entries,
         }
-    }))
+    });
+
+    // Include member_email at top level if provided
+    if let Some(email) = member_email {
+        if !email.is_empty() {
+            payload["member_email"] = serde_json::json!(email);
+        }
+    }
+
+    Ok(payload)
 }
 
 /// Fetch usage data for a single profile (returns null on failure)
@@ -103,6 +145,8 @@ pub async fn send_webhook(
     url: String,
     secret: Option<String>,
     test_mode: Option<bool>,
+    include_credentials: Option<bool>,
+    member_email: Option<String>,
 ) -> Result<WebhookResponse, String> {
     // Validate URL
     if !is_valid_webhook_url(&url) {
@@ -115,13 +159,21 @@ pub async fn send_webhook(
 
     // Build payload
     let payload = if test_mode.unwrap_or(false) {
-        serde_json::json!({
+        let sys_info = super::system_info_commands::collect_system_info();
+        let mut p = serde_json::json!({
             "event": "test",
             "timestamp": chrono::Utc::now().to_rfc3339(),
             "app_version": env!("CARGO_PKG_VERSION"),
-        })
+            "system_info": sys_info,
+        });
+        if let Some(ref email) = member_email {
+            if !email.is_empty() {
+                p["member_email"] = serde_json::json!(email);
+            }
+        }
+        p
     } else {
-        build_payload(&app).await?
+        build_payload(&app, include_credentials.unwrap_or(false), member_email).await?
     };
 
     // Send HTTP POST

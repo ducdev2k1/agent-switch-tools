@@ -2,14 +2,16 @@ import { GeneralSettingsPanel } from '@/components/general-settings-panel'
 import { WebhookSettingsPanel } from '@/components/webhook-settings-panel'
 import { Button } from '@/components/ui/button'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import type { AppUpdaterState } from '@/lib/types'
 import { ArrowLeft, Info, Settings, Webhook } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 
 interface SettingsPageProps {
   onBack: () => void
+  updater: AppUpdaterState
 }
 
-export function SettingsPage({ onBack }: SettingsPageProps) {
+export function SettingsPage({ onBack, updater }: SettingsPageProps) {
   const { t } = useTranslation()
 
   return (
@@ -69,7 +71,7 @@ export function SettingsPage({ onBack }: SettingsPageProps) {
               value="general"
               className="mt-0"
             >
-              <GeneralSettingsPanel />
+              <GeneralSettingsPanel updater={updater} />
             </TabsContent>
 
             <TabsContent

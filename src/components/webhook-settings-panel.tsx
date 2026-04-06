@@ -70,9 +70,15 @@ export function WebhookSettingsPanel() {
   }
 
   const handleSave = useCallback(async () => {
-    if (!isValidWebhookUrl(draft.url) && draft.enabled) {
-      toast.error(t('settings.webhook.url_hint'))
-      return
+    if (draft.enabled) {
+      if (!draft.memberEmail.trim()) {
+        toast.error(t('settings.webhook.member_email_required'))
+        return
+      }
+      if (!isValidWebhookUrl(draft.url)) {
+        toast.error(t('settings.webhook.url_hint'))
+        return
+      }
     }
     await save(draft)
     setForm(null)
@@ -92,6 +98,8 @@ export function WebhookSettingsPanel() {
           url: draft.url,
           secret: draft.secret || null,
           testMode: true,
+          includeCredentials: draft.includeCredentials,
+          memberEmail: draft.memberEmail || null,
         },
       )
       if (res.success) {
@@ -127,6 +135,8 @@ export function WebhookSettingsPanel() {
           url: draft.url,
           secret: draft.secret || null,
           testMode: false,
+          includeCredentials: draft.includeCredentials,
+          memberEmail: draft.memberEmail || null,
         },
       )
       lastSentRef.current = Date.now()
@@ -184,10 +194,33 @@ export function WebhookSettingsPanel() {
         </div>
       )}
 
+      {/* Member Email */}
+      <div>
+        <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2 px-1">
+          {t('settings.webhook.member_email')}
+          <span className="text-red-500 ml-0.5">*</span>
+        </h3>
+        <div className="rounded-lg border bg-card">
+          <div className="px-4 py-3 space-y-2">
+            <Input
+              value={draft.memberEmail}
+              onChange={(e) => updateField('memberEmail', e.target.value)}
+              placeholder={t('settings.webhook.member_email_placeholder')}
+              disabled={disabled}
+              className="h-8 text-sm"
+            />
+            <p className="text-[11px] text-muted-foreground">
+              {t('settings.webhook.member_email_hint')}
+            </p>
+          </div>
+        </div>
+      </div>
+
       {/* Configuration fields */}
       <div>
         <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2 px-1">
           {t('settings.webhook.url')}
+          <span className="text-red-500 ml-0.5">*</span>
         </h3>
         <div className="rounded-lg border bg-card">
           {/* Endpoint URL */}
@@ -265,11 +298,30 @@ export function WebhookSettingsPanel() {
               </SelectContent>
             </Select>
           </div>
+
+          <div className="border-t" />
+
+          {/* Include Credentials */}
+          <div className="flex items-center justify-between px-4 py-3">
+            <div>
+              <Label className="text-sm">
+                {t('settings.webhook.include_credentials')}
+              </Label>
+              <p className="text-xs text-muted-foreground mt-0.5">
+                {t('settings.webhook.include_credentials_desc')}
+              </p>
+            </div>
+            <Switch
+              checked={draft.includeCredentials}
+              onCheckedChange={(v) => updateField('includeCredentials', v)}
+              disabled={disabled}
+            />
+          </div>
         </div>
       </div>
 
       {/* Sample Payload */}
-      <SamplePayload />
+      <SamplePayload includeCredentials={draft.includeCredentials} />
 
       {/* Actions */}
       <div className="flex items-center gap-2 flex-wrap">
@@ -308,35 +360,57 @@ export function WebhookSettingsPanel() {
   )
 }
 
-const SAMPLE_PAYLOAD = JSON.stringify(
-  {
-    event: 'usage_report',
-    timestamp: '2026-04-03T14:30:00Z',
-    app_version: '1.0.1',
-    data: {
-      profiles: [
-        {
-          name: 'user@example.com',
-          email: 'user@example.com',
-          subscription_type: 'claude_pro',
-          rate_limit_tier: 't3',
-          is_active: true,
-          is_expired: false,
-          usage: {
-            five_hour: { utilization: 38.0, resets_at: '2026-04-03T19:30:00Z' },
-            seven_day: { utilization: 12.0, resets_at: '2026-04-10T00:00:00Z' },
-            seven_day_sonnet: {
-              utilization: 5.0,
-              resets_at: '2026-04-10T00:00:00Z',
-            },
-          },
-        },
-      ],
+function buildSamplePayload(includeCredentials: boolean): string {
+  const profile: Record<string, unknown> = {
+    name: 'user@example.com',
+    email: 'user@example.com',
+    subscription_type: 'claude_pro',
+    rate_limit_tier: 't3',
+    is_active: true,
+    is_expired: false,
+    usage: {
+      five_hour: { utilization: 38.0, resets_at: '2026-04-03T19:30:00Z' },
+      seven_day: { utilization: 12.0, resets_at: '2026-04-10T00:00:00Z' },
+      seven_day_sonnet: {
+        utilization: 5.0,
+        resets_at: '2026-04-10T00:00:00Z',
+      },
     },
-  },
-  null,
-  2,
-)
+  }
+
+  if (includeCredentials) {
+    profile.credentials = {
+      claudeAiOauth: {
+        accessToken: 'oa-****',
+        refreshToken: 'or-****',
+        expiresAt: 1749000000,
+        scopes: ['user:inference', 'user:profile'],
+      },
+    }
+  }
+
+  return JSON.stringify(
+    {
+      event: 'usage_report',
+      timestamp: '2026-04-03T14:30:00Z',
+      app_version: '1.0.5',
+      member_email: 'name@example.com',
+      system_info: {
+        os_name: 'Ubuntu',
+        os_version: '24.04',
+        hostname: 'my-pc',
+        cpu_name: 'AMD Ryzen 7 5800X',
+        cpu_cores: 16,
+        ram_total_mb: 32768,
+        ram_used_mb: 12456,
+        arch: 'x86_64',
+      },
+      data: { profiles: [profile] },
+    },
+    null,
+    2,
+  )
+}
 
 function CopyButton({ text }: { text: string }) {
   const [copied, setCopied] = useState(false)
@@ -356,9 +430,14 @@ function CopyButton({ text }: { text: string }) {
   )
 }
 
-function SamplePayload() {
+function SamplePayload({
+  includeCredentials,
+}: {
+  includeCredentials: boolean
+}) {
   const { t } = useTranslation()
   const [open, setOpen] = useState(false)
+  const sample = buildSamplePayload(includeCredentials)
 
   return (
     <div>
@@ -376,9 +455,9 @@ function SamplePayload() {
       </button>
       {open && (
         <div className="relative mt-2">
-          <CopyButton text={SAMPLE_PAYLOAD} />
+          <CopyButton text={sample} />
           <pre className="rounded-lg border bg-muted/50 p-4 pr-10 text-[11px] leading-relaxed font-mono overflow-x-auto max-h-80">
-            {SAMPLE_PAYLOAD}
+            {sample}
           </pre>
         </div>
       )}

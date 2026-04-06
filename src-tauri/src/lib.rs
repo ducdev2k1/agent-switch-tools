@@ -1,3 +1,6 @@
+use tauri::Manager;
+use tauri_plugin_autostart::MacosLauncher;
+
 mod commands;
 mod quota_refresh_worker;
 mod tray;
@@ -10,6 +13,18 @@ pub fn run() {
         .plugin(tauri_plugin_store::Builder::default().build())
         .plugin(tauri_plugin_updater::Builder::new().build())
         .plugin(tauri_plugin_process::init())
+        .plugin(tauri_plugin_autostart::init(
+            MacosLauncher::LaunchAgent,
+            Some(vec![]),
+        ))
+        .plugin(tauri_plugin_single_instance::init(|app, _args, _cwd| {
+            // When a second instance launches, show and focus the existing window
+            if let Some(window) = app.get_webview_window("main") {
+                let _ = window.show();
+                let _ = window.unminimize();
+                let _ = window.set_focus();
+            }
+        }))
         .setup(|app| {
             // Non-fatal: tray may fail on Linux without libayatana-appindicator3
             if let Err(e) = tray::setup_tray(app) {
@@ -45,6 +60,8 @@ pub fn run() {
             commands::quota_commands::get_profile_usage,
             // Webhook
             commands::webhook_commands::send_webhook,
+            // System info
+            commands::system_info_commands::get_system_info,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

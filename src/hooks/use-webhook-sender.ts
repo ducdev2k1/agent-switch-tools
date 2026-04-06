@@ -38,6 +38,7 @@ export function useWebhookSender() {
           url: cfg.url,
           secret: cfg.secret || null,
           testMode,
+          includeCredentials: cfg.includeCredentials,
         })
       } catch (e) {
         return { success: false, statusCode: null, message: String(e) }

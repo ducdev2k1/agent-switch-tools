@@ -9,6 +9,8 @@ const DEFAULTS: WebhookConfig = {
   url: '',
   secret: '',
   triggerMode: 'manual',
+  includeCredentials: false,
+  memberEmail: '',
 }
 
 export function useWebhookConfig() {

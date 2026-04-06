@@ -1,4 +1,6 @@
 import { ThemeProvider } from '@/components/theme-provider'
+import { UpdateNotificationDialog } from '@/components/update-notification-dialog'
+import { useAppUpdater } from '@/hooks/use-app-updater'
 import { useWebhookSender } from '@/hooks/use-webhook-sender'
 import { Dashboard } from '@/pages/dashboard'
 import { SettingsPage } from '@/pages/settings-page'
@@ -38,10 +40,28 @@ function AppContent({
   // Mount webhook sender globally for startup/on_change triggers
   useWebhookSender()
 
-  return page === 'dashboard' ? (
-    <Dashboard onOpenSettings={() => setPage('settings')} />
-  ) : (
-    <SettingsPage onBack={() => setPage('dashboard')} />
+  // App updater — shared between modal (auto) and settings (manual)
+  const updater = useAppUpdater()
+
+  return (
+    <>
+      {page === 'dashboard' ? (
+        <Dashboard onOpenSettings={() => setPage('settings')} updater={updater} />
+      ) : (
+        <SettingsPage onBack={() => setPage('dashboard')} updater={updater} />
+      )}
+
+      {/* Update notification modal — shows once per new version */}
+      {updater.updateVersion && (
+        <UpdateNotificationDialog
+          open={updater.showModal}
+          onDismiss={updater.dismissModal}
+          version={updater.updateVersion}
+          installing={updater.installing}
+          onInstall={updater.install}
+        />
+      )}
+    </>
   )
 }
 

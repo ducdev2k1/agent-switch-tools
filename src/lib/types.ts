@@ -72,6 +72,27 @@ export interface ManagerMeta {
   usageHistory: Record<string, ProfileUsage>
 }
 
+export interface SystemInfo {
+  osName: string
+  osVersion: string
+  hostname: string
+  cpuName: string
+  cpuCores: number
+  ramTotalMb: number
+  ramUsedMb: number
+  arch: string
+}
+
+export interface AppUpdaterState {
+  updateVersion: string | null
+  showModal: boolean
+  dismissModal: () => Promise<void>
+  installing: boolean
+  install: () => Promise<void>
+  checking: boolean
+  checkForUpdates: () => Promise<string | null>
+}
+
 export type WebhookTriggerMode = 'manual' | 'on_startup' | 'on_change'
 
 export interface WebhookConfig {
@@ -79,6 +100,8 @@ export interface WebhookConfig {
   url: string
   secret: string
   triggerMode: WebhookTriggerMode
+  includeCredentials: boolean
+  memberEmail: string
 }
 
 export interface WebhookResponse {

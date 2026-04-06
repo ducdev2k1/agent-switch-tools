@@ -109,14 +109,25 @@
       "theme_dark": "Dark",
       "theme_system": "System",
       "language": "Language",
+      "startup": "Startup",
+      "autostart": "Launch at login",
+      "autostart_desc": "Automatically start when you log in",
       "updates": "Updates",
-      "auto_update": "Auto-check for updates"
+      "auto_update": "Auto-check for updates",
+      "check_updates": "Software Update",
+      "check_now": "Check now",
+      "update_available": "New version v{{version}} available",
+      "up_to_date": "You're on the latest version"
     },
     "webhook": {
       "title": "Webhook Configuration",
       "description": "Send usage reports to your own endpoint.",
       "pii_warning": "Usage data including email will be sent to this endpoint.",
       "enabled": "Enable Webhook",
+      "member_email": "Member Email",
+      "member_email_placeholder": "name@example.com",
+      "member_email_hint": "Your personal email to identify who is using this account",
+      "member_email_required": "Member email is required when webhook is enabled",
       "url": "Endpoint URL",
       "url_placeholder": "https://api.example.com/webhook",
       "url_hint": "HTTPS required (localhost allowed for testing)",
@@ -126,6 +137,8 @@
       "trigger_manual": "Manual only",
       "trigger_startup": "On app startup",
       "trigger_on_change": "When usage changes",
+      "include_credentials": "Include credentials",
+      "include_credentials_desc": "⚠️ SECURITY WARNING: This sends your OAuth access tokens and refresh tokens in the webhook payload. Only enable if you fully trust the receiving endpoint. Tokens can be used to access your Claude account.",
       "test_connection": "Test Connection",
       "send_now": "Send Now",
       "save": "Save Settings",
@@ -147,5 +160,13 @@
       "source_code": "Source Code",
       "version": "Version"
     }
+  },
+  "update_dialog": {
+    "title": "Update Available",
+    "description": "A new version v{{version}} is available. Would you like to install it now?",
+    "version_label": "New version",
+    "later": "Later",
+    "install_now": "Install & Restart",
+    "installing": "Installing..."
   }
 }
