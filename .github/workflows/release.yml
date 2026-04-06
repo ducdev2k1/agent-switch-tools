@@ -174,7 +174,7 @@ jobs:
               -OrganizationId $env:SIGNPATH_ORG_ID `
               -ProjectSlug $env:SIGNPATH_PROJECT_SLUG `
               -SigningPolicySlug $env:SIGNPATH_POLICY_SLUG `
-              -ArtifactConfigurationSlug "Initial_version" `
+              -ArtifactConfigurationSlug "initial" `
               -OutputArtifactPath "signed-artifacts/$($file.Name)" `
               -WaitForCompletion
           }
