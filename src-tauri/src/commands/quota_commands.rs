@@ -139,18 +139,22 @@ pub async fn get_profile_usage(
     app: tauri::AppHandle,
     profile_name: String,
     force_refresh: Option<bool>,
+    is_active: Option<bool>,
 ) -> Result<Option<UsageLimits>, String> {
     let home = app.path().home_dir().map_err(|e: tauri::Error| e.to_string())?;
 
-    // Try saved profile first, fall back to active credentials
+    let active_path = home.join(".claude").join(".credentials.json");
     let saved_path = home
         .join(".claude")
         .join(".claude-tools")
         .join("profiles")
         .join(&profile_name)
         .join("credentials.json");
-    let active_path = home.join(".claude").join(".credentials.json");
-    let creds_path = if saved_path.exists() {
+
+    // Active profile must use live credentials; saved profiles use their own copy
+    let creds_path = if is_active.unwrap_or(false) {
+        active_path
+    } else if saved_path.exists() {
         saved_path
     } else if active_path.exists() {
         active_path

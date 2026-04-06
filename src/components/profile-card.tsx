@@ -40,7 +40,7 @@ export function ProfileCard({
     limits: usageLimits,
     loading: usageLoading,
     refresh: refreshUsage,
-  } = useProfileUsage(name)
+  } = useProfileUsage(name, isActive)
   const expired = info.isExpired
 
   // Health color indicator logic

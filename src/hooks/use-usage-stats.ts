@@ -65,7 +65,7 @@ export function useUsageLimits() {
   return { limits, loading, refresh: () => refresh(true) }
 }
 
-export function useProfileUsage(profileName: string | null) {
+export function useProfileUsage(profileName: string | null, isActive = false) {
   const [limits, setLimits] = useState<UsageLimits | null>(null)
   const [loading, setLoading] = useState(false)
 
@@ -76,6 +76,7 @@ export function useProfileUsage(profileName: string | null) {
       invoke<UsageLimits | null>('get_profile_usage', {
         profileName,
         forceRefresh,
+        isActive,
       })
         .then((data) => {
           if (data) setLimits(data)
@@ -83,7 +84,7 @@ export function useProfileUsage(profileName: string | null) {
         .catch((e) => console.error('Failed to load profile usage:', e))
         .finally(() => setLoading(false))
     },
-    [profileName],
+    [profileName, isActive],
   )
 
   useEffect(() => {
