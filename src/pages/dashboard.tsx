@@ -229,6 +229,7 @@ export function Dashboard({ onOpenSettings, updater }: DashboardProps) {
               profile={activeProfile}
               onSwitch={() => {}}
               onDelete={() => {}}
+              onProfilesChanged={refresh}
             />
           </div>
         )}
@@ -300,6 +301,7 @@ export function Dashboard({ onOpenSettings, updater }: DashboardProps) {
                   profile={profile}
                   onSwitch={handleSwitchRequest}
                   onDelete={handleDeleteRequest}
+                  onProfilesChanged={refresh}
                   isCurrentlyActive={
                     !!activeProfile?.oauthAccount?.accountUuid &&
                     activeProfile.oauthAccount.accountUuid ===

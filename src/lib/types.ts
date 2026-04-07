@@ -61,6 +61,11 @@ export interface UsageLimits {
   sevenDaySonnet: UsageBucket | null
 }
 
+export interface RefreshResult {
+  success: boolean
+  message: string
+}
+
 export interface ProfileUsage {
   lastActiveAt: string | null
   totalActiveMinutes: number

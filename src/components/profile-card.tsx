@@ -2,23 +2,26 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { UsageLimitsDisplay } from '@/components/usage-limits-display'
-import { useProfileUsage } from '@/hooks/use-usage-stats'
+import { useProfileUsage, useTokenRefresh } from '@/hooks/use-usage-stats'
 import type { CredentialProfile } from '@/lib/types'
 import {
   ArrowRightLeft,
   Building2,
   Crown,
+  KeyRound,
   Mail,
   RefreshCw,
   Trash2,
   Zap,
 } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
+import { toast } from 'sonner'
 
 interface ProfileCardProps {
   profile: CredentialProfile
   onSwitch: (profile: CredentialProfile) => void
   onDelete: (name: string) => void
+  onProfilesChanged?: () => Promise<void> | void
   isCurrentlyActive?: boolean
 }
 
@@ -32,6 +35,7 @@ export function ProfileCard({
   profile,
   onSwitch,
   onDelete,
+  onProfilesChanged,
   isCurrentlyActive = false,
 }: ProfileCardProps) {
   const { t } = useTranslation()
@@ -41,6 +45,7 @@ export function ProfileCard({
     loading: usageLoading,
     refresh: refreshUsage,
   } = useProfileUsage(name, isActive)
+  const { refreshToken, refreshing } = useTokenRefresh()
   const expired = info.isExpired
 
   // Health color indicator logic
@@ -106,12 +111,35 @@ export function ProfileCard({
                     </Badge>
                   )}
                   {expired && (
-                    <Badge
-                      variant="destructive"
-                      className="text-[10px] font-bold uppercase tracking-wider px-2 py-0"
-                    >
-                      {t('common.labels.expired')}
-                    </Badge>
+                    <>
+                      <Badge
+                        variant="destructive"
+                        className="text-[10px] font-bold uppercase tracking-wider px-2 py-0"
+                      >
+                        {t('common.labels.expired')}
+                      </Badge>
+                      <button
+                        onClick={async (e) => {
+                          e.stopPropagation()
+                          const result = await refreshToken(name, isActive)
+                          if (result.success) {
+                            toast.success(t('common.messages.token_refreshed'))
+                            await onProfilesChanged?.()
+                            refreshUsage()
+                          } else {
+                            toast.error(result.message)
+                          }
+                        }}
+                        disabled={refreshing}
+                        title={t('common.actions.refresh_token')}
+                        className="inline-flex items-center gap-1 text-[10px] font-medium text-primary hover:text-primary/80 disabled:opacity-50 cursor-pointer"
+                      >
+                        <KeyRound
+                          className={`size-3 ${refreshing ? 'animate-spin' : ''}`}
+                        />
+                        {t('common.actions.refresh_token')}
+                      </button>
+                    </>
                   )}
                 </div>
 

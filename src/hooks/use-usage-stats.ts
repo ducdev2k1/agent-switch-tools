@@ -1,7 +1,7 @@
+import type { RefreshResult, UsageLimits, UsageStats } from '@/lib/types'
 import { invoke } from '@tauri-apps/api/core'
 import { listen } from '@tauri-apps/api/event'
-import { useState, useEffect, useCallback, useRef } from 'react'
-import type { UsageStats, UsageLimits } from '@/lib/types'
+import { useCallback, useEffect, useRef, useState } from 'react'
 
 export function useUsageStats() {
   const [stats, setStats] = useState<UsageStats | null>(null)
@@ -31,7 +31,7 @@ export function useUsageLimits() {
 
     setLoading(true)
     lastRefreshedAt.current = now
-    invoke<UsageLimits | null>('get_usage_limits')
+    invoke<UsageLimits | null>('get_usage_limits', { forceRefresh: force })
       .then((data) => {
         if (data) setLimits(data)
       })
@@ -68,6 +68,7 @@ export function useUsageLimits() {
 export function useProfileUsage(profileName: string | null, isActive = false) {
   const [limits, setLimits] = useState<UsageLimits | null>(null)
   const [loading, setLoading] = useState(false)
+  const prevIsActive = useRef(isActive)
 
   const fetchUsage = useCallback(
     (forceRefresh = false) => {
@@ -87,12 +88,45 @@ export function useProfileUsage(profileName: string | null, isActive = false) {
     [profileName, isActive],
   )
 
+  // Force-refresh when isActive status changes (account switch)
   useEffect(() => {
-    fetchUsage()
-  }, [fetchUsage])
+    if (prevIsActive.current !== isActive) {
+      prevIsActive.current = isActive
+      setLimits(null)
+      fetchUsage(true)
+    } else {
+      fetchUsage()
+    }
+  }, [fetchUsage, isActive])
 
   // Force-refresh bypasses the 2-minute server-side cache
   const refresh = useCallback(() => fetchUsage(true), [fetchUsage])
 
   return { limits, loading, refresh }
+}
+
+/** Refresh an expired OAuth token for any profile (active or saved) */
+export function useTokenRefresh() {
+  const [refreshing, setRefreshing] = useState(false)
+
+  const refreshToken = useCallback(
+    async (profileName: string, isActive: boolean): Promise<RefreshResult> => {
+      setRefreshing(true)
+      try {
+        const result = isActive
+          ? await invoke<RefreshResult>('refresh_active_token')
+          : await invoke<RefreshResult>('refresh_profile_token', {
+              profileName,
+            })
+        return result
+      } catch (e) {
+        return { success: false, message: String(e) }
+      } finally {
+        setRefreshing(false)
+      }
+    },
+    [],
+  )
+
+  return { refreshToken, refreshing }
 }

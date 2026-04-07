@@ -11,6 +11,7 @@
       "got_it": "Got it",
       "not_found": "Not found",
       "refresh": "Refresh",
+      "refresh_token": "Refresh Token",
       "save": "Save",
       "save_current": "Save Current",
       "saving": "Saving...",
@@ -49,6 +50,9 @@
         "hour": "{{count}} hours",
         "minute": "{{count}} minutes"
       }
+    },
+    "messages": {
+      "token_refreshed": "Token refreshed successfully"
     }
   },
   "dashboard": {
@@ -87,7 +91,8 @@
       "restart_claude_warning": "Please restart Claude Code to use the new credentials.",
       "switch_confirm": "Switch to profile \"{{name}}\"?",
       "token_expired_title": "Token has expired",
-      "token_expired_warning": "This token has expired. It may automatically refresh next time it's used."
+      "token_expired_warning": "This token has expired. It may automatically refresh next time it's used.",
+      "token_refreshed": "Token refreshed successfully"
     },
     "success": {
       "account_saved": "Account \"{{email}}\" saved",

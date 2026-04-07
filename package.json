@@ -1,6 +1,6 @@
 {
   "name": "claude-tools",
-  "version": "1.0.6",
+  "version": "1.0.7",
   "description": "A powerful, lightning-fast, and 100% offline desktop application to manage multiple Claude Code CLI accounts — effortlessly switch profiles, monitor quota usage, and stay meticulously organized.",
   "author": "ducdev2k1",
   "license": "MIT",

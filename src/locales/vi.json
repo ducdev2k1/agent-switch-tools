@@ -11,6 +11,7 @@
       "got_it": "Đã hiểu",
       "not_found": "Không tìm thấy",
       "refresh": "Làm mới",
+      "refresh_token": "Làm mới Token",
       "save": "Lưu",
       "save_current": "Lưu Hiện tại",
       "saving": "Đang lưu...",
@@ -49,6 +50,9 @@
         "hour": "{{count}} giờ",
         "minute": "{{count}} phút"
       }
+    },
+    "messages": {
+      "token_refreshed": "Làm mới mã xác thực thành công"
     }
   },
   "dashboard": {
@@ -87,7 +91,8 @@
       "restart_claude_warning": "Vui lòng khởi động lại Claude Code để sử dụng thông tin đăng nhập mới.",
       "switch_confirm": "Bạn sắp chuyển sang hồ sơ \"{{name}}\"?",
       "token_expired_title": "Mã xác thực (Token) đã hết hạn",
-      "token_expired_warning": "Mã xác thực này đã hết hạn. Nó có thể tự động làm mới khi sử dụng lần tới."
+      "token_expired_warning": "Mã xác thực này đã hết hạn. Nó có thể tự động làm mới khi sử dụng lần tới.",
+      "token_refreshed": "Làm mới token thành công"
     },
     "success": {
       "account_saved": "Đã lưu tài khoản \"{{email}}\"",

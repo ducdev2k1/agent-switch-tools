@@ -58,6 +58,9 @@ pub fn run() {
             commands::quota_commands::get_usage_stats,
             commands::quota_commands::get_usage_limits,
             commands::quota_commands::get_profile_usage,
+            // Token refresh
+            commands::token_refresh::refresh_active_token,
+            commands::token_refresh::refresh_profile_token,
             // Webhook
             commands::webhook_commands::send_webhook,
             // System info
