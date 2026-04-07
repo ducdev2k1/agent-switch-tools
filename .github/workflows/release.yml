@@ -10,22 +10,9 @@ permissions:
   actions: read
 
 jobs:
-  # Build and release for non-Windows platforms
-  release:
-    strategy:
-      fail-fast: false
-      max-parallel: 1
-      matrix:
-        include:
-          - platform: ubuntu-22.04
-            args: ""
-          - platform: macos-14
-            args: "--target x86_64-apple-darwin"
-          - platform: macos-latest
-            args: "--target aarch64-apple-darwin"
-
-    runs-on: ${{ matrix.platform }}
-
+  # Create draft release first so all platform builds can upload in parallel
+  create-release:
+    runs-on: ubuntu-latest
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -40,6 +27,35 @@ jobs:
             exit 1
           fi
           echo "Version verified: $TAG_VERSION"
+
+      - name: Create draft release
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh release create "${{ github.ref_name }}" \
+            --draft \
+            --title "Claude Tools ${GITHUB_REF_NAME#v}" \
+            --notes "See the assets to download and install this version."
+
+  # Build and upload for non-Windows platforms
+  release:
+    needs: create-release
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - platform: ubuntu-22.04
+            args: ""
+          - platform: macos-14
+            args: "--target x86_64-apple-darwin"
+          - platform: macos-latest
+            args: "--target aarch64-apple-darwin"
+
+    runs-on: ${{ matrix.platform }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
 
       - name: Install Linux dependencies
         if: startsWith(matrix.platform, 'ubuntu')
@@ -91,9 +107,8 @@ jobs:
           args: ${{ matrix.args }}
 
   # Windows: build, optionally sign via SignPath, then upload to release
-  # Runs after non-Windows release job to avoid race condition on draft release creation
   release-windows:
-    needs: release
+    needs: create-release
     runs-on: windows-latest
     permissions:
       contents: write
@@ -103,17 +118,6 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-
-      - name: Verify version matches tag
-        shell: bash
-        run: |
-          TAG_VERSION="${GITHUB_REF_NAME#v}"
-          CONF_VERSION=$(grep '"version"' src-tauri/tauri.conf.json | head -1 | sed 's/.*"\([0-9.]*\)".*/\1/')
-          if [ "$TAG_VERSION" != "$CONF_VERSION" ]; then
-            echo "::error::Tag version ($TAG_VERSION) does not match tauri.conf.json version ($CONF_VERSION)"
-            exit 1
-          fi
-          echo "Version verified: $TAG_VERSION"
 
       - name: Setup pnpm
         uses: pnpm/action-setup@v4
@@ -192,7 +196,7 @@ jobs:
           done
 
   notify:
-    needs: [release, release-windows]
+    needs: [create-release, release, release-windows]
     runs-on: ubuntu-latest
     if: always()
     steps:
