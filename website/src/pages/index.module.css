@@ -35,8 +35,13 @@
   display: inline-block;
   padding: 0.5rem 1.25rem;
   border-radius: 999px;
-  background: var(--ifm-color-primary);
-  color: #fff;
+  background: #18181b;
+  color: #fafafa;
   font-weight: 600;
   font-size: 0.9rem;
+}
+
+[data-theme='dark'] .techBadge {
+  background: #e4e4e7;
+  color: #09090b;
 }

@@ -68,7 +68,7 @@ function HomepageHeader(): ReactNode {
           </Link>
           <Link
             className="button button--outline button--lg"
-            style={{color: '#fff', borderColor: '#fff', marginLeft: '1rem'}}
+            style={{color: '#fafafa', borderColor: '#fafafa', marginLeft: '1rem'}}
             to="/docs/tong-quan">
             Documentation
           </Link>
