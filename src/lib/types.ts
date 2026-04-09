@@ -77,6 +77,14 @@ export interface ManagerMeta {
   usageHistory: Record<string, ProfileUsage>
 }
 
+export interface DeviceInfo {
+  deviceId: string
+  deviceName: string
+  hostname: string
+  createdAt: string
+  lastSeenAt: string
+}
+
 export interface SystemInfo {
   osName: string
   osVersion: string
@@ -113,4 +121,21 @@ export interface WebhookResponse {
   success: boolean
   statusCode: number | null
   message: string
+}
+
+export type SessionUsagePeriod = '1h' | '5h' | '24h' | '7d'
+export type SessionUsageDetailLevel = 'summary' | 'detailed'
+
+export interface SessionUsageSummary {
+  sessionId: string
+  project: string
+  branch: string
+  model: string
+  startedAt: string
+  endedAt: string
+  totalInputTokens: number
+  totalOutputTokens: number
+  totalCacheRead: number
+  totalCacheWrite: number
+  messageCount: number
 }

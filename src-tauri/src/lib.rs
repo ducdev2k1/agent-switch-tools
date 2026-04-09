@@ -30,6 +30,12 @@ pub fn run() {
             if let Err(e) = tray::setup_tray(app) {
                 eprintln!("Warning: Could not initialize system tray: {e}");
             }
+            // Ensure device identity exists (creates device.json on first launch)
+            if let Ok(dir) = commands::path_helpers::claude_tools_dir(app.handle()) {
+                if let Err(e) = commands::device_commands::ensure_device_info(&dir) {
+                    eprintln!("Warning: Could not initialize device identity: {e}");
+                }
+            }
             quota_refresh_worker::spawn_quota_worker(app.handle().clone());
             Ok(())
         })
@@ -63,6 +69,12 @@ pub fn run() {
             commands::token_refresh::refresh_profile_token,
             // Webhook
             commands::webhook_commands::send_webhook,
+            // Device identity
+            commands::device_commands::get_device_info,
+            commands::device_commands::rename_device,
+            // Session usage (token tracking from JSONL logs)
+            commands::session_usage_commands::get_session_usage,
+            commands::session_usage_commands::send_session_usage_webhook,
             // System info
             commands::system_info_commands::get_system_info,
         ])

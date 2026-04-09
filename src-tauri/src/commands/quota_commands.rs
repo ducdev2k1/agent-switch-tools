@@ -170,6 +170,50 @@ pub async fn get_profile_usage(
     Ok(fetch_usage_with_token(&token, force_refresh.unwrap_or(false)).await)
 }
 
+/// Collect tokens for all profiles (active + saved) for batch usage refresh.
+/// Returns Vec<(profile_name, token)>. Skips profiles without valid token.
+pub fn collect_all_profile_tokens(app: &tauri::AppHandle) -> Vec<(String, String)> {
+    use crate::commands::path_helpers;
+    let mut result = Vec::new();
+
+    // Active profile token
+    if let Ok(claude) = path_helpers::claude_dir(app) {
+        let active_creds = claude.join(".credentials.json");
+        if let Some(token) = read_token_from_creds(&active_creds) {
+            // Resolve active profile name from metadata
+            let tools_dir = claude.join(".claude-tools");
+            let name = std::fs::read_to_string(tools_dir.join("meta.json"))
+                .ok()
+                .and_then(|c| serde_json::from_str::<serde_json::Value>(&c).ok())
+                .and_then(|v| v.get("activeProfileName")?.as_str().map(String::from))
+                .unwrap_or_else(|| "Active".to_string());
+            result.push((name, token));
+        }
+    }
+
+    // Saved profiles tokens
+    if let Ok(profs) = path_helpers::profiles_dir(app) {
+        if let Ok(entries) = std::fs::read_dir(&profs) {
+            for entry in entries.flatten() {
+                if !entry.path().is_dir() {
+                    continue;
+                }
+                let name = entry.file_name().to_string_lossy().to_string();
+                // Skip if already collected (e.g. active profile has same name)
+                if result.iter().any(|(n, _)| n == &name) {
+                    continue;
+                }
+                let cred_path = entry.path().join("credentials.json");
+                if let Some(token) = read_token_from_creds(&cred_path) {
+                    result.push((name, token));
+                }
+            }
+        }
+    }
+
+    result
+}
+
 /// Get local usage stats (sessions, model, restrictions)
 #[tauri::command]
 pub async fn get_usage_stats(app: tauri::AppHandle) -> Result<UsageStats, String> {

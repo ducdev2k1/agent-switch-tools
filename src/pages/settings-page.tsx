@@ -1,4 +1,6 @@
+import { DeviceSettingsPanel } from '@/components/device-settings-panel'
 import { GeneralSettingsPanel } from '@/components/general-settings-panel'
+import { SessionUsageWebhookPanel } from '@/components/session-usage-webhook-panel'
 import { WebhookSettingsPanel } from '@/components/webhook-settings-panel'
 import { Button } from '@/components/ui/button'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
@@ -76,9 +78,11 @@ export function SettingsPage({ onBack, updater }: SettingsPageProps) {
 
             <TabsContent
               value="webhook"
-              className="mt-0"
+              className="mt-0 space-y-6"
             >
+              <DeviceSettingsPanel />
               <WebhookSettingsPanel />
+              <SessionUsageWebhookPanel />
             </TabsContent>
 
             <TabsContent

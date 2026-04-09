@@ -99,6 +99,23 @@ export function useProfileUsage(profileName: string | null, isActive = false) {
     }
   }, [fetchUsage, isActive])
 
+  // Auto-update from background worker (every 5 min for all profiles)
+  useEffect(() => {
+    let mounted = true
+    const unlisten = listen<Record<string, UsageLimits>>(
+      'all-profiles-usage-updated',
+      (event) => {
+        if (mounted && profileName && event.payload[profileName]) {
+          setLimits(event.payload[profileName])
+        }
+      },
+    )
+    return () => {
+      mounted = false
+      unlisten.then((fn) => fn())
+    }
+  }, [profileName])
+
   // Force-refresh bypasses the 2-minute server-side cache
   const refresh = useCallback(() => fetchUsage(true), [fetchUsage])
 

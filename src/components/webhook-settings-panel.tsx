@@ -395,6 +395,11 @@ function buildSamplePayload(includeCredentials: boolean): string {
       timestamp: '2026-04-03T14:30:00Z',
       app_version: '1.0.5',
       member_email: 'name@example.com',
+      device_info: {
+        device_id: '550e8400-e29b-41d4-a716-446655440000',
+        device_name: 'MacBook Pro',
+        hostname: 'my-pc',
+      },
       system_info: {
         os_name: 'Ubuntu',
         os_version: '24.04',

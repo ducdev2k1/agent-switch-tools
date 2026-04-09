@@ -80,6 +80,11 @@ async fn build_payload(
     let version = env!("CARGO_PKG_VERSION");
     let sys_info = super::system_info_commands::collect_system_info();
 
+    // Load device identity for per-device tracking
+    let device_info = super::path_helpers::claude_tools_dir(app)
+        .and_then(|dir| super::device_commands::ensure_device_info(&dir))
+        .ok();
+
     let mut payload = serde_json::json!({
         "event": "usage_report",
         "timestamp": chrono::Utc::now().to_rfc3339(),
@@ -89,6 +94,15 @@ async fn build_payload(
             "profiles": profile_entries,
         }
     });
+
+    // Inject device_info for per-device usage tracking
+    if let Some(ref dev) = device_info {
+        payload["device_info"] = serde_json::json!({
+            "device_id": dev.device_id,
+            "device_name": dev.device_name,
+            "hostname": dev.hostname,
+        });
+    }
 
     // Include member_email at top level if provided
     if let Some(email) = member_email {
@@ -169,6 +183,16 @@ pub async fn send_webhook(
         if let Some(ref email) = member_email {
             if !email.is_empty() {
                 p["member_email"] = serde_json::json!(email);
+            }
+        }
+        // Inject device_info for per-device tracking
+        if let Ok(dir) = super::path_helpers::claude_tools_dir(&app) {
+            if let Ok(dev) = super::device_commands::ensure_device_info(&dir) {
+                p["device_info"] = serde_json::json!({
+                    "device_id": dev.device_id,
+                    "device_name": dev.device_name,
+                    "hostname": dev.hostname,
+                });
             }
         }
         p
