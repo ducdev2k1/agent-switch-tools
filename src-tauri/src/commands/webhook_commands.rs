@@ -32,9 +32,8 @@ fn is_valid_webhook_url(url: &str) -> bool {
 async fn build_payload(
     app: &tauri::AppHandle,
     include_credentials: bool,
+    include_session_usage: bool,
     member_email: Option<String>,
-    session_usage_period: Option<String>,
-    session_usage_detail_level: Option<String>,
 ) -> Result<serde_json::Value, String> {
     use tauri::Manager;
 
@@ -114,22 +113,18 @@ async fn build_payload(
         }
     }
 
-    // Append session token usage from JSONL logs
-    let period_str = session_usage_period.unwrap_or_else(|| "24h".to_string());
-    let detail = session_usage_detail_level.unwrap_or_else(|| "detailed".to_string());
-
-    if let Ok(claude_dir) = super::path_helpers::claude_dir(app) {
-        let since = session_usage_commands::period_to_since(&period_str);
+    // Append session token usage from JSONL logs (last 10 min, always detailed)
+    if include_session_usage {
+      if let Ok(claude_dir) = super::path_helpers::claude_dir(app) {
+        let since = chrono::Utc::now() - chrono::Duration::minutes(10);
         let sessions = session_usage_commands::parse_session_logs(&claude_dir, since);
         let summary = session_usage_commands::build_aggregate(&sessions);
 
-        let include_sessions = detail != "summary";
-
         payload["session_usage"] = serde_json::json!({
-            "period": period_str,
             "summary": summary,
-            "sessions": if include_sessions { sessions } else { Vec::new() },
+            "sessions": sessions,
         });
+      }
     }
 
     Ok(payload)
@@ -181,9 +176,8 @@ pub async fn send_webhook(
     secret: Option<String>,
     test_mode: Option<bool>,
     include_credentials: Option<bool>,
+    include_session_usage: Option<bool>,
     member_email: Option<String>,
-    session_usage_period: Option<String>,
-    session_usage_detail_level: Option<String>,
 ) -> Result<WebhookResponse, String> {
     // Validate URL
     if !is_valid_webhook_url(&url) {
@@ -223,9 +217,8 @@ pub async fn send_webhook(
         build_payload(
             &app,
             include_credentials.unwrap_or(false),
+            include_session_usage.unwrap_or(true),
             member_email,
-            session_usage_period,
-            session_usage_detail_level,
         )
         .await?
     };

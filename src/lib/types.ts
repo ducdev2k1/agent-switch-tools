@@ -114,9 +114,8 @@ export interface WebhookConfig {
   secret: string
   triggerMode: WebhookTriggerMode
   includeCredentials: boolean
+  includeSessionUsage: boolean
   memberEmail: string
-  sessionUsagePeriod: SessionUsagePeriod
-  sessionUsageDetailLevel: SessionUsageDetailLevel
 }
 
 export interface WebhookResponse {
@@ -124,9 +123,6 @@ export interface WebhookResponse {
   statusCode: number | null
   message: string
 }
-
-export type SessionUsagePeriod = '1h' | '5h' | '24h' | '7d'
-export type SessionUsageDetailLevel = 'summary' | 'detailed'
 
 export interface SessionUsageSummary {
   sessionId: string

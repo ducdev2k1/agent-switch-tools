@@ -109,17 +109,6 @@ pub fn build_aggregate(sessions: &[SessionUsageSummary]) -> AggregateSummary {
     }
 }
 
-/// Convert period string to chrono since timestamp
-pub fn period_to_since(period: &str) -> chrono::DateTime<chrono::Utc> {
-    match period {
-        "1h" => chrono::Utc::now() - chrono::Duration::hours(1),
-        "5h" => chrono::Utc::now() - chrono::Duration::hours(5),
-        "24h" => chrono::Utc::now() - chrono::Duration::hours(24),
-        "7d" => chrono::Utc::now() - chrono::Duration::days(7),
-        _ => chrono::Utc::now() - chrono::Duration::hours(24),
-    }
-}
-
 /// Parse a single .jsonl session file and aggregate token usage
 fn parse_single_session(
     path: &PathBuf,

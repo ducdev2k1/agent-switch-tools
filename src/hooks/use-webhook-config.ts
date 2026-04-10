@@ -10,9 +10,8 @@ const DEFAULTS: WebhookConfig = {
   secret: '',
   triggerMode: 'manual',
   includeCredentials: false,
+  includeSessionUsage: true,
   memberEmail: '',
-  sessionUsagePeriod: '24h',
-  sessionUsageDetailLevel: 'detailed',
 }
 
 export function useWebhookConfig() {

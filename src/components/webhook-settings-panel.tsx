@@ -10,12 +10,7 @@ import {
 } from '@/components/ui/select'
 import { Switch } from '@/components/ui/switch'
 import { useWebhookConfig } from '@/hooks/use-webhook-config'
-import type {
-  SessionUsageDetailLevel,
-  SessionUsagePeriod,
-  WebhookConfig,
-  WebhookTriggerMode,
-} from '@/lib/types'
+import type { WebhookConfig, WebhookTriggerMode } from '@/lib/types'
 import { invoke } from '@tauri-apps/api/core'
 import {
   AlertTriangle,
@@ -104,9 +99,8 @@ export function WebhookSettingsPanel() {
           secret: draft.secret || null,
           testMode: true,
           includeCredentials: draft.includeCredentials,
+          includeSessionUsage: draft.includeSessionUsage,
           memberEmail: draft.memberEmail || null,
-          sessionUsagePeriod: draft.sessionUsagePeriod || '24h',
-          sessionUsageDetailLevel: draft.sessionUsageDetailLevel || 'detailed',
         },
       )
       if (res.success) {
@@ -143,9 +137,8 @@ export function WebhookSettingsPanel() {
           secret: draft.secret || null,
           testMode: false,
           includeCredentials: draft.includeCredentials,
+          includeSessionUsage: draft.includeSessionUsage,
           memberEmail: draft.memberEmail || null,
-          sessionUsagePeriod: draft.sessionUsagePeriod || '24h',
-          sessionUsageDetailLevel: draft.sessionUsageDetailLevel || 'detailed',
         },
       )
       lastSentRef.current = Date.now()
@@ -326,82 +319,30 @@ export function WebhookSettingsPanel() {
               disabled={disabled}
             />
           </div>
-        </div>
-      </div>
-
-      {/* Session Token Usage config */}
-      <div>
-        <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2 px-1">
-          {t('settings.webhook.session_usage_title')}
-        </h3>
-        <div className="rounded-lg border bg-card">
-          <div className="px-4 py-3">
-            <p className="text-xs text-muted-foreground">
-              {t('settings.webhook.session_usage_desc')}
-            </p>
-          </div>
 
           <div className="border-t" />
 
-          {/* Period selector */}
+          {/* Include Session Usage */}
           <div className="flex items-center justify-between px-4 py-3">
-            <Label className="text-sm">
-              {t('settings.webhook.session_usage_period')}
-            </Label>
-            <Select
-              value={draft.sessionUsagePeriod}
-              onValueChange={(v) =>
-                updateField('sessionUsagePeriod', v as SessionUsagePeriod)
-              }
+            <div>
+              <Label className="text-sm">
+                {t('settings.webhook.include_session_usage')}
+              </Label>
+              <p className="text-xs text-muted-foreground mt-0.5">
+                {t('settings.webhook.include_session_usage_desc')}
+              </p>
+            </div>
+            <Switch
+              checked={draft.includeSessionUsage}
+              onCheckedChange={(v) => updateField('includeSessionUsage', v)}
               disabled={disabled}
-            >
-              <SelectTrigger className="w-48 h-8 text-xs">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="1h">{t('settings.webhook.session_usage_period_1h')}</SelectItem>
-                <SelectItem value="5h">{t('settings.webhook.session_usage_period_5h')}</SelectItem>
-                <SelectItem value="24h">{t('settings.webhook.session_usage_period_24h')}</SelectItem>
-                <SelectItem value="7d">{t('settings.webhook.session_usage_period_7d')}</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-
-          <div className="border-t" />
-
-          {/* Detail level */}
-          <div className="flex items-center justify-between px-4 py-3">
-            <Label className="text-sm">
-              {t('settings.webhook.session_usage_detail')}
-            </Label>
-            <Select
-              value={draft.sessionUsageDetailLevel}
-              onValueChange={(v) =>
-                updateField('sessionUsageDetailLevel', v as SessionUsageDetailLevel)
-              }
-              disabled={disabled}
-            >
-              <SelectTrigger className="w-48 h-8 text-xs">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="summary">
-                  {t('settings.webhook.session_usage_detail_summary')}
-                </SelectItem>
-                <SelectItem value="detailed">
-                  {t('settings.webhook.session_usage_detail_detailed')}
-                </SelectItem>
-              </SelectContent>
-            </Select>
+            />
           </div>
         </div>
       </div>
 
       {/* Sample Payload */}
-      <SamplePayload
-        includeCredentials={draft.includeCredentials}
-        sessionUsageDetailLevel={draft.sessionUsageDetailLevel}
-      />
+      <SamplePayload includeCredentials={draft.includeCredentials} />
 
       {/* Actions */}
       <div className="flex items-center gap-2 flex-wrap">
@@ -440,7 +381,7 @@ export function WebhookSettingsPanel() {
   )
 }
 
-function buildSamplePayload(includeCredentials: boolean, sessionUsageDetailLevel: string): string {
+function buildSamplePayload(includeCredentials: boolean): string {
   const profile: Record<string, unknown> = {
     name: 'user@example.com',
     email: 'user@example.com',
@@ -469,45 +410,10 @@ function buildSamplePayload(includeCredentials: boolean, sessionUsageDetailLevel
     }
   }
 
-  const sessionUsage: Record<string, unknown> = {
-    period: '24h',
-    summary: {
-      totalInputTokens: 425000,
-      totalOutputTokens: 30800,
-      totalCacheRead: 210000,
-      totalCacheWrite: 75000,
-      sessionCount: 2,
-    },
-    sessions: sessionUsageDetailLevel === 'summary' ? [] : [
-      {
-        sessionId: 'a1b2c3d4-e5f6-7890-abcd-ef1234567890',
-        model: 'claude-sonnet-4-20250514',
-        startedAt: '2026-04-10T08:00:00Z',
-        endedAt: '2026-04-10T09:30:00Z',
-        totalInputTokens: 245000,
-        totalOutputTokens: 18500,
-        totalCacheRead: 120000,
-        totalCacheWrite: 45000,
-        messageCount: 32,
-      },
-      {
-        sessionId: 'b2c3d4e5-f6a7-8901-bcde-f12345678901',
-        model: 'claude-sonnet-4-20250514',
-        startedAt: '2026-04-10T10:00:00Z',
-        endedAt: '2026-04-10T11:15:00Z',
-        totalInputTokens: 180000,
-        totalOutputTokens: 12300,
-        totalCacheRead: 90000,
-        totalCacheWrite: 30000,
-        messageCount: 18,
-      },
-    ],
-  }
-
   return JSON.stringify(
     {
       event: 'usage_report',
-      timestamp: '2026-04-03T14:30:00Z',
+      timestamp: '2026-04-10T08:00:00Z',
       app_version: '1.0.8',
       member_email: 'name@example.com',
       device_info: {
@@ -526,7 +432,28 @@ function buildSamplePayload(includeCredentials: boolean, sessionUsageDetailLevel
         arch: 'x86_64',
       },
       data: { profiles: [profile] },
-      session_usage: sessionUsage,
+      session_usage: {
+        summary: {
+          totalInputTokens: 425000,
+          totalOutputTokens: 30800,
+          totalCacheRead: 210000,
+          totalCacheWrite: 75000,
+          sessionCount: 2,
+        },
+        sessions: [
+          {
+            sessionId: 'a1b2c3d4-e5f6-7890-abcd-ef1234567890',
+            model: 'claude-sonnet-4-20250514',
+            startedAt: '2026-04-10T08:00:00Z',
+            endedAt: '2026-04-10T09:30:00Z',
+            totalInputTokens: 245000,
+            totalOutputTokens: 18500,
+            totalCacheRead: 120000,
+            totalCacheWrite: 45000,
+            messageCount: 32,
+          },
+        ],
+      },
     },
     null,
     2,
@@ -553,14 +480,12 @@ function CopyButton({ text }: { text: string }) {
 
 function SamplePayload({
   includeCredentials,
-  sessionUsageDetailLevel,
 }: {
   includeCredentials: boolean
-  sessionUsageDetailLevel: string
 }) {
   const { t } = useTranslation()
   const [open, setOpen] = useState(false)
-  const sample = buildSamplePayload(includeCredentials, sessionUsageDetailLevel)
+  const sample = buildSamplePayload(includeCredentials)
 
   return (
     <div>

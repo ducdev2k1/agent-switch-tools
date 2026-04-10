@@ -1,4 +1,3 @@
-import { useWebhookConfig } from '@/hooks/use-webhook-config'
 import type { SessionUsageSummary } from '@/lib/types'
 import { invoke } from '@tauri-apps/api/core'
 import {
@@ -17,29 +16,19 @@ function formatTokens(n: number): string {
   return String(n)
 }
 
-const periodToHours: Record<string, number> = {
-  '1h': 1,
-  '5h': 5,
-  '24h': 24,
-  '7d': 168,
-}
-
-/** Collapsible preview of session token usage data (read-only). */
+/** Collapsible preview of recent session token usage (last 24h). */
 export function SessionUsageWebhookPanel() {
   const { t } = useTranslation()
-  const { config } = useWebhookConfig()
 
   const [previewing, setPreviewing] = useState(false)
   const [previewData, setPreviewData] = useState<SessionUsageSummary[] | null>(null)
   const [showPreview, setShowPreview] = useState(false)
 
-  const period = config.sessionUsagePeriod ?? '24h'
-
   const handlePreview = useCallback(async () => {
     setPreviewing(true)
     try {
       const data = await invoke<SessionUsageSummary[]>('get_session_usage', {
-        hoursBack: periodToHours[period],
+        hoursBack: 24,
       })
       setPreviewData(data)
       setShowPreview(true)
@@ -48,7 +37,7 @@ export function SessionUsageWebhookPanel() {
     } finally {
       setPreviewing(false)
     }
-  }, [period])
+  }, [])
 
   return (
     <div>

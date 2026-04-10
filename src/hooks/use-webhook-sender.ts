@@ -39,9 +39,8 @@ export function useWebhookSender() {
           secret: cfg.secret || null,
           testMode,
           includeCredentials: cfg.includeCredentials,
+          includeSessionUsage: cfg.includeSessionUsage ?? true,
           memberEmail: cfg.memberEmail || null,
-          sessionUsagePeriod: cfg.sessionUsagePeriod || '24h',
-          sessionUsageDetailLevel: cfg.sessionUsageDetailLevel || 'detailed',
         })
       } catch (e) {
         return { success: false, statusCode: null, message: String(e) }
