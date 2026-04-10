@@ -10,11 +10,11 @@
 - **Đặt tên thiết bị**: Vào Settings > Device để xem Device ID, hostname và đổi tên thiết bị (mặc định là hostname).
 - **Đính kèm vào webhook**: Thông tin thiết bị tự động gắn kèm khi gửi session usage webhook, giúp phân biệt máy nào gửi dữ liệu.
 
-### 2. Theo dõi Session Usage
+### 2. Theo dõi Session Usage (gộp vào Webhook chính)
 
 - **Đọc JSONL sessions**: Backend (Rust) quét tất cả file `.jsonl` trong `~/.claude/projects/`, tổng hợp input/output tokens, cache read/write, số lượng message cho từng session.
-- **Xem trước (Preview)**: Nhấn "Preview" trong Settings để xem danh sách sessions với token usage trước khi gửi.
-- **Gửi webhook**: Chọn khoảng thời gian (1h, 5h, 24h, 7d) và mức chi tiết (summary hoặc detailed), nhấn gửi để đẩy báo cáo đến webhook URL đã cấu hình. Payload bao gồm: thông tin thiết bị, email thành viên, tổng hợp và chi tiết từng session.
+- **Xem trước (Preview)**: Nhấn "Preview Sessions" trong Settings để xem danh sách sessions với token usage.
+- **Gộp vào Webhook chính**: Session token usage giờ được gửi chung trong payload webhook chính — chỉ cần cấu hình 1 URL duy nhất. Chọn khoảng thời gian (1h, 5h, 24h, 7d) và mức chi tiết (summary/detailed) trong phần cài đặt webhook. Payload bao gồm: thông tin profiles, quota, thiết bị, và `session_usage` (tổng hợp + chi tiết từng session).
 
 ### 3. Tự động làm mới Quota cho tất cả tài khoản
 

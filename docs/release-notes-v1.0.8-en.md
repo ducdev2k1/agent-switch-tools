@@ -10,11 +10,11 @@
 - **Rename Your Device**: Go to Settings > Device to view Device ID, hostname, and rename the device (defaults to hostname).
 - **Attached to Webhooks**: Device info is automatically included in session usage webhook payloads, making it easy to identify which machine sent the data.
 
-### 2. Session Usage Tracking
+### 2. Session Usage Tracking (Merged into Main Webhook)
 
 - **JSONL Session Parsing**: The Rust backend scans all `.jsonl` files under `~/.claude/projects/`, aggregating input/output tokens, cache read/write, and message counts per session.
-- **Preview Before Sending**: Click "Preview" in Settings to see a list of sessions with token usage before sending.
-- **Webhook Reports**: Choose a time period (1h, 5h, 24h, 7d) and detail level (summary or detailed), then send a report to your configured webhook URL. Payload includes: device info, member email, aggregate totals, and per-session breakdowns.
+- **Preview Before Sending**: Click "Preview Sessions" in Settings to see sessions with token usage.
+- **Unified Webhook**: Session token usage is now included in the main webhook payload — only one URL to configure. Choose a time period (1h, 5h, 24h, 7d) and detail level (summary/detailed) in webhook settings. Payload includes: profile data, quota, device info, and `session_usage` (aggregate + per-session breakdowns).
 
 ### 3. Background Auto-Refresh for All Profiles
 
