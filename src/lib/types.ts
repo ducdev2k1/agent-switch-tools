@@ -115,6 +115,8 @@ export interface WebhookConfig {
   triggerMode: WebhookTriggerMode
   includeCredentials: boolean
   memberEmail: string
+  sessionUsagePeriod: SessionUsagePeriod
+  sessionUsageDetailLevel: SessionUsageDetailLevel
 }
 
 export interface WebhookResponse {

@@ -2,6 +2,7 @@ use serde::Serialize;
 
 use super::config_commands::{CredentialProfile, list_credential_profiles};
 use super::quota_commands::{fetch_usage_with_token, read_token_from_creds};
+use super::session_usage_commands;
 
 /// Response returned to the frontend after a webhook call
 #[derive(Debug, Serialize, Clone)]
@@ -27,11 +28,13 @@ fn is_valid_webhook_url(url: &str) -> bool {
     false
 }
 
-/// Build the full webhook payload with profiles + usage data
+/// Build the full webhook payload with profiles + usage data + session token usage
 async fn build_payload(
     app: &tauri::AppHandle,
     include_credentials: bool,
     member_email: Option<String>,
+    session_usage_period: Option<String>,
+    session_usage_detail_level: Option<String>,
 ) -> Result<serde_json::Value, String> {
     use tauri::Manager;
 
@@ -105,10 +108,28 @@ async fn build_payload(
     }
 
     // Include member_email at top level if provided
-    if let Some(email) = member_email {
+    if let Some(ref email) = member_email {
         if !email.is_empty() {
             payload["member_email"] = serde_json::json!(email);
         }
+    }
+
+    // Append session token usage from JSONL logs
+    let period_str = session_usage_period.unwrap_or_else(|| "24h".to_string());
+    let detail = session_usage_detail_level.unwrap_or_else(|| "detailed".to_string());
+
+    if let Ok(claude_dir) = super::path_helpers::claude_dir(app) {
+        let since = session_usage_commands::period_to_since(&period_str);
+        let sessions = session_usage_commands::parse_session_logs(&claude_dir, since);
+        let summary = session_usage_commands::build_aggregate(&sessions);
+
+        let include_sessions = detail != "summary";
+
+        payload["session_usage"] = serde_json::json!({
+            "period": period_str,
+            "summary": summary,
+            "sessions": if include_sessions { sessions } else { Vec::new() },
+        });
     }
 
     Ok(payload)
@@ -151,7 +172,7 @@ async fn get_profile_usage_data(
     }))
 }
 
-/// Send webhook: builds payload from Rust (profiles + usage) and POSTs to URL.
+/// Send webhook: builds payload from Rust (profiles + usage + session tokens) and POSTs to URL.
 /// Set `test_mode = true` to send a lightweight test ping instead.
 #[tauri::command]
 pub async fn send_webhook(
@@ -161,6 +182,8 @@ pub async fn send_webhook(
     test_mode: Option<bool>,
     include_credentials: Option<bool>,
     member_email: Option<String>,
+    session_usage_period: Option<String>,
+    session_usage_detail_level: Option<String>,
 ) -> Result<WebhookResponse, String> {
     // Validate URL
     if !is_valid_webhook_url(&url) {
@@ -197,7 +220,14 @@ pub async fn send_webhook(
         }
         p
     } else {
-        build_payload(&app, include_credentials.unwrap_or(false), member_email).await?
+        build_payload(
+            &app,
+            include_credentials.unwrap_or(false),
+            member_email,
+            session_usage_period,
+            session_usage_detail_level,
+        )
+        .await?
     };
 
     // Send HTTP POST

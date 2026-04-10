@@ -74,7 +74,6 @@ pub fn run() {
             commands::device_commands::rename_device,
             // Session usage (token tracking from JSONL logs)
             commands::session_usage_commands::get_session_usage,
-            commands::session_usage_commands::send_session_usage_webhook,
             // System info
             commands::system_info_commands::get_system_info,
         ])
