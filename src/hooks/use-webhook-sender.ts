@@ -37,6 +37,7 @@ export function useWebhookSender() {
         return await invoke<WebhookResponse>('send_webhook', {
           url: cfg.url,
           secret: cfg.secret || null,
+          apiKey: cfg.apiKey || null,
           testMode,
           includeCredentials: cfg.includeCredentials,
           includeSessionUsage: cfg.includeSessionUsage ?? true,

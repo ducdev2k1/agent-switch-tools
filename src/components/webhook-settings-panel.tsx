@@ -52,7 +52,8 @@ export function WebhookSettingsPanel() {
   const [form, setForm] = useState<WebhookConfig | null>(null)
   const draft = form ?? config
 
-  // Secret visibility toggle
+  // Visibility toggles
+  const [showApiKey, setShowApiKey] = useState(false)
   const [showSecret, setShowSecret] = useState(false)
 
   // Action states
@@ -97,6 +98,7 @@ export function WebhookSettingsPanel() {
         {
           url: draft.url,
           secret: draft.secret || null,
+          apiKey: draft.apiKey || null,
           testMode: true,
           includeCredentials: draft.includeCredentials,
           includeSessionUsage: draft.includeSessionUsage,
@@ -135,6 +137,7 @@ export function WebhookSettingsPanel() {
         {
           url: draft.url,
           secret: draft.secret || null,
+          apiKey: draft.apiKey || null,
           testMode: false,
           includeCredentials: draft.includeCredentials,
           includeSessionUsage: draft.includeSessionUsage,
@@ -236,6 +239,40 @@ export function WebhookSettingsPanel() {
             />
             <p className="text-[11px] text-muted-foreground">
               {t('settings.webhook.url_hint')}
+            </p>
+          </div>
+
+          <div className="border-t" />
+
+          {/* API Key */}
+          <div className="px-4 py-3 space-y-1.5">
+            <Label className="text-xs text-muted-foreground">
+              {t('settings.webhook.api_key')}
+            </Label>
+            <div className="relative">
+              <Input
+                type={showApiKey ? 'text' : 'password'}
+                value={draft.apiKey}
+                onChange={(e) => updateField('apiKey', e.target.value)}
+                placeholder={t('settings.webhook.api_key_placeholder')}
+                disabled={disabled}
+                className="pr-10 h-8 text-sm"
+              />
+              <button
+                type="button"
+                onClick={() => setShowApiKey((v) => !v)}
+                disabled={disabled}
+                className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground disabled:opacity-50 cursor-pointer"
+              >
+                {showApiKey ? (
+                  <EyeOff className="size-3.5" />
+                ) : (
+                  <Eye className="size-3.5" />
+                )}
+              </button>
+            </div>
+            <p className="text-[11px] text-muted-foreground">
+              {t('settings.webhook.api_key_hint')}
             </p>
           </div>
 

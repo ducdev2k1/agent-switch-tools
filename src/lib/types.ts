@@ -112,6 +112,7 @@ export interface WebhookConfig {
   enabled: boolean
   url: string
   secret: string
+  apiKey: string
   triggerMode: WebhookTriggerMode
   includeCredentials: boolean
   includeSessionUsage: boolean

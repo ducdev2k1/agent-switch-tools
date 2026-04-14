@@ -8,6 +8,7 @@ const DEFAULTS: WebhookConfig = {
   enabled: false,
   url: '',
   secret: '',
+  apiKey: '',
   triggerMode: 'manual',
   includeCredentials: false,
   includeSessionUsage: true,

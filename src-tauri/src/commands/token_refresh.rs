@@ -2,6 +2,64 @@ use serde::Serialize;
 use std::path::PathBuf;
 use tauri::Manager;
 
+/// Resolve the full path to the `claude` CLI binary.
+/// GUI apps on Windows/macOS often don't inherit the shell PATH,
+/// so we check common install locations explicitly.
+fn resolve_claude_bin() -> String {
+    // 1. Try PATH first (works on Linux/macOS terminals)
+    if let Ok(output) = std::process::Command::new(if cfg!(windows) { "where" } else { "which" })
+        .arg("claude")
+        .output()
+    {
+        if output.status.success() {
+            let path = String::from_utf8_lossy(&output.stdout).trim().lines().next().unwrap_or("").to_string();
+            if !path.is_empty() {
+                return path;
+            }
+        }
+    }
+
+    // 2. Check platform-specific common locations
+    #[cfg(windows)]
+    {
+        if let Ok(appdata) = std::env::var("APPDATA") {
+            let npm_cmd = PathBuf::from(&appdata).join("npm").join("claude.cmd");
+            if npm_cmd.exists() {
+                return npm_cmd.to_string_lossy().to_string();
+            }
+        }
+        // fnm / nvm-windows / volta shims
+        if let Ok(local) = std::env::var("LOCALAPPDATA") {
+            for candidate in [
+                PathBuf::from(&local).join("fnm_multishells").join("claude.cmd"),
+                PathBuf::from(&local).join("Volta").join("bin").join("claude.cmd"),
+            ] {
+                if candidate.exists() {
+                    return candidate.to_string_lossy().to_string();
+                }
+            }
+        }
+    }
+
+    #[cfg(not(windows))]
+    {
+        if let Ok(home) = std::env::var("HOME") {
+            for candidate in [
+                format!("{}/.npm-global/bin/claude", home),
+                format!("{}/.nvm/versions/node/default/bin/claude", home),
+                "/usr/local/bin/claude".to_string(),
+            ] {
+                if std::path::Path::new(&candidate).exists() {
+                    return candidate;
+                }
+            }
+        }
+    }
+
+    // 3. Fallback — hope it's on PATH at runtime
+    "claude".to_string()
+}
+
 /// Result returned to frontend after a refresh attempt
 #[derive(Debug, Serialize, Clone)]
 #[serde(rename_all = "camelCase")]
@@ -31,10 +89,11 @@ fn is_token_expired(creds_path: &PathBuf) -> bool {
 /// This triggers a real API call which activates the CLI's internal
 /// refresh interceptor when the token is expired.
 fn refresh_via_cli() -> Result<RefreshResult, String> {
-    let output = std::process::Command::new("claude")
+    let claude_bin = resolve_claude_bin();
+    let output = std::process::Command::new(&claude_bin)
         .args(["-p", "hi", "--max-turns", "1"])
         .output()
-        .map_err(|e| format!("Failed to run claude: {}", e))?;
+        .map_err(|e| format!("Failed to run claude ({}): {}", claude_bin, e))?;
 
     if output.status.success() {
         Ok(RefreshResult {

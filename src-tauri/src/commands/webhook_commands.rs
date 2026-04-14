@@ -1,4 +1,6 @@
+use hmac::{Hmac, Mac};
 use serde::Serialize;
+use sha2::Sha256;
 
 use super::config_commands::{CredentialProfile, list_credential_profiles};
 use super::quota_commands::{fetch_usage_with_token, read_token_from_creds};
@@ -28,7 +30,7 @@ fn is_valid_webhook_url(url: &str) -> bool {
     false
 }
 
-/// Build the full webhook payload with profiles + usage data + session token usage
+/// Build the full webhook payload with active profile + usage data + session token usage
 async fn build_payload(
     app: &tauri::AppHandle,
     include_credentials: bool,
@@ -37,15 +39,15 @@ async fn build_payload(
 ) -> Result<serde_json::Value, String> {
     use tauri::Manager;
 
-    let profiles = list_credential_profiles(app.clone()).await?;
+    let all_profiles = list_credential_profiles(app.clone()).await?;
+    let active_profile = all_profiles.iter().find(|p| p.is_active);
     let home = app
         .path()
         .home_dir()
         .map_err(|e| format!("Cannot resolve home dir: {}", e))?;
-    let mut profile_entries = Vec::new();
 
-    for profile in &profiles {
-        // Try to fetch usage for this profile
+    // Build active profile entry with session_usage attached
+    let profile_entry = if let Some(profile) = active_profile {
         let usage = get_profile_usage_data(app, profile).await;
 
         let mut entry = serde_json::json!({
@@ -58,17 +60,9 @@ async fn build_payload(
             "usage": usage,
         });
 
-        // Optionally include raw credentials.json content per profile
+        // Optionally include raw credentials.json content
         if include_credentials {
-            let creds_path = if profile.is_active {
-                home.join(".claude").join(".credentials.json")
-            } else {
-                home.join(".claude")
-                    .join(".claude-tools")
-                    .join("profiles")
-                    .join(&profile.name)
-                    .join("credentials.json")
-            };
+            let creds_path = home.join(".claude").join(".credentials.json");
             if let Ok(content) = std::fs::read_to_string(&creds_path) {
                 if let Ok(parsed) = serde_json::from_str::<serde_json::Value>(&content) {
                     entry["credentials"] = parsed;
@@ -76,8 +70,24 @@ async fn build_payload(
             }
         }
 
-        profile_entries.push(entry);
-    }
+        // Attach session token usage directly to the active profile
+        if include_session_usage {
+            if let Ok(claude_dir) = super::path_helpers::claude_dir(app) {
+                let since = chrono::Utc::now() - chrono::Duration::minutes(10);
+                let sessions = session_usage_commands::parse_session_logs(&claude_dir, since);
+                let summary = session_usage_commands::build_aggregate(&sessions);
+
+                entry["session_usage"] = serde_json::json!({
+                    "summary": summary,
+                    "sessions": sessions,
+                });
+            }
+        }
+
+        Some(entry)
+    } else {
+        None
+    };
 
     let version = env!("CARGO_PKG_VERSION");
     let sys_info = super::system_info_commands::collect_system_info();
@@ -93,7 +103,7 @@ async fn build_payload(
         "app_version": version,
         "system_info": sys_info,
         "data": {
-            "profiles": profile_entries,
+            "active_profile": profile_entry,
         }
     });
 
@@ -111,20 +121,6 @@ async fn build_payload(
         if !email.is_empty() {
             payload["member_email"] = serde_json::json!(email);
         }
-    }
-
-    // Append session token usage from JSONL logs (last 10 min, always detailed)
-    if include_session_usage {
-      if let Ok(claude_dir) = super::path_helpers::claude_dir(app) {
-        let since = chrono::Utc::now() - chrono::Duration::minutes(10);
-        let sessions = session_usage_commands::parse_session_logs(&claude_dir, since);
-        let summary = session_usage_commands::build_aggregate(&sessions);
-
-        payload["session_usage"] = serde_json::json!({
-            "summary": summary,
-            "sessions": sessions,
-        });
-      }
     }
 
     Ok(payload)
@@ -174,6 +170,7 @@ pub async fn send_webhook(
     app: tauri::AppHandle,
     url: String,
     secret: Option<String>,
+    api_key: Option<String>,
     test_mode: Option<bool>,
     include_credentials: Option<bool>,
     include_session_usage: Option<bool>,
@@ -230,17 +227,46 @@ pub async fn send_webhook(
         .build()
         .map_err(|e| format!("Failed to create HTTP client: {}", e))?;
 
+    // Serialize body once for HMAC signing
+    let body_str = serde_json::to_string(&payload)
+        .map_err(|e| format!("Failed to serialize payload: {}", e))?;
+
     let mut req = client
         .post(&url)
         .header("Content-Type", "application/json");
 
-    if let Some(ref s) = secret {
+    let has_api_key = api_key.as_ref().map_or(false, |k| !k.is_empty());
+
+    if has_api_key {
+        let key = api_key.as_ref().unwrap();
+        let timestamp = chrono::Utc::now().timestamp_millis().to_string();
+
+        // HMAC-SHA256(api_key, "{timestamp}.{body}")
+        let sign_input = format!("{}.{}", timestamp, body_str);
+        let mut mac = Hmac::<Sha256>::new_from_slice(key.as_bytes())
+            .map_err(|e| format!("HMAC key error: {}", e))?;
+        mac.update(sign_input.as_bytes());
+        let signature = hex::encode(mac.finalize().into_bytes());
+
+        // Extract device_id from payload for X-Device-Id header
+        let device_id = payload
+            .get("device_info")
+            .and_then(|d| d.get("device_id"))
+            .and_then(|v| v.as_str())
+            .unwrap_or("");
+
+        req = req
+            .header("X-Device-Id", device_id)
+            .header("X-Timestamp", &timestamp)
+            .header("X-Signature", &signature);
+    } else if let Some(ref s) = secret {
+        // Fallback: Bearer token auth
         if !s.is_empty() {
             req = req.header("Authorization", format!("Bearer {}", s));
         }
     }
 
-    let res = match req.json(&payload).send().await {
+    let res = match req.body(body_str).send().await {
         Ok(r) => r,
         Err(e) => {
             let msg = if e.is_timeout() {
