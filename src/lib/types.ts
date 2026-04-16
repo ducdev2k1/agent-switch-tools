@@ -125,6 +125,33 @@ export interface WebhookResponse {
   message: string
 }
 
+// ========== IDE Multi-Account ==========
+
+export type IdeType = 'cursor' | 'antigravity' | 'windsurf'
+
+export interface IdeInfo {
+  ideType: IdeType
+  displayName: string
+  isInstalled: boolean
+}
+
+export interface IdeProfile {
+  name: string
+  isActive: boolean
+  email: string | null
+  membershipType: string | null
+  displayName: string | null
+  ideType: IdeType
+}
+
+export interface IdeSwitchResult {
+  success: boolean
+  ideWasRunning: boolean
+  message: string
+}
+
+// ========== Session Usage ==========
+
 export interface SessionUsageSummary {
   sessionId: string
   project: string

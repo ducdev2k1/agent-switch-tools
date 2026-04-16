@@ -2,6 +2,7 @@ use tauri::Manager;
 use tauri_plugin_autostart::MacosLauncher;
 
 mod commands;
+mod ide;
 mod quota_refresh_worker;
 mod tray;
 
@@ -76,6 +77,15 @@ pub fn run() {
             commands::session_usage_commands::get_session_usage,
             // System info
             commands::system_info_commands::get_system_info,
+            // IDE multi-account management
+            ide::path_helpers::list_installed_ides,
+            ide::profile_commands::list_ide_profiles,
+            ide::profile_commands::save_current_ide_profile,
+            ide::profile_commands::switch_ide_profile,
+            ide::profile_commands::rename_ide_profile,
+            ide::profile_commands::delete_ide_profile,
+            ide::profile_commands::is_ide_running,
+            ide::profile_commands::restart_ide,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

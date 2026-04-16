@@ -1,16 +1,27 @@
 import { AddAccountDialog } from '@/components/add-account-dialog'
 import { CliStatusBar } from '@/components/cli-status-bar'
 import { DeleteConfirmDialog } from '@/components/delete-confirm-dialog'
+import { IdeDashboardSection } from '@/components/ide-dashboard-section'
 import { ProfileCard } from '@/components/profile-card'
 import { SwitchConfirmationDialog } from '@/components/switch-confirmation-dialog'
 import { Button } from '@/components/ui/button'
 import { Separator } from '@/components/ui/separator'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { useClaudeConfig } from '@/hooks/use-claude-config'
+import { useInstalledIdes } from '@/hooks/use-installed-ides'
 import { useCredentialProfiles } from '@/hooks/use-profiles'
 import { useUsageStats } from '@/hooks/use-usage-stats'
 import type { AppUpdaterState, CredentialProfile } from '@/lib/types'
 import { listen } from '@tauri-apps/api/event'
-import { RefreshCw, Save, Settings, Shield, UserPlus } from 'lucide-react'
+import {
+  Braces,
+  MonitorSmartphone,
+  RefreshCw,
+  Save,
+  Settings,
+  Shield,
+  UserPlus,
+} from 'lucide-react'
 import { useCallback, useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { toast } from 'sonner'
@@ -40,6 +51,8 @@ export function Dashboard({ onOpenSettings, updater }: DashboardProps) {
 
   const { stats: usageStats } = useUsageStats()
   const { updateVersion, installing, install } = updater
+  const { ides: installedIdes } = useInstalledIdes()
+  const [activeTab, setActiveTab] = useState('claude-code')
 
   // Listen for tray quick-switch events
   const handleTraySwitchRef = useCallback(
@@ -65,6 +78,22 @@ export function Dashboard({ onOpenSettings, updater }: DashboardProps) {
       unlisten.then((fn) => fn())
     }
   }, [handleTraySwitchRef])
+
+  // Listen for tray IDE quick-switch events (format: "ideType:profileName")
+  useEffect(() => {
+    const unlisten = listen<string>('tray-switch-ide-profile', (event) => {
+      const colonIdx = event.payload.indexOf(':')
+      if (colonIdx > 0) {
+        const ideType = event.payload.substring(0, colonIdx)
+        setActiveTab(ideType)
+        // The IdeDashboardSection will handle the actual switch via its own UI
+        toast.info(`Switched to ${ideType} tab. Select profile to switch.`)
+      }
+    })
+    return () => {
+      unlisten.then((fn) => fn())
+    }
+  }, [])
 
   // Dialog states
   const [switchDialogOpen, setSwitchDialogOpen] = useState(false)
@@ -162,24 +191,6 @@ export function Dashboard({ onOpenSettings, updater }: DashboardProps) {
             <Button
               variant="ghost"
               size="icon"
-              onClick={handleRefresh}
-              className="size-8"
-            >
-              <RefreshCw className="size-4" />
-            </Button>
-            <Button
-              onClick={handleSaveCurrent}
-              size="sm"
-              disabled={!activeProfile || saving}
-            >
-              <Save className="size-4" />
-              {saving
-                ? t('common.actions.saving')
-                : t('common.actions.save_current')}
-            </Button>
-            <Button
-              variant="ghost"
-              size="icon"
               onClick={onOpenSettings}
               className="size-8"
               title={t('settings.title')}
@@ -192,12 +203,6 @@ export function Dashboard({ onOpenSettings, updater }: DashboardProps) {
 
       {/* Main content */}
       <main className="mx-auto max-w-5xl px-6 py-6 space-y-6">
-        <CliStatusBar
-          cliState={cliState}
-          usageStats={usageStats}
-          loading={cliLoading}
-        />
-
         {/* Update available banner */}
         {updateVersion && (
           <div className="flex items-center justify-between rounded-lg border border-blue-500/30 bg-blue-500/5 px-4 py-2.5 text-sm">
@@ -217,101 +222,176 @@ export function Dashboard({ onOpenSettings, updater }: DashboardProps) {
           </div>
         )}
 
-        <Separator />
-
-        {/* Active Account */}
-        {activeProfile && (
-          <div>
-            <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-3">
-              {t('common.labels.active_account')}
-            </h2>
-            <ProfileCard
-              profile={activeProfile}
-              onSwitch={() => {}}
-              onDelete={() => {}}
-              onProfilesChanged={refresh}
-            />
-          </div>
-        )}
-
-        {!activeProfile && !profilesLoading && (
-          <div className="rounded-lg border border-amber-500/30 bg-amber-500/5 p-4 text-center">
-            <p className="text-sm text-amber-700 dark:text-amber-400">
-              {t('dashboard.messages.no_credentials')}
-            </p>
-          </div>
-        )}
-
-        <Separator />
-
-        {/* Saved Profiles */}
-        <div>
-          <div className="flex items-center justify-between mb-3">
-            <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">
-              {t('common.labels.saved_profiles', {
-                count: savedProfiles.length,
-              })}
-            </h2>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setAddAccountOpen(true)}
-              className="text-xs"
-            >
-              <UserPlus className="size-3.5" />
-              {t('common.actions.add_account')}
-            </Button>
-          </div>
-
-          {profilesLoading ? (
-            <div className="space-y-3">
-              {[1, 2].map((i) => (
-                <div
-                  key={i}
-                  className="h-20 rounded-xl border bg-card animate-pulse"
-                />
+        {/* IDE Tabs */}
+        <Tabs value={activeTab} onValueChange={setActiveTab}>
+          <TabsList className="w-full justify-start">
+            <TabsTrigger value="claude-code" className="gap-1.5">
+              <Braces className="size-3.5" />
+              Claude Code
+            </TabsTrigger>
+            {installedIdes
+              .filter((ide) => ide.isInstalled)
+              .map((ide) => (
+                <TabsTrigger
+                  key={ide.ideType}
+                  value={ide.ideType}
+                  className="gap-1.5"
+                >
+                  <MonitorSmartphone className="size-3.5" />
+                  {ide.displayName}
+                </TabsTrigger>
               ))}
-            </div>
-          ) : savedProfiles.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-12 text-center">
-              <Shield className="size-10 text-muted-foreground/40 mb-3" />
-              <h3 className="text-base font-semibold mb-1">
-                {t('dashboard.messages.no_saved_profiles')}
-              </h3>
-              <p className="text-sm text-muted-foreground mb-4 max-w-sm">
-                {t('dashboard.messages.no_saved_profiles_info')}
-              </p>
-              {activeProfile && (
+          </TabsList>
+
+          {/* Claude Code tab */}
+          <TabsContent value="claude-code" className="mt-4 space-y-6">
+            {/* Action bar for Claude Code */}
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                <Braces className="size-4" />
+                <span className="font-medium">Claude Code</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={handleRefresh}
+                  className="size-8"
+                >
+                  <RefreshCw className="size-4" />
+                </Button>
                 <Button
                   onClick={handleSaveCurrent}
-                  variant="outline"
                   size="sm"
-                  disabled={saving}
+                  disabled={!activeProfile || saving}
                 >
                   <Save className="size-4" />
-                  {t('common.actions.save_current')}
+                  {saving
+                    ? t('common.actions.saving')
+                    : t('common.actions.save_current')}
                 </Button>
+              </div>
+            </div>
+
+            <CliStatusBar
+              cliState={cliState}
+              usageStats={usageStats}
+              loading={cliLoading}
+            />
+
+            <Separator />
+
+            {/* Active Account */}
+            {activeProfile && (
+              <div>
+                <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-3">
+                  {t('common.labels.active_account')}
+                </h2>
+                <ProfileCard
+                  profile={activeProfile}
+                  onSwitch={() => {}}
+                  onDelete={() => {}}
+                  onProfilesChanged={refresh}
+                />
+              </div>
+            )}
+
+            {!activeProfile && !profilesLoading && (
+              <div className="rounded-lg border border-amber-500/30 bg-amber-500/5 p-4 text-center">
+                <p className="text-sm text-amber-700 dark:text-amber-400">
+                  {t('dashboard.messages.no_credentials')}
+                </p>
+              </div>
+            )}
+
+            <Separator />
+
+            {/* Saved Profiles */}
+            <div>
+              <div className="flex items-center justify-between mb-3">
+                <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">
+                  {t('common.labels.saved_profiles', {
+                    count: savedProfiles.length,
+                  })}
+                </h2>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setAddAccountOpen(true)}
+                  className="text-xs"
+                >
+                  <UserPlus className="size-3.5" />
+                  {t('common.actions.add_account')}
+                </Button>
+              </div>
+
+              {profilesLoading ? (
+                <div className="space-y-3">
+                  {[1, 2].map((i) => (
+                    <div
+                      key={i}
+                      className="h-20 rounded-xl border bg-card animate-pulse"
+                    />
+                  ))}
+                </div>
+              ) : savedProfiles.length === 0 ? (
+                <div className="flex flex-col items-center justify-center py-12 text-center">
+                  <Shield className="size-10 text-muted-foreground/40 mb-3" />
+                  <h3 className="text-base font-semibold mb-1">
+                    {t('dashboard.messages.no_saved_profiles')}
+                  </h3>
+                  <p className="text-sm text-muted-foreground mb-4 max-w-sm">
+                    {t('dashboard.messages.no_saved_profiles_info')}
+                  </p>
+                  {activeProfile && (
+                    <Button
+                      onClick={handleSaveCurrent}
+                      variant="outline"
+                      size="sm"
+                      disabled={saving}
+                    >
+                      <Save className="size-4" />
+                      {t('common.actions.save_current')}
+                    </Button>
+                  )}
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {savedProfiles.map((profile) => (
+                    <ProfileCard
+                      key={profile.name}
+                      profile={profile}
+                      onSwitch={handleSwitchRequest}
+                      onDelete={handleDeleteRequest}
+                      onProfilesChanged={refresh}
+                      isCurrentlyActive={
+                        !!activeProfile?.oauthAccount?.accountUuid &&
+                        activeProfile.oauthAccount.accountUuid ===
+                          profile.oauthAccount?.accountUuid
+                      }
+                    />
+                  ))}
+                </div>
               )}
             </div>
-          ) : (
-            <div className="space-y-3">
-              {savedProfiles.map((profile) => (
-                <ProfileCard
-                  key={profile.name}
-                  profile={profile}
-                  onSwitch={handleSwitchRequest}
-                  onDelete={handleDeleteRequest}
-                  onProfilesChanged={refresh}
-                  isCurrentlyActive={
-                    !!activeProfile?.oauthAccount?.accountUuid &&
-                    activeProfile.oauthAccount.accountUuid ===
-                      profile.oauthAccount?.accountUuid
-                  }
+          </TabsContent>
+
+          {/* IDE tabs — one per installed IDE */}
+          {installedIdes
+            .filter((ide) => ide.isInstalled)
+            .map((ide) => (
+              <TabsContent
+                key={ide.ideType}
+                value={ide.ideType}
+                className="mt-4"
+              >
+                <IdeDashboardSection
+                  ideType={ide.ideType}
+                  ideName={ide.displayName}
                 />
-              ))}
-            </div>
-          )}
-        </div>
+              </TabsContent>
+            ))}
+        </Tabs>
       </main>
 
       {/* Dialogs */}

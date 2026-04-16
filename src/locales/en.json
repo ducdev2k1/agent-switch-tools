@@ -68,7 +68,7 @@
       "switch_failed": "Switch failed: {{error}}"
     },
     "header": {
-      "title": "Claude Tools"
+      "title": "Agent Switch Tools"
     },
     "messages": {
       "add_account_steps": {
@@ -185,6 +185,24 @@
       "license": "License",
       "source_code": "Source Code",
       "version": "Version"
+    }
+  },
+  "ide": {
+    "labels": {
+      "no_profiles": "No saved profiles",
+      "no_profiles_info": "Save your current account to enable quick switching between accounts."
+    },
+    "messages": {
+      "save_success": "Saved current {{ide}} account: {{email}}",
+      "switch_success": "Switched to '{{name}}' in {{ide}}",
+      "delete_success": "Deleted profile '{{name}}' from {{ide}}",
+      "close_ide_warning": "{{ide}} is running. Please restart it to use the new account.",
+      "restarting_ide": "Restarting {{ide}}..."
+    },
+    "errors": {
+      "save_failed": "Failed to save: {{error}}",
+      "switch_failed": "Failed to switch: {{error}}",
+      "not_logged_in": "No account is currently logged in to {{ide}}."
     }
   },
   "update_dialog": {

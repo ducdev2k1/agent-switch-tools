@@ -68,7 +68,7 @@
       "switch_failed": "Chuyển đổi thất bại: {{error}}"
     },
     "header": {
-      "title": "Quản lý Tài khoản Claude"
+      "title": "Agent Switch Tools"
     },
     "messages": {
       "add_account_steps": {
@@ -185,6 +185,24 @@
       "license": "Giấy phép",
       "source_code": "Mã nguồn",
       "version": "Phiên bản"
+    }
+  },
+  "ide": {
+    "labels": {
+      "no_profiles": "Chưa có hồ sơ nào",
+      "no_profiles_info": "Lưu tài khoản hiện tại để chuyển đổi nhanh giữa các tài khoản."
+    },
+    "messages": {
+      "save_success": "Đã lưu tài khoản {{ide}}: {{email}}",
+      "switch_success": "Đã chuyển sang '{{name}}' trong {{ide}}",
+      "delete_success": "Đã xóa hồ sơ '{{name}}' khỏi {{ide}}",
+      "close_ide_warning": "{{ide}} đang chạy. Vui lòng khởi động lại để dùng tài khoản mới.",
+      "restarting_ide": "Đang khởi động lại {{ide}}..."
+    },
+    "errors": {
+      "save_failed": "Lưu thất bại: {{error}}",
+      "switch_failed": "Chuyển đổi thất bại: {{error}}",
+      "not_logged_in": "Chưa đăng nhập tài khoản nào trên {{ide}}."
     }
   },
   "update_dialog": {

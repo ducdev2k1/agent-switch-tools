@@ -5,6 +5,9 @@ use tauri::{
 };
 
 use crate::commands::metadata_commands::read_meta;
+use crate::ide::path_helpers::{ide_db_path, ide_is_installed, ide_profiles_dir, ide_tools_dir};
+use crate::ide::registry::IdeType;
+use crate::ide::sqlite_auth::{extract_ide_email, read_ide_auth_keys};
 
 /// Setup system tray with profile quick-switch menu
 pub fn setup_tray(app: &tauri::App) -> Result<(), Box<dyn std::error::Error>> {
@@ -16,7 +19,7 @@ pub fn setup_tray(app: &tauri::App) -> Result<(), Box<dyn std::error::Error>> {
     // Load platform-appropriate icon from bundle config (icns on macOS, ico on Windows, png on Linux)
     let icon = app.default_window_icon().cloned();
     let mut builder = TrayIconBuilder::with_id("main")
-        .tooltip("Claude Tools")
+        .tooltip("Agent Switch Tools")
         .menu(&menu)
         .show_menu_on_left_click(true);
     if let Some(icon) = icon {
@@ -35,10 +38,17 @@ pub fn setup_tray(app: &tauri::App) -> Result<(), Box<dyn std::error::Error>> {
                 "quit" => {
                     app_handle.exit(0);
                 }
+                _ if id.starts_with("ide-switch:") => {
+                    // Format: ide-switch:{ideType}:{profileName}
+                    let rest = id.strip_prefix("ide-switch:").unwrap_or("");
+                    if let Some((ide_type, profile_name)) = rest.split_once(':') {
+                        let payload = format!("{}:{}", ide_type, profile_name);
+                        let _ = app_handle.emit("tray-switch-ide-profile", payload);
+                    }
+                }
                 _ if id.starts_with("switch:") => {
                     let profile_name = id.strip_prefix("switch:").unwrap_or("");
                     if !profile_name.is_empty() {
-                        // Emit event to frontend to trigger switch via IPC
                         let _ = app_handle.emit("tray-switch-profile", profile_name);
                     }
                 }
@@ -75,7 +85,7 @@ fn build_tray_menu(
     let mut builder = MenuBuilder::new(handle);
 
     // Header
-    let header = MenuItemBuilder::with_id("header", "Claude Tools")
+    let header = MenuItemBuilder::with_id("header", "Agent Switch Tools")
         .enabled(false)
         .build(handle)?;
     builder = builder.item(&header);
@@ -102,6 +112,68 @@ fn build_tray_menu(
             let id = format!("switch:{}", name);
             let item = MenuItemBuilder::with_id(id, &format!("  {}", name)).build(handle)?;
             builder = builder.item(&item);
+        }
+    }
+
+    // IDE sections (Cursor, Antigravity)
+    for ide_type in IdeType::all() {
+        if !ide_is_installed(handle, ide_type) {
+            continue;
+        }
+        let config = ide_type.config();
+        let ide_id = ide_type.id();
+
+        builder = builder.separator();
+
+        // IDE header
+        let ide_header =
+            MenuItemBuilder::with_id(format!("ide-header:{}", ide_id), config.display_name)
+                .enabled(false)
+                .build(handle)?;
+        builder = builder.item(&ide_header);
+
+        // Read active account from IDE's state.vscdb, fallback to meta.json
+        {
+            let ide_active = ide_db_path(handle, ide_type)
+                .ok()
+                .and_then(|db_path| read_ide_auth_keys(&db_path, config.auth_keys).ok())
+                .and_then(|auth_data| extract_ide_email(ide_type, &auth_data))
+                .or_else(|| {
+                    ide_tools_dir(handle, ide_type)
+                        .ok()
+                        .and_then(|dir| read_meta(&dir).active_profile_name)
+                })
+                .unwrap_or_else(|| "Not logged in".to_string());
+
+            let ide_active_label = format!("✓ {} (active)", ide_active);
+            let ide_active_item = MenuItemBuilder::with_id(
+                format!("ide-active:{}", ide_id),
+                &ide_active_label,
+            )
+            .enabled(false)
+            .build(handle)?;
+            builder = builder.item(&ide_active_item);
+
+            // Scan saved IDE profiles
+            if let Ok(ide_profs) = ide_profiles_dir(handle, ide_type) {
+                if let Ok(entries) = std::fs::read_dir(&ide_profs) {
+                    let mut ide_names: Vec<String> = entries
+                        .flatten()
+                        .filter(|e| e.path().is_dir())
+                        .map(|e| e.file_name().to_string_lossy().to_string())
+                        .filter(|n| !n.is_empty() && n != &ide_active)
+                        .collect();
+                    ide_names.sort();
+
+                    for ide_name in ide_names {
+                        let item_id = format!("ide-switch:{}:{}", ide_id, ide_name);
+                        let item =
+                            MenuItemBuilder::with_id(item_id, &format!("  {}", ide_name))
+                                .build(handle)?;
+                        builder = builder.item(&item);
+                    }
+                }
+            }
         }
     }
 

@@ -6,15 +6,34 @@ use tauri::Manager;
 /// GUI apps on Windows/macOS often don't inherit the shell PATH,
 /// so we check common install locations explicitly.
 fn resolve_claude_bin() -> String {
-    // 1. Try PATH first (works on Linux/macOS terminals)
+    // 1. Try `where`/`which` — on Windows `where claude` returns multiple
+    //    lines (e.g. claude.cmd AND claude). Pick the .cmd variant first
+    //    because the bare `claude` file is a shell script that is NOT a
+    //    valid Win32 executable (os error 193).
     if let Ok(output) = std::process::Command::new(if cfg!(windows) { "where" } else { "which" })
         .arg("claude")
         .output()
     {
         if output.status.success() {
-            let path = String::from_utf8_lossy(&output.stdout).trim().lines().next().unwrap_or("").to_string();
-            if !path.is_empty() {
-                return path;
+            let stdout = String::from_utf8_lossy(&output.stdout);
+            let lines: Vec<&str> = stdout.trim().lines().collect();
+
+            // On Windows prefer .cmd > .exe > .bat > anything else
+            #[cfg(windows)]
+            {
+                for ext in [".cmd", ".exe", ".bat"] {
+                    if let Some(p) = lines.iter().find(|l| l.to_lowercase().ends_with(ext)) {
+                        return p.trim().to_string();
+                    }
+                }
+            }
+
+            // Fallback: first non-empty line
+            if let Some(first) = lines.first() {
+                let p = first.trim().to_string();
+                if !p.is_empty() {
+                    return p;
+                }
             }
         }
     }
@@ -28,7 +47,6 @@ fn resolve_claude_bin() -> String {
                 return npm_cmd.to_string_lossy().to_string();
             }
         }
-        // fnm / nvm-windows / volta shims
         if let Ok(local) = std::env::var("LOCALAPPDATA") {
             for candidate in [
                 PathBuf::from(&local).join("fnm_multishells").join("claude.cmd"),
@@ -56,8 +74,8 @@ fn resolve_claude_bin() -> String {
         }
     }
 
-    // 3. Fallback — hope it's on PATH at runtime
-    "claude".to_string()
+    // 3. Fallback
+    if cfg!(windows) { "claude.cmd".to_string() } else { "claude".to_string() }
 }
 
 /// Result returned to frontend after a refresh attempt
