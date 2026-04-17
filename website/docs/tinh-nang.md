@@ -6,9 +6,11 @@ title: Tính Năng Chi Tiết
 ## 1. Quản lý đa tài khoản (Profile Management)
 
 ### Vấn đề
+
 Mỗi AI coding agent (Claude Code, Cursor, Windsurf, Antigravity) chỉ cho phép đăng nhập **1 tài khoản** tại một thời điểm. Muốn dùng tài khoản khác, bạn phải đăng xuất rồi đăng nhập lại.
 
 ### Giải pháp
+
 Agent Switch Tools tạo một hệ thống **profile** thống nhất — mỗi agent có kho profile riêng biệt với cấu trúc đồng nhất:
 
 ```
@@ -36,23 +38,25 @@ Agent Switch Tools tạo một hệ thống **profile** thống nhất — mỗi
 ### Tự động migrate từ cấu trúc cũ
 
 Khi lần đầu chạy v1.0.10, app tự chuyển dữ liệu từ các vị trí cũ:
+
 - `~/.claude/.claude-tools/` (v1.0.8–v1.0.9)
 - `~/.claude-tools/` (phiên bản trung gian)
 - File phẳng trong `~/.claude/` (phiên bản rất cũ)
 
 ### Các thao tác
 
-| Thao tác | Mô tả |
-|---|---|
-| **Thêm profile** | Lưu credentials hiện tại thành 1 profile mới |
-| **Chuyển đổi** | Hoán đổi (swap) file credentials giữa profile active và profile đích |
-| **Đổi tên** | Đổi tên thư mục profile |
-| **Xóa** | Xóa thư mục profile (có hộp thoại xác nhận) |
-| **Sao lưu tự động** | Khi chuyển profile, credentials hiện tại tự động được backup trước |
+| Thao tác            | Mô tả                                                                |
+| ------------------- | -------------------------------------------------------------------- |
+| **Thêm profile**    | Lưu credentials hiện tại thành 1 profile mới                         |
+| **Chuyển đổi**      | Hoán đổi (swap) file credentials giữa profile active và profile đích |
+| **Đổi tên**         | Đổi tên thư mục profile                                              |
+| **Xóa**             | Xóa thư mục profile (có hộp thoại xác nhận)                          |
+| **Sao lưu tự động** | Khi chuyển profile, credentials hiện tại tự động được backup trước   |
 
 ### Cơ chế chuyển đổi (Switch)
 
 **Với Claude Code** (file-based):
+
 ```
 Trước khi switch:
   ~/.claude/.credentials.json       ← tài khoản A (đang active)
@@ -65,6 +69,7 @@ Khi nhấn "Switch to B":
 ```
 
 **Với IDE (Cursor/Windsurf/Antigravity)** (SQLite-based):
+
 ```
 Trước khi switch:
   IDE state.vscdb (ItemTable)           ← tài khoản A (đang active)
@@ -84,6 +89,7 @@ Khi nhấn "Switch to B":
 ### Quota là gì?
 
 Mỗi tài khoản Claude có giới hạn sử dụng (quota) theo thời gian:
+
 - **5 giờ**: Giới hạn sử dụng trong 5 giờ gần nhất
 - **7 ngày**: Giới hạn sử dụng trong 7 ngày
 - **7 ngày (Sonnet)**: Giới hạn riêng cho model Sonnet trong 7 ngày
@@ -265,6 +271,7 @@ Thông tin này đọc từ `~/.claude/settings.json` và `~/.claude/history.jso
 ## 9. Device Tracking
 
 Mỗi máy tính được gán:
+
 - **Device ID**: UUID duy nhất, tạo 1 lần, không bao giờ đổi
 - **Device Name**: Tên do người dùng tự đặt
 - **Hostname**: Tự động lấy từ hệ thống
@@ -273,4 +280,4 @@ Thông tin này được đính kèm trong webhook payload để phân biệt b�
 
 ---
 
-**Tiếp theo**: [Tương tác với Claude — Giải thích kỹ thuật](03-tuong-tac-voi-claude.md)
+**Tiếp theo**: [Tương tác với Claude — Giải thích kỹ thuật](tuong-tac-voi-claude.md)

@@ -7,12 +7,12 @@ title: Hướng Dẫn Sử Dụng
 
 Có ít nhất 1 trong các agent sau đã được cài và đăng nhập:
 
-| Agent | Cách cài | File cần có |
-|---|---|---|
-| **Claude Code CLI** | `npm install -g @anthropic-ai/claude-code` | `~/.claude/.credentials.json` |
-| **Cursor** | Tải từ cursor.sh | `state.vscdb` đã có cursorAuth keys |
-| **Windsurf** | Tải từ codeium.com | `state.vscdb` đã có windsurfAuthStatus |
-| **Antigravity** | Tải từ trang chính thức | `state.vscdb` đã có antigravityAuthStatus |
+| Agent               | Cách cài                                   | File cần có                               |
+| ------------------- | ------------------------------------------ | ----------------------------------------- |
+| **Claude Code CLI** | `npm install -g @anthropic-ai/claude-code` | `~/.claude/.credentials.json`             |
+| **Cursor**          | Tải từ cursor.sh                           | `state.vscdb` đã có cursorAuth keys       |
+| **Windsurf**        | Tải từ codeium.com                         | `state.vscdb` đã có windsurfAuthStatus    |
+| **Antigravity**     | Tải từ trang chính thức                    | `state.vscdb` đã có antigravityAuthStatus |
 
 App tự động phát hiện agent nào đã cài và chỉ hiển thị những cái đang có.
 
@@ -24,11 +24,11 @@ App tự động phát hiện agent nào đã cài và chỉ hiển thị nhữn
 
 Tải file cài đặt phù hợp với hệ điều hành từ [GitHub Releases](https://github.com/ducdev2k1/agent-switch-tools/releases):
 
-| OS | File |
-|---|---|
-| Windows | `.msi` hoặc `.exe` |
-| macOS | `.dmg` |
-| Linux | `.deb` hoặc `.AppImage` |
+| OS      | File                    |
+| ------- | ----------------------- |
+| Windows | `.msi` hoặc `.exe`      |
+| macOS   | `.dmg`                  |
+| Linux   | `.deb` hoặc `.AppImage` |
 
 ### Bước 2: Chọn Agent và lưu tài khoản đầu tiên
 
@@ -41,11 +41,13 @@ Tải file cài đặt phù hợp với hệ điều hành từ [GitHub Releases
 ### Bước 3: Thêm tài khoản thứ hai
 
 **Với Claude Code:**
+
 1. **Đăng xuất** Claude Code hiện tại: `claude logout`
 2. **Đăng nhập** tài khoản mới: `claude login`
 3. Quay lại Agent Switch Tools → nhấn **"Save Current Profile"** lần nữa
 
 **Với IDE (Cursor/Windsurf/Antigravity):**
+
 1. Trong IDE, sign out tài khoản hiện tại
 2. Sign in tài khoản mới
 3. Quay lại Agent Switch Tools → tab tương ứng → **"Save Current Profile"**
@@ -59,11 +61,13 @@ Giờ bạn có 2 profile cho agent đó!
 ### Chuyển đổi tài khoản
 
 **Cách 1: Từ Dashboard**
+
 1. Mở app → thấy danh sách profiles
 2. Nhấn nút **"Switch"** trên profile muốn dùng
 3. Xác nhận trong dialog → Done!
 
 **Cách 2: Từ System Tray**
+
 1. Nhấp chuột phải vào icon Agent Switch Tools ở System Tray
 2. Chọn profile muốn dùng
 3. Xác nhận → Done!
@@ -94,23 +98,23 @@ Quota hiển thị trực tiếp trên mỗi profile card:
 
 ### General (Cài đặt chung)
 
-| Tùy chọn | Mô tả |
-|---|---|
+| Tùy chọn    | Mô tả                                 |
+| ----------- | ------------------------------------- |
 | Auto Update | Tự động kiểm tra và thông báo bản mới |
-| Auto Start | Tự khởi động cùng hệ điều hành |
-| Language | Chọn Tiếng Anh hoặc Tiếng Việt |
-| Theme | Light / Dark / System |
+| Auto Start  | Tự khởi động cùng hệ điều hành        |
+| Language    | Chọn Tiếng Anh hoặc Tiếng Việt        |
+| Theme       | Light / Dark / System                 |
 
 ### Webhook
 
 Cấu hình để app gửi báo cáo usage tới endpoint bên ngoài:
 
-| Field | Mô tả |
-|---|---|
-| URL | Địa chỉ webhook (HTTPS, hoặc localhost cho dev) |
-| Secret | Token xác thực (gửi kèm header) |
-| Trigger | Manual / On Startup / On Change |
-| Include Credentials | Có đính kèm credentials trong payload không |
+| Field               | Mô tả                                           |
+| ------------------- | ----------------------------------------------- |
+| URL                 | Địa chỉ webhook (HTTPS, hoặc localhost cho dev) |
+| Secret              | Token xác thực (gửi kèm header)                 |
+| Trigger             | Manual / On Startup / On Change                 |
+| Include Credentials | Có đính kèm credentials trong payload không     |
 
 **Dùng để**: Admin/team lead theo dõi quota usage của nhiều người, hoặc log ra dashboard riêng.
 
@@ -118,10 +122,10 @@ Cấu hình để app gửi báo cáo usage tới endpoint bên ngoài:
 
 Gửi thống kê token đã dùng trong các phiên Claude Code:
 
-| Field | Mô tả |
-|---|---|
-| URL | Địa chỉ webhook |
-| Period | Khoảng thời gian thống kê (1h / 5h / 24h / 7d) |
+| Field        | Mô tả                                                   |
+| ------------ | ------------------------------------------------------- |
+| URL          | Địa chỉ webhook                                         |
+| Period       | Khoảng thời gian thống kê (1h / 5h / 24h / 7d)          |
 | Detail Level | Summary (chỉ tổng) hoặc Detailed (bao gồm từng session) |
 
 ### Device
@@ -138,6 +142,7 @@ Gửi thống kê token đã dùng trong các phiên Claude Code:
 App tự động phát hiện và refresh token ngầm. Bạn không cần làm gì.
 
 Nếu refresh thất bại (do network/API issue):
+
 1. Chuyển sang profile đó (Switch)
 2. Chạy `claude login` trong terminal để đăng nhập lại
 3. Quay lại Agent Switch Tools → Save profile lại
@@ -158,6 +163,7 @@ Nếu refresh thất bại (do network/API issue):
 ### Windows hiện cảnh báo SmartScreen
 
 Đây là hành vi bình thường với app mã nguồn mở chưa ký số:
+
 1. Nhấn **"More info"**
 2. Nhấn **"Run anyway"**
 
@@ -173,4 +179,4 @@ Hoặc dùng file `.msi` thay `.exe` để ít bị cảnh báo hơn.
 
 ---
 
-**Xem thêm**: [Tổng quan dự án](01-tong-quan-du-an.md) | [Tính năng chi tiết](02-tinh-nang-chi-tiet.md) | [Tương tác với Claude](03-tuong-tac-voi-claude.md)
+**Xem thêm**: [Tổng quan dự án](tong-quan.md) | [Tính năng chi tiết](tinh-nang.md) | [Tương tác với Claude](tuong-tac-voi-claude.md)

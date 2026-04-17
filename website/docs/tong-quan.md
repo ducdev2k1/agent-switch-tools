@@ -9,12 +9,12 @@ title: Tổng Quan Dự Án
 
 ### Các AI coding agent được hỗ trợ
 
-| Agent | Loại | Cơ chế lưu credentials |
-|---|---|---|
-| **Claude Code** | CLI (Anthropic) | File `.credentials.json` |
-| **Cursor** | IDE | SQLite `state.vscdb` |
-| **Windsurf** | IDE | SQLite `state.vscdb` (protobuf email) |
-| **Antigravity** | IDE | SQLite `state.vscdb` (JSON email) |
+| Agent           | Loại            | Cơ chế lưu credentials                |
+| --------------- | --------------- | ------------------------------------- |
+| **Claude Code** | CLI (Anthropic) | File `.credentials.json`              |
+| **Cursor**      | IDE             | SQLite `state.vscdb`                  |
+| **Windsurf**    | IDE             | SQLite `state.vscdb` (protobuf email) |
+| **Antigravity** | IDE             | SQLite `state.vscdb` (JSON email)     |
 
 ### Vấn đề
 
@@ -32,13 +32,13 @@ Agent Switch Tools giúp bạn:
 
 ## Công nghệ sử dụng
 
-| Thành phần | Công nghệ | Vai trò |
-|---|---|---|
-| **Giao diện** (Frontend) | React 19, TypeScript, Tailwind CSS | Hiển thị UI, tương tác người dùng |
-| **Lõi ứng dụng** (Backend) | Rust, Tauri v2 | Đọc/ghi file, gọi API, xử lý logic hệ thống |
-| **Thư viện UI** | shadcn/ui, Radix UI | Các component giao diện đẹp, accessible |
-| **Đa ngôn ngữ** | i18next | Hỗ trợ Tiếng Anh và Tiếng Việt |
-| **Build tool** | Vite 7 (frontend), Cargo (backend) | Biên dịch và đóng gói ứng dụng |
+| Thành phần                 | Công nghệ                          | Vai trò                                     |
+| -------------------------- | ---------------------------------- | ------------------------------------------- |
+| **Giao diện** (Frontend)   | React 19, TypeScript, Tailwind CSS | Hiển thị UI, tương tác người dùng           |
+| **Lõi ứng dụng** (Backend) | Rust, Tauri v2                     | Đọc/ghi file, gọi API, xử lý logic hệ thống |
+| **Thư viện UI**            | shadcn/ui, Radix UI                | Các component giao diện đẹp, accessible     |
+| **Đa ngôn ngữ**            | i18next                            | Hỗ trợ Tiếng Anh và Tiếng Việt              |
+| **Build tool**             | Vite 7 (frontend), Cargo (backend) | Biên dịch và đóng gói ứng dụng              |
 
 ### Tại sao dùng Tauri?
 
@@ -82,13 +82,13 @@ Agent Switch Tools giúp bạn:
 
 ## Hệ điều hành hỗ trợ
 
-| Hệ điều hành | File cài đặt |
-|---|---|
-| Windows 10+ | `.msi`, `.exe` |
-| macOS Intel | `.dmg` |
-| macOS Apple Silicon (M1/M2/M3) | `.dmg` |
-| Linux (Ubuntu 22.04+) | `.deb`, `.AppImage` |
+| Hệ điều hành                   | File cài đặt        |
+| ------------------------------ | ------------------- |
+| Windows 10+                    | `.msi`, `.exe`      |
+| macOS Intel                    | `.dmg`              |
+| macOS Apple Silicon (M1/M2/M3) | `.dmg`              |
+| Linux (Ubuntu 22.04+)          | `.deb`, `.AppImage` |
 
 ---
 
-**Tiếp theo**: [Tính năng chi tiết](02-tinh-nang-chi-tiet.md)
+**Tiếp theo**: [Tính năng chi tiết](tinh-nang.md)

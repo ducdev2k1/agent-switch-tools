@@ -76,6 +76,7 @@ fn read_current_credentials() -> Result<Value> {
 ```
 
 **Khi nào đọc?**
+
 - Khi app khởi động → hiển thị tài khoản active
 - Khi lưu profile mới → backup credentials hiện tại
 - Khi kiểm tra token hết hạn
@@ -143,6 +144,7 @@ fn read_oauth_account() -> Result<OAuthAccount> {
 ```
 
 **Khi nào đọc?**
+
 - Khi hiển thị email, loại subscription trên profile card
 - Khi lưu profile mới → backup OAuth info cùng credentials
 
@@ -175,12 +177,12 @@ async fn fetch_usage(access_token: &str) -> Result<UsageResponse> {
   "limits": [
     {
       "type": "5h",
-      "utilization": 0.152,    // 15.2% đã dùng
+      "utilization": 0.152, // 15.2% đã dùng
       "resetAt": "2026-04-10T01:00:00Z"
     },
     {
       "type": "7d",
-      "utilization": 0.450,
+      "utilization": 0.45,
       "resetAt": "2026-04-12T00:00:00Z"
     }
   ]
@@ -220,6 +222,7 @@ pub fn start_quota_refresh_worker(app_handle: AppHandle) {
 ```
 
 **Event flow**:
+
 ```
 Worker (Rust) ─── emit("usage-updated") ──→ Frontend (React)
                                               │
@@ -349,6 +352,7 @@ IdeType::Cursor => IdeConfig {
 ```
 
 **3 cách trích email tùy theo IDE**:
+
 - `DirectKey("cursorAuth/cachedEmail")` — Cursor lưu email trực tiếp
 - `JsonField("antigravityAuthStatus", "email")` — Antigravity lưu email trong JSON
 - `ProtoBase64Email("windsurfAuthStatus", "userStatusProtoBinaryBase64")` — Windsurf encode email trong protobuf base64
@@ -425,14 +429,14 @@ pub fn ide_is_installed(app: &AppHandle, ide_type: &IdeType) -> bool {
 
 ### Bảo mật tại mỗi điểm tương tác
 
-| Điểm | Rủi ro | Biện pháp |
-|---|---|---|
-| Đọc credentials | Token lộ ngoài app | Quyền file 0600, không log token |
-| Ghi credentials | Ghi nhầm/mất data | Luôn backup trước khi swap |
-| Gọi API | Token bị chặn | Chỉ gọi domain Anthropic chính thức |
-| Chạy CLI | Quá trình treo | Timeout, non-blocking async |
-| Đọc session logs | Chỉ đọc, không sửa | Read-only, không ghi vào .jsonl |
+| Điểm             | Rủi ro             | Biện pháp                           |
+| ---------------- | ------------------ | ----------------------------------- |
+| Đọc credentials  | Token lộ ngoài app | Quyền file 0600, không log token    |
+| Ghi credentials  | Ghi nhầm/mất data  | Luôn backup trước khi swap          |
+| Gọi API          | Token bị chặn      | Chỉ gọi domain Anthropic chính thức |
+| Chạy CLI         | Quá trình treo     | Timeout, non-blocking async         |
+| Đọc session logs | Chỉ đọc, không sửa | Read-only, không ghi vào .jsonl     |
 
 ---
 
-**Tiếp theo**: [Cấu trúc mã nguồn](04-cau-truc-ma-nguon.md)
+**Tiếp theo**: [Cấu trúc mã nguồn](cau-truc-ma-nguon.md)
