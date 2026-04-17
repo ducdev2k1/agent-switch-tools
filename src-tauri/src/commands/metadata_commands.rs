@@ -1,9 +1,9 @@
 use serde::{Deserialize, Serialize};
 use std::path::PathBuf;
 
-use super::path_helpers::claude_tools_dir;
+use super::path_helpers::claude_data_dir;
 
-/// Manager metadata file: ~/.claude-tools/meta.json
+/// Manager metadata file: ~/.agent-switch-tools/claude/meta.json
 /// Tracks which saved profile is currently active and usage history
 const META_FILENAME: &str = "meta.json";
 
@@ -96,7 +96,7 @@ pub fn record_switch_usage(meta: &mut ManagerMeta, outgoing_name: &str) {
 
 #[tauri::command]
 pub async fn get_manager_meta(app: tauri::AppHandle) -> Result<ManagerMeta, String> {
-    let dir = claude_tools_dir(&app)?;
+    let dir = claude_data_dir(&app)?;
     Ok(read_meta(&dir))
 }
 
@@ -105,7 +105,7 @@ pub async fn set_active_profile_name(
     app: tauri::AppHandle,
     name: String,
 ) -> Result<(), String> {
-    let dir = claude_tools_dir(&app)?;
+    let dir = claude_data_dir(&app)?;
     let mut meta = read_meta(&dir);
     meta.active_profile_name = Some(name);
     meta.last_switched_at = Some(chrono::Utc::now().to_rfc3339());

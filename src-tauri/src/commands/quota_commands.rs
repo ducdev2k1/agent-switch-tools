@@ -145,8 +145,8 @@ pub async fn get_profile_usage(
 
     let active_path = home.join(".claude").join(".credentials.json");
     let saved_path = home
-        .join(".claude")
-        .join(".claude-tools")
+        .join(".agent-switch-tools")
+        .join("claude")
         .join("profiles")
         .join(&profile_name)
         .join("credentials.json");
@@ -181,8 +181,8 @@ pub fn collect_all_profile_tokens(app: &tauri::AppHandle) -> Vec<(String, String
         let active_creds = claude.join(".credentials.json");
         if let Some(token) = read_token_from_creds(&active_creds) {
             // Resolve active profile name from metadata
-            let tools_dir = claude.join(".claude-tools");
-            let name = std::fs::read_to_string(tools_dir.join("meta.json"))
+            let data_dir = path_helpers::claude_data_dir(app).unwrap_or_else(|_| claude.join(".agent-switch-tools").join("claude"));
+            let name = std::fs::read_to_string(data_dir.join("meta.json"))
                 .ok()
                 .and_then(|c| serde_json::from_str::<serde_json::Value>(&c).ok())
                 .and_then(|v| v.get("activeProfileName")?.as_str().map(String::from))

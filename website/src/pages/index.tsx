@@ -53,7 +53,7 @@ function HomepageHeader(): ReactNode {
       <div className="container">
         <img
           src="img/logo.png"
-          alt="Claude Tools Logo"
+          alt="Agent Switch Tools Logo"
           className={styles.heroLogo}
         />
         <Heading as="h1" className="hero__title">
@@ -63,7 +63,7 @@ function HomepageHeader(): ReactNode {
         <div className={styles.buttons}>
           <Link
             className="button button--secondary button--lg"
-            href="https://github.com/ducdev2k1/claude-tools/releases/latest">
+            href="https://github.com/ducdev2k1/agent-switch-tools/releases/latest">
             Download Latest
           </Link>
           <Link

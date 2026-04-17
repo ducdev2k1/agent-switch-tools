@@ -1,8 +1,8 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
-  "productName": "Claude Tools",
-  "version": "1.0.9",
-  "identifier": "com.ducdev2k1.claude-tools",
+  "productName": "Agent Switch Tools",
+  "version": "1.0.10",
+  "identifier": "com.ducdev2k1.agent-switch-tools",
   "build": {
     "beforeDevCommand": "pnpm dev",
     "devUrl": "http://localhost:1420",
@@ -12,7 +12,7 @@
   "app": {
     "windows": [
       {
-        "title": "Claude Tools",
+        "title": "Agent Switch Tools",
         "width": 900,
         "height": 640,
         "minWidth": 700,
@@ -30,7 +30,7 @@
     "updater": {
       "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IDI1RDk5RjcyNEZEMEVFNkIKUldScjd0QlBjcC9aSlpORCt6OHU3bFBHWEozU0l0TU1IMmVVSTJ4MGRlUTVDQjR3cUNhaVB4TFoK",
       "endpoints": [
-        "https://github.com/ducdev2k1/claude-tools/releases/latest/download/latest.json"
+        "https://github.com/ducdev2k1/agent-switch-tools/releases/latest/download/latest.json"
       ]
     }
   },
@@ -48,8 +48,8 @@
     "publisher": "ducdev2k1",
     "copyright": "Copyright 2025-2026 ducdev2k1. MIT License.",
     "category": "Utility",
-    "shortDescription": "A powerful, secure, and 100% offline desktop app to manage Claude Code CLI accounts",
-    "longDescription": "A powerful, lightning-fast, and 100% offline desktop application to manage multiple Claude Code CLI accounts — effortlessly switch profiles, monitor quota usage, and stay meticulously organized.",
+    "shortDescription": "A powerful, secure, and 100% offline desktop app to manage multiple AI coding agent accounts",
+    "longDescription": "A powerful, lightning-fast, and 100% offline desktop application to manage multiple AI coding agent accounts (Claude Code, Cursor, Windsurf, Antigravity) — effortlessly switch profiles, monitor quota usage, and stay organized.",
     "windows": {
       "nsis": {
         "displayLanguageSelector": true

@@ -6,7 +6,7 @@ use super::oauth_commands::{
     read_oauth_from_claude_json, read_saved_oauth, update_claude_json_oauth, write_saved_oauth,
     OAuthAccount,
 };
-use super::path_helpers::{claude_dir, claude_tools_dir, home_dir, profile_dir, profiles_dir};
+use super::path_helpers::{claude_data_dir, claude_dir, home_dir, profile_dir, profiles_dir};
 
 // ========== Types ==========
 
@@ -118,72 +118,129 @@ fn set_file_600(path: &PathBuf) {
 #[cfg(not(unix))]
 fn set_file_600(_path: &PathBuf) {}
 
-/// One-time migration: move profile files into ~/.claude/.claude-tools/profiles/
+/// One-time migration: move profile files into ~/.agent-switch-tools/claude/profiles/
 /// Safe to call repeatedly — skips files that already exist at destination.
 ///
-/// Handles two legacy sources (in priority order):
-///   1. ~/.claude-tools/  (Option A path, intermediate structure)
-///   2. ~/.claude/        (original flat files before any migration)
+/// Handles four legacy sources (in priority order):
+///   1. ~/.agent-switch-tools/profiles/ (flat structure before claude/ subdir)
+///   2. ~/.claude/.claude-tools/        (Option B path, previous nested structure)
+///   3. ~/.claude-tools/                (Option A path, intermediate structure)
+///   4. ~/.claude/                      (original flat files before any migration)
 fn migrate_legacy_profiles(claude: &PathBuf, profs_dir: &PathBuf) {
-    let tools_dir = match profs_dir.parent() {
+    // profs_dir = ~/.agent-switch-tools/claude/profiles/
+    // claude_data = ~/.agent-switch-tools/claude/
+    let claude_data = match profs_dir.parent() {
         Some(d) => d.to_path_buf(),
         None => return,
     };
 
-    // --- Phase 1: migrate from ~/.claude-tools/ (Option A → Option B) ---
-    // Uses remove_dir (not remove_dir_all) so cleanup only happens when dirs are truly empty.
-    // This ensures partial failures never cause data loss.
-    if let Some(home) = claude.parent() {
-        let option_a_root = home.join(".claude-tools");
-        if option_a_root.exists() {
-            // Move meta.json only if dest doesn't exist
-            let src_meta = option_a_root.join("meta.json");
-            let dst_meta = tools_dir.join("meta.json");
+    // Helper: migrate profiles from a legacy root dir into the current claude_data
+    fn migrate_from_legacy_root(legacy_root: &PathBuf, claude_data: &PathBuf, profs_dir: &PathBuf) {
+        if !legacy_root.exists() {
+            return;
+        }
+        // Move meta.json only if dest doesn't exist
+        let src_meta = legacy_root.join("meta.json");
+        let dst_meta = claude_data.join("meta.json");
+        if src_meta.exists() && !dst_meta.exists() {
+            let _ = std::fs::rename(&src_meta, &dst_meta);
+        }
+
+        // Move each profile dir
+        let src_profiles = legacy_root.join("profiles");
+        if let Ok(entries) = std::fs::read_dir(&src_profiles) {
+            for entry in entries.flatten() {
+                if !entry.path().is_dir() {
+                    continue;
+                }
+                let name = entry.file_name().to_string_lossy().to_string();
+                let dst_prof = profs_dir.join(&name);
+                let _ = std::fs::create_dir_all(&dst_prof);
+
+                // Move credentials.json if not yet at destination
+                let src_cred = entry.path().join("credentials.json");
+                let dst_cred = dst_prof.join("credentials.json");
+                if src_cred.exists() && !dst_cred.exists() {
+                    let _ = std::fs::rename(&src_cred, &dst_cred);
+                }
+
+                // Move oauth.json if not yet at destination
+                let src_oauth = entry.path().join("oauth.json");
+                let dst_oauth = dst_prof.join("oauth.json");
+                if src_oauth.exists() && !dst_oauth.exists() {
+                    let _ = std::fs::rename(&src_oauth, &dst_oauth);
+                }
+
+                // Only remove src profile dir if it is now empty
+                let _ = std::fs::remove_dir(&entry.path());
+            }
+        }
+
+        // Only remove src dirs if empty — never force-delete
+        let _ = std::fs::remove_dir(&src_profiles);
+        let _ = std::fs::remove_dir(legacy_root);
+    }
+
+    // --- Phase 1: migrate from ~/.agent-switch-tools/profiles/ (flat → claude/ subdir) ---
+    // This handles the case where profiles were at ~/.agent-switch-tools/profiles/ before
+    // we introduced the claude/ subdirectory
+    if let Some(app_root) = claude_data.parent() {
+        let flat_profiles = app_root.join("profiles");
+        if flat_profiles.exists() && flat_profiles.is_dir() {
+            // Move meta.json from app root to claude_data
+            let src_meta = app_root.join("meta.json");
+            let dst_meta = claude_data.join("meta.json");
             if src_meta.exists() && !dst_meta.exists() {
                 let _ = std::fs::rename(&src_meta, &dst_meta);
             }
 
-            // Move each profile dir: always try per-file even if dst_prof already exists
-            let src_profiles = option_a_root.join("profiles");
-            if let Ok(entries) = std::fs::read_dir(&src_profiles) {
+            if let Ok(entries) = std::fs::read_dir(&flat_profiles) {
                 for entry in entries.flatten() {
                     if !entry.path().is_dir() {
                         continue;
                     }
                     let name = entry.file_name().to_string_lossy().to_string();
+                    // Skip IDE subdirectories (they have their own structure)
+                    if name == "claude" {
+                        continue;
+                    }
                     let dst_prof = profs_dir.join(&name);
                     let _ = std::fs::create_dir_all(&dst_prof);
 
-                    // Move credentials.json if not yet at destination
                     let src_cred = entry.path().join("credentials.json");
                     let dst_cred = dst_prof.join("credentials.json");
                     if src_cred.exists() && !dst_cred.exists() {
                         let _ = std::fs::rename(&src_cred, &dst_cred);
                     }
 
-                    // Move oauth.json if not yet at destination
                     let src_oauth = entry.path().join("oauth.json");
                     let dst_oauth = dst_prof.join("oauth.json");
                     if src_oauth.exists() && !dst_oauth.exists() {
                         let _ = std::fs::rename(&src_oauth, &dst_oauth);
                     }
 
-                    // Only remove src profile dir if it is now empty
                     let _ = std::fs::remove_dir(&entry.path());
                 }
             }
-
-            // Only remove src dirs if empty — never force-delete
-            let _ = std::fs::remove_dir(&src_profiles);
-            let _ = std::fs::remove_dir(&option_a_root);
+            let _ = std::fs::remove_dir(&flat_profiles);
         }
     }
 
-    // --- Phase 2: migrate flat files from ~/.claude/ (original legacy format) ---
+    // --- Phase 2: migrate from ~/.claude/.claude-tools/ (Option B → new location) ---
+    let option_b_root = claude.join(".claude-tools");
+    migrate_from_legacy_root(&option_b_root, &claude_data, profs_dir);
+
+    // --- Phase 3: migrate from ~/.claude-tools/ (Option A → new location) ---
+    if let Some(home) = claude.parent() {
+        let option_a_root = home.join(".claude-tools");
+        migrate_from_legacy_root(&option_a_root, &claude_data, profs_dir);
+    }
+
+    // --- Phase 4: migrate flat files from ~/.claude/ (original legacy format) ---
     // Migrate meta: ~/.claude/.claude-manager-meta.json
     let old_meta = claude.join(".claude-manager-meta.json");
     if old_meta.exists() {
-        let new_meta = tools_dir.join("meta.json");
+        let new_meta = claude_data.join("meta.json");
         if !new_meta.exists() {
             let _ = std::fs::rename(&old_meta, &new_meta);
         }
@@ -246,9 +303,9 @@ pub async fn list_credential_profiles(
 ) -> Result<Vec<CredentialProfile>, String> {
     let home = home_dir(&app)?;
     let claude = claude_dir(&app)?;
-    let tools_dir = claude_tools_dir(&app)?;
+    let claude_data = claude_data_dir(&app)?;
     let profs_dir = profiles_dir(&app)?;
-    let meta = read_meta(&tools_dir);
+    let meta = read_meta(&claude_data);
 
     // Migrate legacy files on first use
     migrate_legacy_profiles(&claude, &profs_dir);
@@ -281,7 +338,7 @@ pub async fn list_credential_profiles(
         });
     }
 
-    // Saved profiles: scan ~/.claude-tools/profiles/ for subdirectories
+    // Saved profiles: scan ~/.agent-switch-tools/claude/profiles/ for subdirectories
     if let Ok(entries) = std::fs::read_dir(&profs_dir) {
         for entry in entries.flatten() {
             if !entry.path().is_dir() {
@@ -325,7 +382,7 @@ pub async fn list_credential_profiles(
 pub async fn save_current_as_profile(app: tauri::AppHandle) -> Result<String, String> {
     let home = home_dir(&app)?;
     let claude = claude_dir(&app)?;
-    let tools_dir = claude_tools_dir(&app)?;
+    let claude_data = claude_data_dir(&app)?;
     let profs_dir = profiles_dir(&app)?;
     let active_path = claude.join(".credentials.json");
 
@@ -351,10 +408,10 @@ pub async fn save_current_as_profile(app: tauri::AppHandle) -> Result<String, St
     write_saved_oauth(&profs_dir, &email, &oauth)?;
 
     // Update metadata
-    let mut meta = read_meta(&tools_dir);
+    let mut meta = read_meta(&claude_data);
     meta.active_profile_name = Some(email.clone());
     meta.last_switched_at = Some(chrono::Utc::now().to_rfc3339());
-    write_meta(&tools_dir, &meta)?;
+    write_meta(&claude_data, &meta)?;
 
     crate::tray::refresh_tray_menu(&app);
     Ok(email)
@@ -372,7 +429,7 @@ pub async fn switch_credential_profile(
 ) -> Result<SwitchResult, String> {
     let home = home_dir(&app)?;
     let claude = claude_dir(&app)?;
-    let tools_dir = claude_tools_dir(&app)?;
+    let claude_data = claude_data_dir(&app)?;
     let profs_dir = profiles_dir(&app)?;
     let active_path = claude.join(".credentials.json");
     let target_cred_path = profs_dir.join(&target_name).join("credentials.json");
@@ -386,7 +443,7 @@ pub async fn switch_credential_profile(
     let claude_was_running = check_claude_running();
 
     // Resolve outgoing profile name
-    let mut meta = read_meta(&tools_dir);
+    let mut meta = read_meta(&claude_data);
     let current_email = meta
         .active_profile_name
         .clone()
@@ -421,7 +478,7 @@ pub async fn switch_credential_profile(
         record_switch_usage(&mut meta, &current_email);
     }
     meta.active_profile_name = Some(target_name.clone());
-    write_meta(&tools_dir, &meta)?;
+    write_meta(&claude_data, &meta)?;
 
     let message = if claude_was_running {
         "Switched credentials. Restart Claude Code to use new account.".to_string()

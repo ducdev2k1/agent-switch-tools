@@ -2,7 +2,7 @@
 
 ## CI/CD Overview
 
-Two GitHub Actions workflows automate building and releasing Claude Tools.
+Two GitHub Actions workflows automate building and releasing Agent Switch Tools.
 
 | Workflow                                      | Trigger           | Purpose                       |
 | --------------------------------------------- | ----------------- | ----------------------------- |
@@ -40,7 +40,7 @@ git push origin main --tags
 ### 3. Review & Publish
 
 1. GitHub Actions builds on all 5 platform targets (~15-20 min)
-2. A **draft release** is created at `https://github.com/<owner>/claude-tools/releases`
+2. A **draft release** is created at `https://github.com/<owner>/agent-switch-tools/releases`
 3. Review the draft, edit release notes if needed
 4. Click **Publish release**
 

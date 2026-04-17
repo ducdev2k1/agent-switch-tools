@@ -2,8 +2,16 @@
 
 ## Yêu cầu trước khi dùng
 
-1. **Đã cài Claude Code CLI** và đã đăng nhập ít nhất 1 tài khoản
-2. File `~/.claude/.credentials.json` phải tồn tại (Claude Code tự tạo khi đăng nhập)
+Có ít nhất 1 trong các agent sau đã được cài và đăng nhập:
+
+| Agent | Cách cài | File cần có |
+|---|---|---|
+| **Claude Code CLI** | `npm install -g @anthropic-ai/claude-code` | `~/.claude/.credentials.json` |
+| **Cursor** | Tải từ cursor.sh | `state.vscdb` đã có cursorAuth keys |
+| **Windsurf** | Tải từ codeium.com | `state.vscdb` đã có windsurfAuthStatus |
+| **Antigravity** | Tải từ trang chính thức | `state.vscdb` đã có antigravityAuthStatus |
+
+App tự động phát hiện agent nào đã cài và chỉ hiển thị những cái đang có.
 
 ---
 
@@ -11,7 +19,7 @@
 
 ### Bước 1: Cài đặt
 
-Tải file cài đặt phù hợp với hệ điều hành từ [GitHub Releases](https://github.com/ducdev2k1/claude-tools/releases):
+Tải file cài đặt phù hợp với hệ điều hành từ [GitHub Releases](https://github.com/ducdev2k1/agent-switch-tools/releases):
 
 | OS | File |
 |---|---|
@@ -19,19 +27,27 @@ Tải file cài đặt phù hợp với hệ điều hành từ [GitHub Releases
 | macOS | `.dmg` |
 | Linux | `.deb` hoặc `.AppImage` |
 
-### Bước 2: Lưu tài khoản đầu tiên
+### Bước 2: Chọn Agent và lưu tài khoản đầu tiên
 
-1. Mở Claude Tools
-2. App tự động phát hiện tài khoản Claude Code đang active
-3. Nhấn **"Save Current Profile"** để lưu thành profile
-4. Đặt tên cho profile (mặc định là email)
+1. Mở Agent Switch Tools
+2. Chọn tab tương ứng với agent bạn dùng: **Claude Code**, **Cursor**, **Windsurf**, hoặc **Antigravity**
+3. App tự động phát hiện tài khoản đang active trong agent đó
+4. Nhấn **"Save Current Profile"** để lưu thành profile
+5. Đặt tên cho profile (mặc định là email)
 
 ### Bước 3: Thêm tài khoản thứ hai
 
-1. **Đăng xuất** Claude Code CLI hiện tại: `claude logout`
+**Với Claude Code:**
+1. **Đăng xuất** Claude Code hiện tại: `claude logout`
 2. **Đăng nhập** tài khoản mới: `claude login`
-3. Quay lại Claude Tools → nhấn **"Save Current Profile"** lần nữa
-4. Giờ bạn có 2 profile!
+3. Quay lại Agent Switch Tools → nhấn **"Save Current Profile"** lần nữa
+
+**Với IDE (Cursor/Windsurf/Antigravity):**
+1. Trong IDE, sign out tài khoản hiện tại
+2. Sign in tài khoản mới
+3. Quay lại Agent Switch Tools → tab tương ứng → **"Save Current Profile"**
+
+Giờ bạn có 2 profile cho agent đó!
 
 ---
 
@@ -45,7 +61,7 @@ Tải file cài đặt phù hợp với hệ điều hành từ [GitHub Releases
 3. Xác nhận trong dialog → Done!
 
 **Cách 2: Từ System Tray**
-1. Nhấp chuột phải vào icon Claude Tools ở System Tray
+1. Nhấp chuột phải vào icon Agent Switch Tools ở System Tray
 2. Chọn profile muốn dùng
 3. Xác nhận → Done!
 
@@ -121,15 +137,15 @@ App tự động phát hiện và refresh token ngầm. Bạn không cần làm 
 Nếu refresh thất bại (do network/API issue):
 1. Chuyển sang profile đó (Switch)
 2. Chạy `claude login` trong terminal để đăng nhập lại
-3. Quay lại Claude Tools → Save profile lại
+3. Quay lại Agent Switch Tools → Save profile lại
 
 ### Muốn xóa 1 profile
 
 1. Nhấn icon thùng rác trên profile card
 2. Xác nhận xóa
-3. File trong `~/.claude/.claude-tools/profiles/{name}/` sẽ bị xóa
+3. File trong `~/.agent-switch-tools/{agent}/profiles/{name}/` sẽ bị xóa
 
-**Lưu ý**: Xóa profile KHÔNG ảnh hưởng tới tài khoản Claude. Bạn luôn có thể đăng nhập lại và lưu profile mới.
+**Lưu ý**: Xóa profile KHÔNG ảnh hưởng tới tài khoản agent gốc. Bạn luôn có thể đăng nhập lại và lưu profile mới.
 
 ### Cập nhật ứng dụng
 

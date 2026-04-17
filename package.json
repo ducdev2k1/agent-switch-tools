@@ -1,24 +1,24 @@
 {
-  "name": "claude-tools",
-  "version": "1.0.9",
-  "description": "A powerful, lightning-fast, and 100% offline desktop application to manage multiple Claude Code CLI accounts — effortlessly switch profiles, monitor quota usage, and stay meticulously organized.",
+  "name": "agent-switch-tools",
+  "version": "1.0.10",
+  "description": "A powerful, lightning-fast, and 100% offline desktop application to manage multiple AI coding agent accounts (Claude Code, Cursor, Windsurf, Antigravity) — effortlessly switch profiles, monitor quota usage, and stay organized.",
   "author": "ducdev2k1",
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/ducdev2k1/claude-tools.git"
+    "url": "git+https://github.com/ducdev2k1/agent-switch-tools.git"
   },
   "bugs": {
-    "url": "https://github.com/ducdev2k1/claude-tools/issues"
+    "url": "https://github.com/ducdev2k1/agent-switch-tools/issues"
   },
-  "homepage": "https://github.com/ducdev2k1/claude-tools#readme",
+  "homepage": "https://github.com/ducdev2k1/agent-switch-tools#readme",
   "keywords": [
     "claude",
     "claude-code",
     "tools",
     "tool",
-    "claude-tools",
-    "claude-tool",
+    "agent-switch-tools",
+    "agent-switch",
     "manager",
     "tauri",
     "react",

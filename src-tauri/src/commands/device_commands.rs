@@ -6,7 +6,7 @@ use super::path_helpers::claude_tools_dir;
 
 const DEVICE_FILENAME: &str = "device.json";
 
-/// Persistent device identity stored in ~/.claude/.claude-tools/device.json
+/// Persistent device identity stored in ~/.agent-switch-tools/device.json
 #[derive(Debug, Serialize, Deserialize, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct DeviceInfo {

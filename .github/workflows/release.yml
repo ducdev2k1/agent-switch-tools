@@ -34,7 +34,7 @@ jobs:
         run: |
           gh release create "${{ github.ref_name }}" \
             --draft \
-            --title "Claude Tools ${GITHUB_REF_NAME#v}" \
+            --title "Agent Switch Tools ${GITHUB_REF_NAME#v}" \
             --notes "See the assets to download and install this version."
 
   # Build and upload for non-Windows platforms
@@ -100,7 +100,7 @@ jobs:
           TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_KEY_PASSWORD }}
         with:
           tagName: v__VERSION__
-          releaseName: "Claude Tools v__VERSION__"
+          releaseName: "Agent Switch Tools v__VERSION__"
           releaseBody: "See the assets to download and install this version."
           releaseDraft: true
           prerelease: false
@@ -149,7 +149,7 @@ jobs:
           TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_KEY_PASSWORD }}
         with:
           tagName: v__VERSION__
-          releaseName: "Claude Tools v__VERSION__"
+          releaseName: "Agent Switch Tools v__VERSION__"
           releaseBody: "See the assets to download and install this version."
           releaseDraft: true
           prerelease: false

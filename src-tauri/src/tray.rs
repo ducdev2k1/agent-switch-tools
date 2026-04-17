@@ -74,9 +74,9 @@ fn build_tray_menu(
     handle: &tauri::AppHandle,
 ) -> Result<tauri::menu::Menu<tauri::Wry>, Box<dyn std::error::Error>> {
     let home = handle.path().home_dir()?;
-    let tools_dir = home.join(".claude").join(".claude-tools");
-    let profiles_dir = tools_dir.join("profiles");
-    let meta = read_meta(&tools_dir);
+    let claude_dir = home.join(".agent-switch-tools").join("claude");
+    let profiles_dir = claude_dir.join("profiles");
+    let meta = read_meta(&claude_dir);
 
     let active_name = meta
         .active_profile_name
@@ -98,7 +98,7 @@ fn build_tray_menu(
         .build(handle)?;
     builder = builder.item(&active_item);
 
-    // Scan saved profiles: ~/.claude/.claude-tools/profiles/{name}/credentials.json
+    // Scan saved profiles: ~/.agent-switch-tools/profiles/{name}/credentials.json
     if let Ok(entries) = std::fs::read_dir(&profiles_dir) {
         let mut names: Vec<String> = entries
             .flatten()

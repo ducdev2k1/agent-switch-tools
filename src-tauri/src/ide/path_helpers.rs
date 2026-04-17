@@ -55,14 +55,14 @@ pub fn ide_is_installed(app: &tauri::AppHandle, ide_type: &IdeType) -> bool {
         .unwrap_or(false)
 }
 
-/// ~/.claude/.claude-tools/{ide}/ — per-IDE root for app-managed data
+/// ~/.agent-switch-tools/{ide}/ — per-IDE root for app-managed data
 pub fn ide_tools_dir(app: &tauri::AppHandle, ide_type: &IdeType) -> Result<PathBuf, String> {
     let dir = claude_tools_dir(app)?.join(ide_type.id());
     std::fs::create_dir_all(&dir).map_err(|e| e.to_string())?;
     Ok(dir)
 }
 
-/// ~/.claude/.claude-tools/{ide}/profiles/ — saved profiles for this IDE
+/// ~/.agent-switch-tools/{ide}/profiles/ — saved profiles for this IDE
 pub fn ide_profiles_dir(app: &tauri::AppHandle, ide_type: &IdeType) -> Result<PathBuf, String> {
     let dir = ide_tools_dir(app, ide_type)?.join("profiles");
     std::fs::create_dir_all(&dir).map_err(|e| e.to_string())?;

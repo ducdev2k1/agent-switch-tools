@@ -28,14 +28,14 @@ pub fn read_oauth_from_claude_json(home: &PathBuf) -> Option<OAuthAccount> {
     serde_json::from_value(oauth.clone()).ok()
 }
 
-/// Read saved oauthAccount from ~/.claude-tools/profiles/{name}/oauth.json
+/// Read saved oauthAccount from ~/.agent-switch-tools/claude/profiles/{name}/oauth.json
 pub fn read_saved_oauth(profiles_dir: &PathBuf, name: &str) -> Option<OAuthAccount> {
     let path = profiles_dir.join(name).join("oauth.json");
     let content = std::fs::read_to_string(path).ok()?;
     serde_json::from_str(&content).ok()
 }
 
-/// Write oauthAccount to ~/.claude-tools/profiles/{name}/oauth.json
+/// Write oauthAccount to ~/.agent-switch-tools/claude/profiles/{name}/oauth.json
 pub fn write_saved_oauth(
     profiles_dir: &PathBuf,
     name: &str,

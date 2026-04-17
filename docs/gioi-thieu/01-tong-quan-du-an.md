@@ -1,23 +1,31 @@
-# Tổng Quan Dự Án Claude Tools
+# Tổng Quan Dự Án Agent Switch Tools
 
-## Claude Tools là gì?
+## Agent Switch Tools là gì?
 
-**Claude Tools** là một ứng dụng desktop (chạy trên máy tính) giúp bạn **quản lý nhiều tài khoản Claude Code CLI** một cách dễ dàng.
+**Agent Switch Tools** là một ứng dụng desktop (chạy trên máy tính) giúp bạn **quản lý nhiều tài khoản AI coding agent** (Claude Code, Cursor, Windsurf, Antigravity) từ một nơi duy nhất.
 
-### Claude Code CLI là gì?
+### Các AI coding agent được hỗ trợ
 
-**Claude Code** là một công cụ dòng lệnh (CLI - Command Line Interface) của công ty Anthropic. Nó cho phép lập trình viên sử dụng trí tuệ nhân tạo Claude ngay trong terminal để viết code, debug, và thực hiện các tác vụ lập trình.
+| Agent | Loại | Cơ chế lưu credentials |
+|---|---|---|
+| **Claude Code** | CLI (Anthropic) | File `.credentials.json` |
+| **Cursor** | IDE | SQLite `state.vscdb` |
+| **Windsurf** | IDE | SQLite `state.vscdb` (protobuf email) |
+| **Antigravity** | IDE | SQLite `state.vscdb` (JSON email) |
 
-Khi bạn đăng nhập Claude Code, nó lưu thông tin xác thực (credentials) vào một file trên máy tính của bạn. **Vấn đề là**: Claude Code chỉ hỗ trợ **1 tài khoản tại một thời điểm**. Nếu bạn có nhiều tài khoản (ví dụ: tài khoản cá nhân và tài khoản công ty), bạn phải đăng nhập/đăng xuất liên tục — rất bất tiện.
+### Vấn đề
 
-### Claude Tools giải quyết vấn đề gì?
+Mỗi AI coding agent chỉ hỗ trợ **1 tài khoản tại một thời điểm**. Nếu bạn có nhiều tài khoản (cá nhân / công ty / team), bạn phải đăng nhập/đăng xuất liên tục — rất bất tiện. Chưa kể mỗi agent lưu credentials ở một chỗ khác nhau, khó quản lý.
 
-Claude Tools giúp bạn:
+### Agent Switch Tools giải quyết vấn đề gì?
 
-1. **Lưu nhiều tài khoản** — Backup credentials của từng tài khoản thành các profile riêng biệt
+Agent Switch Tools giúp bạn:
+
+1. **Lưu nhiều tài khoản cho từng agent** — Mỗi agent có kho profile riêng
 2. **Chuyển đổi 1-click** — Đổi tài khoản chỉ bằng 1 cú nhấp chuột, không cần đăng nhập lại
-3. **Theo dõi hạn mức** — Xem bạn đã dùng bao nhiêu % quota (hạn mức sử dụng) của từng tài khoản
-4. **Gửi báo cáo** — Tự động gửi báo cáo sử dụng về webhook (cho team/admin theo dõi)
+3. **Tự động phát hiện IDE** — App tự nhận biết IDE nào đã cài, chỉ hiển thị những cái đang có
+4. **Theo dõi hạn mức** — Xem bạn đã dùng bao nhiêu % quota của từng tài khoản Claude Code
+5. **Gửi báo cáo** — Tự động gửi báo cáo sử dụng về webhook (cho team/admin theo dõi)
 
 ## Công nghệ sử dụng
 
@@ -41,7 +49,7 @@ Claude Tools giúp bạn:
 
 ```
 ┌─────────────────────────────────────────────────┐
-│                  Claude Tools App                │
+│                  Agent Switch Tools App                │
 │                                                  │
 │  ┌──────────────┐       ┌────────────────────┐  │
 │  │   Frontend    │       │     Backend        │  │
@@ -53,12 +61,13 @@ Claude Tools giúp bạn:
 │  └──────────────┘       └────────────────────┘  │
 │                                                  │
 │         ▼                        ▼               │
-│  ┌──────────┐          ┌─────────────────┐      │
-│  │ UI hiển  │          │ Hệ thống file   │      │
-│  │ thị cho  │          │ ~/.claude/       │      │
-│  │ người    │          │ ~/.claude.json   │      │
-│  │ dùng     │          │ Anthropic API    │      │
-│  └──────────┘          └─────────────────┘      │
+│  ┌──────────┐          ┌──────────────────────┐ │
+│  │ UI hiển  │          │ Hệ thống file        │ │
+│  │ thị cho  │          │ ~/.claude/           │ │
+│  │ người    │          │ ~/.agent-switch-tools/│ │
+│  │ dùng     │          │ IDE state.vscdb      │ │
+│  │          │          │ Anthropic API        │ │
+│  └──────────┘          └──────────────────────┘ │
 └─────────────────────────────────────────────────┘
 ```
 

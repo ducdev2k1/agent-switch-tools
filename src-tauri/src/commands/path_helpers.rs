@@ -13,21 +13,28 @@ pub fn claude_dir(app: &tauri::AppHandle) -> Result<PathBuf, String> {
     home_dir(app).map(|h| h.join(".claude"))
 }
 
-/// ~/.claude/.claude-tools/ — branded root for all app-managed data, nested inside Claude CLI dir
+/// ~/.agent-switch-tools/ — branded root for all app-managed data
 pub fn claude_tools_dir(app: &tauri::AppHandle) -> Result<PathBuf, String> {
-    let dir = claude_dir(app)?.join(".claude-tools");
+    let dir = home_dir(app)?.join(".agent-switch-tools");
     std::fs::create_dir_all(&dir).map_err(|e| e.to_string())?;
     Ok(dir)
 }
 
-/// ~/.claude/.claude-tools/profiles/ — root for all saved account profiles
+/// ~/.agent-switch-tools/claude/ — Claude CLI data root (same pattern as IDE subdirs)
+pub fn claude_data_dir(app: &tauri::AppHandle) -> Result<PathBuf, String> {
+    let dir = claude_tools_dir(app)?.join("claude");
+    std::fs::create_dir_all(&dir).map_err(|e| e.to_string())?;
+    Ok(dir)
+}
+
+/// ~/.agent-switch-tools/claude/profiles/ — root for all saved Claude account profiles
 pub fn profiles_dir(app: &tauri::AppHandle) -> Result<PathBuf, String> {
-    let dir = claude_tools_dir(app)?.join("profiles");
+    let dir = claude_data_dir(app)?.join("profiles");
     std::fs::create_dir_all(&dir).map_err(|e| e.to_string())?;
     Ok(dir)
 }
 
-/// ~/.claude/.claude-tools/profiles/{name}/ — single account dir, created if missing
+/// ~/.agent-switch-tools/claude/profiles/{name}/ — single account dir, created if missing
 pub fn profile_dir(profiles: &PathBuf, name: &str) -> Result<PathBuf, String> {
     let dir = profiles.join(name);
     std::fs::create_dir_all(&dir).map_err(|e| e.to_string())?;

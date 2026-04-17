@@ -1,7 +1,7 @@
 [package]
-name = "claude-tools"
+name = "agent-switch-tools"
 version = "0.1.0"
-description = "Manage multiple Claude Code CLI accounts"
+description = "Manage multiple AI coding agent accounts"
 authors = ["ducnd"]
 edition = "2021"
 

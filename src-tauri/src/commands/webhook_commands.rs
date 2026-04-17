@@ -137,8 +137,8 @@ async fn get_profile_usage_data(
     let creds_path = if profile.is_active {
         home.join(".claude").join(".credentials.json")
     } else {
-        home.join(".claude")
-            .join(".claude-tools")
+        home.join(".agent-switch-tools")
+            .join("claude")
             .join("profiles")
             .join(&profile.name)
             .join("credentials.json")

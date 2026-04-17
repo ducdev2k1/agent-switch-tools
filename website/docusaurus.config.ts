@@ -3,7 +3,7 @@ import type {Config} from '@docusaurus/types';
 import type * as Preset from '@docusaurus/preset-classic';
 
 const config: Config = {
-  title: 'Claude Tools',
+  title: 'Agent Switch Tools',
   tagline: 'Manage multiple Claude Code CLI accounts — switch profiles, monitor quota, stay organized.',
   favicon: 'img/favicon.ico',
 
@@ -12,10 +12,10 @@ const config: Config = {
   },
 
   url: 'https://ducdev2k1.github.io',
-  baseUrl: '/claude-tools/',
+  baseUrl: '/agent-switch-tools/',
 
   organizationName: 'ducdev2k1',
-  projectName: 'claude-tools',
+  projectName: 'agent-switch-tools',
 
   onBrokenLinks: 'throw',
 
@@ -34,19 +34,19 @@ const config: Config = {
       {
         docs: {
           sidebarPath: './sidebars.ts',
-          editUrl: 'https://github.com/ducdev2k1/claude-tools/tree/main/website/',
+          editUrl: 'https://github.com/ducdev2k1/agent-switch-tools/tree/main/website/',
         },
         blog: {
           showReadingTime: true,
           blogTitle: 'Release Notes',
-          blogDescription: 'Claude Tools release notes and changelog',
+          blogDescription: 'Agent Switch Tools release notes and changelog',
           blogSidebarTitle: 'All Releases',
           blogSidebarCount: 'ALL',
           feedOptions: {
             type: ['rss', 'atom'],
             xslt: true,
           },
-          editUrl: 'https://github.com/ducdev2k1/claude-tools/tree/main/website/',
+          editUrl: 'https://github.com/ducdev2k1/agent-switch-tools/tree/main/website/',
           onInlineTags: 'warn',
           onInlineAuthors: 'warn',
           onUntruncatedBlogPosts: 'ignore',
@@ -64,9 +64,9 @@ const config: Config = {
       respectPrefersColorScheme: true,
     },
     navbar: {
-      title: 'Claude Tools',
+      title: 'Agent Switch Tools',
       logo: {
-        alt: 'Claude Tools Logo',
+        alt: 'Agent Switch Tools Logo',
         src: 'img/logo.png',
       },
       items: [
@@ -82,7 +82,7 @@ const config: Config = {
           position: 'right',
         },
         {
-          href: 'https://github.com/ducdev2k1/claude-tools',
+          href: 'https://github.com/ducdev2k1/agent-switch-tools',
           label: 'GitHub',
           position: 'right',
         },
@@ -110,15 +110,15 @@ const config: Config = {
           items: [
             {
               label: 'GitHub',
-              href: 'https://github.com/ducdev2k1/claude-tools',
+              href: 'https://github.com/ducdev2k1/agent-switch-tools',
             },
             {
               label: 'Download',
-              href: 'https://github.com/ducdev2k1/claude-tools/releases/latest',
+              href: 'https://github.com/ducdev2k1/agent-switch-tools/releases/latest',
             },
             {
               label: 'Issues',
-              href: 'https://github.com/ducdev2k1/claude-tools/issues',
+              href: 'https://github.com/ducdev2k1/agent-switch-tools/issues',
             },
           ],
         },

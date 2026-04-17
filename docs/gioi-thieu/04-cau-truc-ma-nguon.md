@@ -3,7 +3,7 @@
 ## Tổng quan thư mục
 
 ```
-claude-tools/
+agent-switch-tools/
 ├── src/                          ← Frontend (React + TypeScript)
 │   ├── pages/                    ← Các trang chính
 │   ├── components/               ← Component giao diện
@@ -16,7 +16,12 @@ claude-tools/
 ├── src-tauri/                    ← Backend (Rust + Tauri)
 │   ├── src/
 │   │   ├── commands/             ← Các Tauri command (API cho frontend)
-│   │   ├── tray.rs               ← System tray menu
+│   │   ├── ide/                  ← Module quản lý các IDE
+│   │   │   ├── registry.rs       ← IdeType enum + config cho từng IDE
+│   │   │   ├── path_helpers.rs   ← Đường dẫn state.vscdb theo OS
+│   │   │   ├── sqlite_auth.rs    ← Đọc/ghi auth keys từ SQLite
+│   │   │   └── profile_commands.rs ← Tauri commands cho IDE profiles
+│   │   ├── tray.rs               ← System tray menu (đa agent)
 │   │   ├── quota_refresh_worker.rs ← Background worker
 │   │   ├── lib.rs                ← Cấu hình Tauri, đăng ký commands
 │   │   └── main.rs               ← Entry point Rust
@@ -101,6 +106,20 @@ invoke("list_profiles")  ────►    fn list_credential_profiles()
 |---|---|
 | `get_manager_metadata` | Đọc active profile, lịch sử switch |
 | `update_manager_metadata` | Cập nhật metadata |
+
+### Module `ide/` — Hỗ trợ đa IDE (mới từ v1.0.10)
+
+| File | Vai trò |
+|---|---|
+| `ide/registry.rs` | Enum `IdeType` (Cursor/Windsurf/Antigravity) + config (auth keys, email extraction, process names) |
+| `ide/path_helpers.rs` | Resolve đường dẫn `state.vscdb` theo OS, check IDE đã cài |
+| `ide/sqlite_auth.rs` | Đọc/ghi auth keys từ `ItemTable` trong SQLite, trích email theo từng IDE |
+| `ide/profile_commands.rs` | Tauri commands: `list_ide_profiles`, `save_ide_profile`, `switch_ide_profile`, `delete_ide_profile` |
+
+**3 cơ chế trích email** (tùy IDE):
+- `DirectKey` — Cursor: email nằm ngay tại key `cursorAuth/cachedEmail`
+- `JsonField` — Antigravity: email nằm trong JSON của key `antigravityAuthStatus`
+- `ProtoBase64Email` — Windsurf: email encode trong protobuf base64
 
 ### Các file đặc biệt
 

@@ -161,8 +161,9 @@ pub async fn refresh_profile_token(
 ) -> Result<RefreshResult, String> {
     let home = app.path().home_dir().map_err(|e: tauri::Error| e.to_string())?;
     let claude_dir = home.join(".claude");
-    let creds_path = claude_dir
-        .join(".claude-tools")
+    let creds_path = home
+        .join(".agent-switch-tools")
+        .join("claude")
         .join("profiles")
         .join(&profile_name)
         .join("credentials.json");

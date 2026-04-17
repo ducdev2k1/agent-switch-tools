@@ -105,7 +105,7 @@ function AboutPanel() {
   return (
     <div className="space-y-4">
       <div>
-        <h2 className="text-base font-semibold mb-2">Claude Tools</h2>
+        <h2 className="text-base font-semibold mb-2">Agent Switch Tools</h2>
         <p className="text-sm text-muted-foreground">
           {t('settings.about.description')}
         </p>
@@ -134,7 +134,7 @@ function AboutPanel() {
             {t('settings.about.source_code')}:
           </span>
           <a
-            href="https://github.com/ducdev2k1/claude-tools"
+            href="https://github.com/ducdev2k1/agent-switch-tools"
             target="_blank"
             rel="noopener noreferrer"
             className="text-primary hover:underline"
