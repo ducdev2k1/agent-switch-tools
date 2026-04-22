@@ -80,15 +80,28 @@ Khi nhấn "Switch to B":
 
 ### Quota là gì?
 
-Mỗi tài khoản Claude có giới hạn sử dụng (quota) theo thời gian:
+Mỗi provider có cách hiển thị quota khác nhau:
+
+**Claude CLI (Anthropic)**
 - **5 giờ**: Giới hạn sử dụng trong 5 giờ gần nhất
 - **7 ngày**: Giới hạn sử dụng trong 7 ngày
-- **7 ngày (Sonnet)**: Giới hạn riêng cho model Sonnet trong 7 ngày
+- **7 ngày (Sonnet)**: Giới hạn riêng cho Sonnet trong 7 ngày
+- Hiển thị **% đã dùng** (0% = còn mới, 100% = hết). Bar càng đầy = đã dùng càng nhiều, đỏ khi ≥80%.
+- Reset time hiển thị kèm giờ đồng hồ 12h: `R: 2h 15m (3:45 PM)` *(từ v1.0.11)*
+
+**Antigravity (Google)** *(từ v1.0.11)*
+- 3 bucket theo rate-limit pool:
+  - **Gemini Pro** — 3.1 Pro High/Low + 3 Pro High/Low
+  - **Gemini Flash** — 3 Flash + 3.1 Flash Lite
+  - **Claude / GPT** — Claude Sonnet/Opus 4.6 + GPT-OSS 120B
+- Hiển thị **% còn lại** (100% = đầy quota, 0% = cạn). Bar đầy = còn nhiều, đỏ khi ≤20%.
+
+**Cursor & Windsurf**
+- Hiển thị "Quota không khả dụng" — hai IDE này chưa expose public single-user quota API.
 
 ### Cách hoạt động
 
-App gọi **Anthropic OAuth API** để lấy thông tin quota:
-
+**Claude CLI** — gọi Anthropic OAuth API:
 ```
 GET https://api.anthropic.com/api/oauth/usage
 Headers:
@@ -96,7 +109,12 @@ Headers:
   anthropic-beta: oauth-2025-04-20
 ```
 
-**Kết quả trả về**: % đã sử dụng và thời gian reset cho mỗi loại quota.
+**Antigravity** — flow 2 bước với Google Cloud Code API:
+1. `POST cloudcode-pa.googleapis.com/v1internal:loadCodeAssist` → lấy `cloudaicompanionProject` (project ID)
+2. `POST cloudcode-pa.googleapis.com/v1internal:fetchAvailableModels` với `{"project": pid}` → lấy quotaInfo cho từng model
+- Bearer token: trích `apiKey` từ `antigravityAuthStatus` JSON
+- User-Agent bắt buộc giả lập IDE native: `Antigravity/X.Y.Z ... Chrome/... Electron/...`
+- **OAuth refresh tự động** *(từ v1.0.11)*: nếu access token hết hạn (~1h TTL), app tự đổi refresh token đã lưu trong protobuf blob sang access token mới qua `oauth2.googleapis.com/token` — saved profile lấy quota được ngay cả khi không switch trong ngày.
 
 ### Tự động cập nhật (Background Worker)
 
@@ -104,6 +122,10 @@ Headers:
 - Fetch quota cho **tất cả profile** (active + saved)
 - Mỗi profile cách nhau 1 giây (tránh spam API)
 - Cache kết quả **2 phút** — không gọi API lại nếu data còn mới
+
+### Stale-cache fallback *(từ v1.0.11)*
+
+Khi API quota lỗi (network, 401/5xx...), app không blank UI mà trả về **cache lần fetch gần nhất** (dù đã hết TTL) để người dùng vẫn thấy số liệu cũ. Chỉ return `None` khi chưa từng fetch thành công.
 
 ---
 
@@ -177,7 +199,7 @@ Gửi thông tin quota của tất cả profile:
 {
   "event": "usage_report",
   "timestamp": "2026-04-09T23:00:00Z",
-  "app_version": "1.0.10",
+  "app_version": "1.0.11",
   "device_info": {
     "device_id": "uuid",
     "device_name": "PC của tôi",

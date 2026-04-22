@@ -45,6 +45,7 @@
       "usage_resets_in_hours": "Resets in {{count}}h",
       "usage_resets_in_minutes": "Resets in {{count}}m",
       "usage_resetting": "Resetting...",
+      "usage_unsupported": "Quota not available",
       "time_unit": {
         "day": "{{count}} days",
         "hour": "{{count}} hours",

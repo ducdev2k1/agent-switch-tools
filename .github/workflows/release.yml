@@ -32,10 +32,19 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          gh release create "${{ github.ref_name }}" \
-            --draft \
-            --title "Agent Switch Tools ${GITHUB_REF_NAME#v}" \
-            --notes "See the assets to download and install this version."
+          TAG_VERSION="${GITHUB_REF_NAME#v}"
+          NOTES_FILE="docs/release-notes-v${TAG_VERSION}-en.md"
+          if [ -f "$NOTES_FILE" ]; then
+            gh release create "${{ github.ref_name }}" \
+              --draft \
+              --title "Agent Switch Tools ${TAG_VERSION}" \
+              --notes-file "$NOTES_FILE"
+          else
+            gh release create "${{ github.ref_name }}" \
+              --draft \
+              --title "Agent Switch Tools ${TAG_VERSION}" \
+              --notes "See the assets to download and install this version."
+          fi
 
   # Build and upload for non-Windows platforms
   release:
@@ -98,6 +107,8 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_PRIVATE_KEY }}
           TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_KEY_PASSWORD }}
+          ANTIGRAVITY_OAUTH_CLIENT_ID: ${{ secrets.ANTIGRAVITY_OAUTH_CLIENT_ID }}
+          ANTIGRAVITY_OAUTH_CLIENT_SECRET: ${{ secrets.ANTIGRAVITY_OAUTH_CLIENT_SECRET }}
         with:
           tagName: v__VERSION__
           releaseName: "Agent Switch Tools v__VERSION__"
@@ -147,6 +158,8 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_PRIVATE_KEY }}
           TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_KEY_PASSWORD }}
+          ANTIGRAVITY_OAUTH_CLIENT_ID: ${{ secrets.ANTIGRAVITY_OAUTH_CLIENT_ID }}
+          ANTIGRAVITY_OAUTH_CLIENT_SECRET: ${{ secrets.ANTIGRAVITY_OAUTH_CLIENT_SECRET }}
         with:
           tagName: v__VERSION__
           releaseName: "Agent Switch Tools v__VERSION__"

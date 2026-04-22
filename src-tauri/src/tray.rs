@@ -4,10 +4,10 @@ use tauri::{
     Emitter, Manager,
 };
 
-use crate::commands::metadata_commands::read_meta;
-use crate::ide::path_helpers::{ide_db_path, ide_is_installed, ide_profiles_dir, ide_tools_dir};
-use crate::ide::registry::IdeType;
-use crate::ide::sqlite_auth::{extract_ide_email, read_ide_auth_keys};
+use crate::modules::providers::claude_cli::config;
+use crate::modules::core::path_helpers::{ide_db_path, ide_is_installed, ide_profiles_dir, ide_tools_dir};
+use crate::modules::providers::IdeType;
+use crate::modules::core::sqlite_auth::read_ide_auth_keys;
 
 /// Setup system tray with profile quick-switch menu
 pub fn setup_tray(app: &tauri::App) -> Result<(), Box<dyn std::error::Error>> {
@@ -42,6 +42,10 @@ pub fn setup_tray(app: &tauri::App) -> Result<(), Box<dyn std::error::Error>> {
                     // Format: ide-switch:{ideType}:{profileName}
                     let rest = id.strip_prefix("ide-switch:").unwrap_or("");
                     if let Some((ide_type, profile_name)) = rest.split_once(':') {
+                        if let Some(window) = app_handle.get_webview_window("main") {
+                            let _ = window.show();
+                            let _ = window.set_focus();
+                        }
                         let payload = format!("{}:{}", ide_type, profile_name);
                         let _ = app_handle.emit("tray-switch-ide-profile", payload);
                     }
@@ -49,6 +53,10 @@ pub fn setup_tray(app: &tauri::App) -> Result<(), Box<dyn std::error::Error>> {
                 _ if id.starts_with("switch:") => {
                     let profile_name = id.strip_prefix("switch:").unwrap_or("");
                     if !profile_name.is_empty() {
+                        if let Some(window) = app_handle.get_webview_window("main") {
+                            let _ = window.show();
+                            let _ = window.set_focus();
+                        }
                         let _ = app_handle.emit("tray-switch-profile", profile_name);
                     }
                 }
@@ -76,7 +84,7 @@ fn build_tray_menu(
     let home = handle.path().home_dir()?;
     let claude_dir = home.join(".agent-switch-tools").join("claude");
     let profiles_dir = claude_dir.join("profiles");
-    let meta = read_meta(&claude_dir);
+    let meta = config::read_meta(&claude_dir);
 
     let active_name = meta
         .active_profile_name
@@ -120,14 +128,14 @@ fn build_tray_menu(
         if !ide_is_installed(handle, ide_type) {
             continue;
         }
-        let config = ide_type.config();
+        let provider = ide_type.provider();
         let ide_id = ide_type.id();
 
         builder = builder.separator();
 
         // IDE header
         let ide_header =
-            MenuItemBuilder::with_id(format!("ide-header:{}", ide_id), config.display_name)
+            MenuItemBuilder::with_id(format!("ide-header:{}", ide_id), provider.display_name())
                 .enabled(false)
                 .build(handle)?;
         builder = builder.item(&ide_header);
@@ -136,12 +144,12 @@ fn build_tray_menu(
         {
             let ide_active = ide_db_path(handle, ide_type)
                 .ok()
-                .and_then(|db_path| read_ide_auth_keys(&db_path, config.auth_keys).ok())
-                .and_then(|auth_data| extract_ide_email(ide_type, &auth_data))
+                .and_then(|db_path| read_ide_auth_keys(&db_path, provider.auth_keys()).ok())
+                .and_then(|auth_data| provider.extract_email(&auth_data))
                 .or_else(|| {
                     ide_tools_dir(handle, ide_type)
                         .ok()
-                        .and_then(|dir| read_meta(&dir).active_profile_name)
+                        .and_then(|dir| config::read_meta(&dir).active_profile_name)
                 })
                 .unwrap_or_else(|| "Not logged in".to_string());
 

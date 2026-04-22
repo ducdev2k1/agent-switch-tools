@@ -3,10 +3,12 @@ import { CliStatusBar } from '@/components/cli-status-bar'
 import { DeleteConfirmDialog } from '@/components/delete-confirm-dialog'
 import { IdeDashboardSection } from '@/components/ide-dashboard-section'
 import { ProfileCard } from '@/components/profile-card'
+import { ProfileTable } from '@/components/profile-table'
 import { SwitchConfirmationDialog } from '@/components/switch-confirmation-dialog'
 import { Button } from '@/components/ui/button'
 import { Separator } from '@/components/ui/separator'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { ViewToggle, type ViewMode } from '@/components/view-toggle'
 import { useClaudeConfig } from '@/hooks/use-claude-config'
 import { useInstalledIdes } from '@/hooks/use-installed-ides'
 import { useCredentialProfiles } from '@/hooks/use-profiles'
@@ -20,7 +22,6 @@ import {
   Save,
   Settings,
   Shield,
-  UserPlus,
 } from 'lucide-react'
 import { useCallback, useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
@@ -53,14 +54,30 @@ export function Dashboard({ onOpenSettings, updater }: DashboardProps) {
   const { updateVersion, installing, install } = updater
   const { ides: installedIdes } = useInstalledIdes()
   const [activeTab, setActiveTab] = useState('claude-code')
+  const [viewMode, setViewMode] = useState<ViewMode>('grid')
+
+  const [pendingTrayProfile, setPendingTrayProfile] = useState<string | null>(
+    null,
+  )
 
   // Listen for tray quick-switch events
   const handleTraySwitchRef = useCallback(
     async (profileName: string) => {
       const running = await checkClaudeRunning()
-      const target = profiles.find((p) => !p.isActive && p.name === profileName)
+      const target = profiles.find((p) => p.name === profileName)
       if (!target) {
-        toast.error(t('dashboard.errors.not_found', { name: profileName }))
+        // If profile not found yet (maybe loading), save for later
+        if (profiles.length === 0) {
+          setPendingTrayProfile(profileName)
+        } else {
+          toast.error(t('dashboard.errors.not_found', { name: profileName }))
+        }
+        return
+      }
+      if (target.isActive) {
+        toast.info(
+          t('dashboard.messages.already_active', { name: profileName }),
+        )
         return
       }
       setClaudeIsRunning(running)
@@ -69,6 +86,14 @@ export function Dashboard({ onOpenSettings, updater }: DashboardProps) {
     },
     [profiles, checkClaudeRunning, t],
   )
+
+  // Watch for pending tray switch once profiles load
+  useEffect(() => {
+    if (pendingTrayProfile && profiles.length > 0) {
+      handleTraySwitchRef(pendingTrayProfile)
+      setPendingTrayProfile(null)
+    }
+  }, [profiles, pendingTrayProfile, handleTraySwitchRef])
 
   useEffect(() => {
     const unlisten = listen<string>('tray-switch-profile', (event) => {
@@ -108,7 +133,6 @@ export function Dashboard({ onOpenSettings, updater }: DashboardProps) {
   const [saving, setSaving] = useState(false)
 
   const activeProfile = profiles.find((p) => p.isActive)
-  const savedProfiles = profiles.filter((p) => !p.isActive)
 
   // Save current credentials (auto-detect email)
   const handleSaveCurrent = async () => {
@@ -188,6 +212,10 @@ export function Dashboard({ onOpenSettings, updater }: DashboardProps) {
             </h1>
           </div>
           <div className="flex items-center gap-2">
+            <ViewToggle
+              mode={viewMode}
+              onChange={setViewMode}
+            />
             <Button
               variant="ghost"
               size="icon"
@@ -223,9 +251,15 @@ export function Dashboard({ onOpenSettings, updater }: DashboardProps) {
         )}
 
         {/* IDE Tabs */}
-        <Tabs value={activeTab} onValueChange={setActiveTab}>
+        <Tabs
+          value={activeTab}
+          onValueChange={setActiveTab}
+        >
           <TabsList className="w-full justify-start">
-            <TabsTrigger value="claude-code" className="gap-1.5">
+            <TabsTrigger
+              value="claude-code"
+              className="gap-1.5"
+            >
               <Braces className="size-3.5" />
               Claude Code
             </TabsTrigger>
@@ -244,7 +278,10 @@ export function Dashboard({ onOpenSettings, updater }: DashboardProps) {
           </TabsList>
 
           {/* Claude Code tab */}
-          <TabsContent value="claude-code" className="mt-4 space-y-6">
+          <TabsContent
+            value="claude-code"
+            className="mt-4 space-y-6"
+          >
             {/* Action bar for Claude Code */}
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2 text-sm text-muted-foreground">
@@ -281,97 +318,46 @@ export function Dashboard({ onOpenSettings, updater }: DashboardProps) {
 
             <Separator />
 
-            {/* Active Account */}
-            {activeProfile && (
-              <div>
-                <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-3">
-                  {t('common.labels.active_account')}
-                </h2>
-                <ProfileCard
-                  profile={activeProfile}
-                  onSwitch={() => {}}
-                  onDelete={() => {}}
-                  onProfilesChanged={refresh}
-                />
-              </div>
-            )}
-
-            {!activeProfile && !profilesLoading && (
-              <div className="rounded-lg border border-amber-500/30 bg-amber-500/5 p-4 text-center">
-                <p className="text-sm text-amber-700 dark:text-amber-400">
-                  {t('dashboard.messages.no_credentials')}
-                </p>
-              </div>
-            )}
-
-            <Separator />
-
-            {/* Saved Profiles */}
-            <div>
-              <div className="flex items-center justify-between mb-3">
-                <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">
-                  {t('common.labels.saved_profiles', {
-                    count: savedProfiles.length,
-                  })}
-                </h2>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setAddAccountOpen(true)}
-                  className="text-xs"
-                >
-                  <UserPlus className="size-3.5" />
-                  {t('common.actions.add_account')}
-                </Button>
-              </div>
-
+            {/* Unified Account List */}
+            <div className="space-y-6">
               {profilesLoading ? (
-                <div className="space-y-3">
-                  {[1, 2].map((i) => (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+                  {[1, 2, 3].map((i) => (
                     <div
                       key={i}
-                      className="h-20 rounded-xl border bg-card animate-pulse"
+                      className="h-48 rounded-2xl border bg-card/50 animate-pulse"
                     />
                   ))}
                 </div>
-              ) : savedProfiles.length === 0 ? (
-                <div className="flex flex-col items-center justify-center py-12 text-center">
-                  <Shield className="size-10 text-muted-foreground/40 mb-3" />
-                  <h3 className="text-base font-semibold mb-1">
-                    {t('dashboard.messages.no_saved_profiles')}
+              ) : profiles.length === 0 ? (
+                <div className="flex flex-col items-center justify-center py-20 text-center">
+                  <Shield className="size-16 text-muted-foreground/20 mb-4" />
+                  <h3 className="text-xl font-bold mb-2">
+                    {t('dashboard.labels.no_profiles')}
                   </h3>
-                  <p className="text-sm text-muted-foreground mb-4 max-w-sm">
-                    {t('dashboard.messages.no_saved_profiles_info')}
+                  <p className="text-muted-foreground max-w-md mx-auto">
+                    {t('dashboard.labels.no_profiles_info')}
                   </p>
-                  {activeProfile && (
-                    <Button
-                      onClick={handleSaveCurrent}
-                      variant="outline"
-                      size="sm"
-                      disabled={saving}
-                    >
-                      <Save className="size-4" />
-                      {t('common.actions.save_current')}
-                    </Button>
-                  )}
                 </div>
-              ) : (
-                <div className="space-y-3">
-                  {savedProfiles.map((profile) => (
+              ) : viewMode === 'grid' ? (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+                  {profiles.map((profile) => (
                     <ProfileCard
                       key={profile.name}
                       profile={profile}
                       onSwitch={handleSwitchRequest}
                       onDelete={handleDeleteRequest}
                       onProfilesChanged={refresh}
-                      isCurrentlyActive={
-                        !!activeProfile?.oauthAccount?.accountUuid &&
-                        activeProfile.oauthAccount.accountUuid ===
-                          profile.oauthAccount?.accountUuid
-                      }
                     />
                   ))}
                 </div>
+              ) : (
+                <ProfileTable
+                  profiles={profiles}
+                  onSwitch={handleSwitchRequest}
+                  onDelete={handleDeleteRequest}
+                  onProfilesChanged={refresh}
+                />
               )}
             </div>
           </TabsContent>
@@ -388,6 +374,7 @@ export function Dashboard({ onOpenSettings, updater }: DashboardProps) {
                 <IdeDashboardSection
                   ideType={ide.ideType}
                   ideName={ide.displayName}
+                  viewMode={viewMode}
                 />
               </TabsContent>
             ))}

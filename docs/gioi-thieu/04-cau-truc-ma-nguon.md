@@ -107,19 +107,43 @@ invoke("list_profiles")  ────►    fn list_credential_profiles()
 | `get_manager_metadata` | Đọc active profile, lịch sử switch |
 | `update_manager_metadata` | Cập nhật metadata |
 
-### Module `ide/` — Hỗ trợ đa IDE (mới từ v1.0.10)
+### Module `modules/` — Tái cấu trúc từ v1.0.11
 
-| File | Vai trò |
-|---|---|
-| `ide/registry.rs` | Enum `IdeType` (Cursor/Windsurf/Antigravity) + config (auth keys, email extraction, process names) |
-| `ide/path_helpers.rs` | Resolve đường dẫn `state.vscdb` theo OS, check IDE đã cài |
-| `ide/sqlite_auth.rs` | Đọc/ghi auth keys từ `ItemTable` trong SQLite, trích email theo từng IDE |
-| `ide/profile_commands.rs` | Tauri commands: `list_ide_profiles`, `save_ide_profile`, `switch_ide_profile`, `delete_ide_profile` |
+Từ v1.0.11, toàn bộ logic backend tách thành 4 nhóm rõ ràng thay cho thư mục `ide/` cũ:
 
-**3 cơ chế trích email** (tùy IDE):
-- `DirectKey` — Cursor: email nằm ngay tại key `cursorAuth/cachedEmail`
-- `JsonField` — Antigravity: email nằm trong JSON của key `antigravityAuthStatus`
-- `ProtoBase64Email` — Windsurf: email encode trong protobuf base64
+```
+src-tauri/src/modules/
+├── core/                        ← Logic dùng chung giữa các IDE
+│   ├── path_helpers.rs          ← Resolve state.vscdb, IDE app dir, per-IDE profiles dir
+│   ├── sqlite_auth.rs           ← Đọc/ghi ItemTable SQLite với retry on-lock
+│   └── ide_manager.rs           ← Save/read saved auth-keys.json per profile
+├── providers/                   ← Triết lý: 1 provider = 1 module
+│   ├── mod.rs                   ← Trait IdeProvider + enum IdeType + IdeInfo
+│   ├── utils.rs                 ← Helpers dùng chung (ví dụ extract plan từ proto JSON)
+│   ├── claude_cli/              ← Claude Code (Anthropic OAuth)
+│   │   ├── auth.rs              ← OAuth flow, credentials.json
+│   │   ├── config.rs            ← Manager metadata, usage stats
+│   │   └── quota.rs             ← Anthropic /api/oauth/usage + stale-cache
+│   ├── cursor/                  ← Cursor IDE provider
+│   ├── windsurf/                ← Windsurf IDE provider
+│   └── antigravity/             ← Antigravity (Google Cloud Code)
+│       ├── mod.rs               ← Provider impl: auth keys, email, membership
+│       ├── oauth.rs             ← Protobuf parse + OAuth refresh (v1.0.11)
+│       └── quota.rs             ← loadCodeAssist + fetchAvailableModels
+├── quota/                       ← Shared types: UsageBucket, UsageLimits
+└── shared/                      ← Hạ tầng chung: HTTP client, logger, paths
+```
+
+**Trait `IdeProvider`** chuẩn hóa interface mỗi IDE:
+- `auth_keys()` — danh sách key cần đọc/ghi trong `state.vscdb`
+- `token_key()` — key chứa access token
+- `extract_email()`, `extract_display_name()`, `extract_membership()` — trích thông tin hiển thị
+- `normalize_token(raw)` — chuẩn hóa token (ví dụ Antigravity: trích `apiKey` từ JSON wrapper)
+
+**Provider quota riêng**:
+- Claude CLI → Anthropic `/api/oauth/usage`
+- Antigravity → 2-step Google Cloud Code API + OAuth refresh flow
+- Cursor & Windsurf → không có public API, UI hiển thị "Quota không khả dụng"
 
 ### Các file đặc biệt
 

@@ -25,3 +25,8 @@ dist-ssr
 
 # Agent
 .claude
+
+# Local env files with OAuth secrets (use .env.example as template)
+.env
+.env.local
+.env.*.local

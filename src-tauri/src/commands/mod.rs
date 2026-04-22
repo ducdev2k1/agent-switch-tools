@@ -8,3 +8,4 @@ pub mod session_usage_commands;
 pub mod system_info_commands;
 pub mod token_refresh;
 pub mod webhook_commands;
+pub mod ide_commands;

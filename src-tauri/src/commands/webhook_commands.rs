@@ -2,8 +2,10 @@ use hmac::{Hmac, Mac};
 use serde::Serialize;
 use sha2::Sha256;
 
-use super::config_commands::{CredentialProfile, list_credential_profiles};
-use super::quota_commands::{fetch_usage_with_token, read_token_from_creds};
+use crate::modules::providers::claude_cli::config::CredentialProfile;
+use super::config_commands::list_credential_profiles;
+use super::quota_commands::read_token_from_creds;
+use crate::modules::providers::claude_cli::quota as claude_quota;
 use super::session_usage_commands;
 
 /// Response returned to the frontend after a webhook call
@@ -39,7 +41,7 @@ async fn build_payload(
 ) -> Result<serde_json::Value, String> {
     use tauri::Manager;
 
-    let all_profiles = list_credential_profiles(app.clone()).await?;
+    let all_profiles: Vec<CredentialProfile> = list_credential_profiles(app.clone()).await?;
     let active_profile = all_profiles.iter().find(|p| p.is_active);
     let home = app
         .path()
@@ -145,7 +147,7 @@ async fn get_profile_usage_data(
     };
 
     let token = read_token_from_creds(&creds_path)?;
-    let limits = fetch_usage_with_token(&token, false).await?;
+    let limits = claude_quota::fetch_anthropic_usage(&token, false).await?;
 
     Some(serde_json::json!({
         "five_hour": limits.five_hour.as_ref().map(|b| serde_json::json!({

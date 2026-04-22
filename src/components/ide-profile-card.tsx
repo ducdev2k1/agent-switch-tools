@@ -1,8 +1,10 @@
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
-import type { IdeProfile } from '@/lib/types'
-import { ArrowRightLeft, Crown, Mail, Trash2, User } from 'lucide-react'
+import { UsageLimitsDisplay } from '@/components/usage-limits-display'
+import { useIdeUsage } from '@/hooks/use-ide-usage'
+import { isIdeQuotaSupported, type IdeProfile } from '@/lib/types'
+import { ArrowRightLeft, Clock, Crown, RefreshCw, Trash2 } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 
 interface IdeProfileCardProps {
@@ -17,104 +19,119 @@ export function IdeProfileCard({
   onDelete,
 }: IdeProfileCardProps) {
   const { t } = useTranslation()
-  const { name, isActive, email, membershipType, displayName } = profile
+  const { name, isActive, email, displayName, ideType, membershipType } =
+    profile
+  const {
+    usage,
+    loading: usageLoading,
+    refresh: refreshUsage,
+  } = useIdeUsage(ideType, name, isActive)
 
   return (
     <Card
-      className={`transition-all duration-300 hover:shadow-lg group ${
+      className={`relative transition-all duration-300 hover:shadow-md group overflow-hidden border-border/40 ${
         isActive
-          ? 'border-success/50 bg-success/5 shadow-[0_0_15px_rgba(34,197,94,0.1)] dark:shadow-[0_0_15px_rgba(34,197,94,0.05)]'
-          : 'hover:border-primary/50'
+          ? 'bg-success/5 border-success/30 shadow-[0_4px_20px_rgba(34,197,94,0.08)]'
+          : 'bg-card/50 hover:bg-card hover:border-primary/30'
       }`}
     >
-      <CardContent className="p-4">
-        <div className="flex items-start gap-4">
-          {/* Status indicator */}
-          <div className="mt-1.5 shrink-0">
-            <div
-              className={`size-3.5 rounded-full transition-all duration-300 ${
-                isActive
-                  ? 'bg-success shadow-[0_0_10px_rgba(34,197,94,0.8)] animate-pulse'
-                  : 'bg-muted-foreground/30'
-              }`}
-            />
+      {/* Active side indicator */}
+      {isActive && (
+        <div className="absolute left-0 top-0 bottom-0 w-1 bg-success shadow-[0_0_10px_rgba(34,197,94,1)]" />
+      )}
+
+      <CardContent className="p-4 flex flex-col h-full">
+        {/* Top Section: Checkbox & Email */}
+        <div className="flex items-start justify-between gap-2 mb-3">
+          <div className="flex items-center gap-2.5 min-w-0">
+            {/* Decorative Checkbox */}
+            <div className="size-4 rounded border border-muted-foreground/30 shrink-0 flex items-center justify-center bg-muted/20">
+              {isActive && <div className="size-2 rounded-sm bg-success/80" />}
+            </div>
+
+            <div className="flex flex-col min-w-0">
+              <span className="text-sm font-bold truncate text-foreground/90 group-hover:text-primary transition-colors">
+                {email || displayName || name}
+              </span>
+
+              <div className="flex items-center gap-1.5 mt-1 flex-wrap">
+                {membershipType && (
+                  <Badge
+                    variant="secondary"
+                    className="h-4 px-1.5 text-[8px] font-bold bg-secondary/50"
+                  >
+                    <Crown className="size-2 mr-1 text-primary/70" />
+                    {membershipType.replace(/\b\w/g, (c) => c.toUpperCase())}
+                  </Badge>
+                )}
+                {isActive && (
+                  <Badge
+                    variant="success"
+                    className="h-4 px-1.5 text-[8px] font-bold uppercase tracking-tighter"
+                  >
+                    {t('common.labels.active')}
+                  </Badge>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Middle Section: Usage */}
+        <div className="flex-1">
+          <UsageLimitsDisplay
+            limits={usage}
+            loading={usageLoading}
+            unsupported={!isIdeQuotaSupported(ideType)}
+          />
+        </div>
+
+        {/* Bottom Section: Meta & Actions */}
+        <div className="mt-5 flex items-center justify-between pt-3 border-t border-border/30">
+          <div className="flex flex-col gap-0.5">
+            <div className="text-[9px] font-medium text-muted-foreground/40 tabular-nums flex items-center gap-1">
+              <Clock className="size-2.5" />
+              {isActive
+                ? new Date().toISOString().split('T')[0]
+                : '2025/12/15 16:30'}
+            </div>
           </div>
 
-          {/* Content */}
-          <div className="min-w-0 flex-1">
-            <div className="flex items-start justify-between gap-4">
-              <div className="min-w-0 flex-1">
-                {/* Name + badges */}
-                <div className="flex items-center gap-2 flex-wrap">
-                  <h3 className="font-bold text-base tracking-tight group-hover:text-primary transition-colors">
-                    {displayName || name}
-                  </h3>
-                  {isActive && (
-                    <Badge
-                      variant="success"
-                      className="text-[10px] font-bold uppercase tracking-wider px-2 py-0"
-                    >
-                      {t('common.labels.active')}
-                    </Badge>
-                  )}
-                </div>
+          <div className="flex items-center gap-0.5">
+            <Button
+              variant="ghost"
+              size="icon"
+              className="size-8 text-muted-foreground/60 hover:text-foreground"
+              onClick={(e) => {
+                e.stopPropagation()
+                refreshUsage()
+              }}
+              disabled={usageLoading}
+            >
+              <RefreshCw
+                className={`size-4 ${usageLoading ? 'animate-spin' : ''}`}
+              />
+            </Button>
 
-                {/* Email */}
-                {email && (
-                  <div className="flex items-center gap-3 mt-1.5 text-xs text-muted-foreground">
-                    <span className="flex items-center gap-1">
-                      <Mail className="size-3" />
-                      {email}
-                    </span>
-                  </div>
-                )}
+            {!isActive && (
+              <Button
+                variant="ghost"
+                size="icon"
+                className="size-8 text-muted-foreground/60 hover:text-primary"
+                onClick={() => onSwitch(profile)}
+              >
+                <ArrowRightLeft className="size-4" />
+              </Button>
+            )}
 
-                {/* Membership / display name info */}
-                <div className="flex items-center gap-1.5 mt-2.5 flex-wrap">
-                  {membershipType && (
-                    <Badge
-                      variant="secondary"
-                      className="text-[10px] bg-secondary/50 font-medium"
-                    >
-                      <Crown className="size-3 mr-1 text-primary/70" />
-                      {membershipType.replace(/\b\w/g, (c) => c.toUpperCase())}
-                    </Badge>
-                  )}
-                  {displayName && displayName !== name && (
-                    <Badge
-                      variant="outline"
-                      className="text-[10px] font-medium border-primary/20"
-                    >
-                      <User className="size-3 mr-1 text-primary/70" />
-                      {displayName}
-                    </Badge>
-                  )}
-                </div>
-              </div>
-
-              {/* Actions (saved profiles only) */}
-              {!isActive && (
-                <div className="flex items-center gap-1.5 shrink-0 opacity-80 group-hover:opacity-100 transition-opacity">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => onSwitch(profile)}
-                    className="h-8 text-xs font-bold hover:bg-primary hover:text-primary-foreground border-primary/20"
-                  >
-                    <ArrowRightLeft className="size-3.5 mr-1" />
-                    {t('common.actions.switch')}
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={() => onDelete(name)}
-                    className="size-8 text-destructive/70 hover:text-destructive hover:bg-destructive/10"
-                  >
-                    <Trash2 className="size-3.5" />
-                  </Button>
-                </div>
-              )}
-            </div>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="size-8 text-muted-foreground/60 hover:text-destructive"
+              onClick={() => onDelete(name)}
+            >
+              <Trash2 className="size-4" />
+            </Button>
           </div>
         </div>
       </CardContent>

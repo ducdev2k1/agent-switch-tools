@@ -6,13 +6,11 @@ import { useProfileUsage, useTokenRefresh } from '@/hooks/use-usage-stats'
 import type { CredentialProfile } from '@/lib/types'
 import {
   ArrowRightLeft,
-  Building2,
+  Clock,
   Crown,
   KeyRound,
-  Mail,
   RefreshCw,
   Trash2,
-  Zap,
 } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { toast } from 'sonner'
@@ -22,7 +20,6 @@ interface ProfileCardProps {
   onSwitch: (profile: CredentialProfile) => void
   onDelete: (name: string) => void
   onProfilesChanged?: () => Promise<void> | void
-  isCurrentlyActive?: boolean
 }
 
 /** Human-readable subscription name */
@@ -36,7 +33,6 @@ export function ProfileCard({
   onSwitch,
   onDelete,
   onProfilesChanged,
-  isCurrentlyActive = false,
 }: ProfileCardProps) {
   const { t } = useTranslation()
   const { name, isActive, info } = profile
@@ -48,200 +44,142 @@ export function ProfileCard({
   const { refreshToken, refreshing } = useTokenRefresh()
   const expired = info.isExpired
 
-  // Health color indicator logic
-  const expiringSoon = false
-
   return (
     <Card
-      className={`transition-all duration-300 hover:shadow-lg group ${
+      className={`relative transition-all duration-300 hover:shadow-md group overflow-hidden border-border/40 ${
         isActive
-          ? 'border-success/50 bg-success/5 shadow-[0_0_15px_rgba(34,197,94,0.1)] dark:shadow-[0_0_15px_rgba(34,197,94,0.05)]'
-          : isCurrentlyActive
-            ? 'border-primary/30 bg-accent/30'
-            : expired
-              ? 'border-destructive/30 bg-destructive/5'
-              : expiringSoon
-                ? 'border-warning/30 bg-warning/5'
-                : 'hover:border-primary/50'
+          ? 'bg-success/5 border-success/30 shadow-[0_4px_20px_rgba(34,197,94,0.08)]'
+          : 'bg-card/50 hover:bg-card hover:border-primary/30'
       }`}
     >
-      <CardContent className="p-4">
-        <div className="flex items-start gap-4">
-          {/* Left: indicator */}
-          <div className="mt-1.5 shrink-0">
-            <div
-              className={`size-3.5 rounded-full transition-all duration-300 ${
-                isActive
-                  ? 'bg-success shadow-[0_0_10px_rgba(34,197,94,0.8)] animate-pulse'
-                  : isCurrentlyActive
-                    ? 'bg-primary/50'
-                    : expired
-                      ? 'bg-destructive/60'
-                      : expiringSoon
-                        ? 'bg-warning/80'
-                        : 'bg-muted-foreground/30'
-              }`}
-            />
-          </div>
+      {/* Active side indicator */}
+      {isActive && (
+        <div className="absolute left-0 top-0 bottom-0 w-1 bg-success shadow-[0_0_10px_rgba(34,197,94,1)]" />
+      )}
 
-          {/* Right Content */}
-          <div className="min-w-0 flex-1">
-            {/* Top row: Info & Actions */}
-            <div className="flex items-start justify-between gap-4">
-              {/* Info */}
-              <div className="min-w-0 flex-1">
-                <div className="flex items-center gap-2 flex-wrap">
-                  <h3 className="font-bold text-base tracking-tight group-hover:text-primary transition-colors">
-                    {profile.oauthAccount?.displayName || name}
-                  </h3>
-                  {isActive && (
-                    <Badge
-                      variant="success"
-                      className="text-[10px] font-bold uppercase tracking-wider px-2 py-0"
-                    >
-                      {t('common.labels.active')}
-                    </Badge>
-                  )}
-                  {isCurrentlyActive && !isActive && (
-                    <Badge
-                      variant="secondary"
-                      className="text-[10px] font-bold uppercase tracking-wider px-2 py-0"
-                    >
-                      {t('common.labels.matched')}
-                    </Badge>
-                  )}
-                  {expired && (
-                    <>
-                      <Badge
-                        variant="destructive"
-                        className="text-[10px] font-bold uppercase tracking-wider px-2 py-0"
-                      >
-                        {t('common.labels.expired')}
-                      </Badge>
-                      <button
-                        onClick={async (e) => {
-                          e.stopPropagation()
-                          const result = await refreshToken(name, isActive)
-                          if (result.success) {
-                            toast.success(t('common.messages.token_refreshed'))
-                            await onProfilesChanged?.()
-                            refreshUsage()
-                          } else {
-                            toast.error(result.message)
-                          }
-                        }}
-                        disabled={refreshing}
-                        title={t('common.actions.refresh_token')}
-                        className="inline-flex items-center gap-1 text-[10px] font-medium text-primary hover:text-primary/80 disabled:opacity-50 cursor-pointer"
-                      >
-                        <KeyRound
-                          className={`size-3 ${refreshing ? 'animate-spin' : ''}`}
-                        />
-                        {t('common.actions.refresh_token')}
-                      </button>
-                    </>
-                  )}
-                </div>
+      <CardContent className="p-4 flex flex-col h-full">
+        {/* Top Section: Checkbox & Email */}
+        <div className="flex items-start justify-between gap-2 mb-3">
+          <div className="flex items-center gap-2.5 min-w-0">
+            {/* Decorative Checkbox */}
+            <div className="size-4 rounded border border-muted-foreground/30 shrink-0 flex items-center justify-center bg-muted/20">
+              {isActive && <div className="size-2 rounded-sm bg-success/80" />}
+            </div>
 
-                {/* Email + Org */}
-                {profile.oauthAccount?.emailAddress && (
-                  <div className="flex items-center gap-3 mt-1.5 text-xs text-muted-foreground">
-                    <span className="flex items-center gap-1">
-                      <Mail className="size-3" />
-                      {profile.oauthAccount.emailAddress}
-                    </span>
-                    {profile.oauthAccount.organizationName && (
-                      <span className="flex items-center gap-1">
-                        <Building2 className="size-3" />
-                        {profile.oauthAccount.organizationName}
-                      </span>
-                    )}
-                  </div>
+            <div className="flex flex-col min-w-0">
+              <span className="text-sm font-bold truncate text-foreground/90 group-hover:text-primary transition-colors">
+                {profile.oauthAccount?.emailAddress || name}
+              </span>
+
+              <div className="flex items-center gap-1.5 mt-1 flex-wrap">
+                {info.subscriptionType && (
+                  <Badge
+                    variant="secondary"
+                    className="h-4 px-1.5 text-[8px] font-bold bg-secondary/50"
+                  >
+                    <Crown className="size-2 mr-1 text-primary/70" />
+                    {formatSubscription(info.subscriptionType, t)}
+                  </Badge>
                 )}
-
-                {/* Extras indicators */}
-                <div className="flex items-center gap-1.5 mt-2.5 flex-wrap">
-                  {info.subscriptionType && (
-                    <Badge
-                      variant="secondary"
-                      className="text-[10px] bg-secondary/50 font-medium"
-                    >
-                      <Crown className="size-3 mr-1 text-primary/70" />
-                      {formatSubscription(info.subscriptionType, t)}
-                    </Badge>
-                  )}
-                  {info.rateLimitTier && (
-                    <Badge
-                      variant="outline"
-                      className="text-[10px] font-mono font-medium border-primary/20"
-                    >
-                      <Zap className="size-3 mr-1 text-primary/70" />
-                      {info.rateLimitTier}
-                    </Badge>
-                  )}
-                </div>
-
-                {/* Scopes summary */}
-                {info.scopes.length > 0 && (
-                  <p className="text-[11px] text-muted-foreground mt-2 font-medium flex items-center gap-1">
-                    <span className="w-1.5 h-1.5 rounded-full bg-muted-foreground/30" />
-                    {t('common.labels.scopes', { count: info.scopes.length })}
-                    <span className="text-muted-foreground/40 mx-1">|</span>
-                    {info.organizationUuid ||
-                    profile.oauthAccount?.organizationUuid ||
-                    profile.oauthAccount?.organizationName
-                      ? t('common.labels.organization_account')
-                      : t('common.labels.personal_account')}
-                  </p>
+                {isActive && (
+                  <Badge
+                    variant="success"
+                    className="h-4 px-1.5 text-[8px] font-bold uppercase tracking-tighter"
+                  >
+                    {t('common.labels.active')}
+                  </Badge>
+                )}
+                {expired && (
+                  <Badge
+                    variant="destructive"
+                    className="h-4 px-1.5 text-[8px] font-bold uppercase tracking-tighter"
+                  >
+                    {t('common.labels.expired')}
+                  </Badge>
                 )}
               </div>
-
-              {/* Actions */}
-              {!isActive && (
-                <div className="flex items-center gap-1.5 shrink-0 opacity-80 group-hover:opacity-100 transition-opacity">
-                  {!isCurrentlyActive && (
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => onSwitch(profile)}
-                      className="h-8 text-xs font-bold hover:bg-primary hover:text-primary-foreground border-primary/20"
-                    >
-                      <ArrowRightLeft className="size-3.5 mr-1" />
-                      {t('common.actions.switch')}
-                    </Button>
-                  )}
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={() => onDelete(name)}
-                    className="size-8 text-destructive/70 hover:text-destructive hover:bg-destructive/10"
-                  >
-                    <Trash2 className="size-3.5" />
-                  </Button>
-                </div>
-              )}
             </div>
+          </div>
 
-            {/* Bottom row: Usage limits */}
-            <div className="relative mt-2">
-              <button
-                onClick={(e) => {
+          <div className="shrink-0 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity mt-0.5">
+            {expired && (
+              <Button
+                variant="ghost"
+                size="icon"
+                className="size-7 text-primary hover:text-primary-foreground hover:bg-primary"
+                onClick={async (e) => {
                   e.stopPropagation()
-                  refreshUsage()
+                  const result = await refreshToken(name, isActive)
+                  if (result.success) {
+                    toast.success(t('common.messages.token_refreshed'))
+                    await onProfilesChanged?.()
+                    refreshUsage()
+                  }
                 }}
-                disabled={usageLoading}
-                title={t('common.actions.refresh')}
-                className="absolute right-0 top-2 p-0.5 text-muted-foreground/40 hover:text-muted-foreground disabled:opacity-30 transition-colors z-10 cursor-pointer"
+                disabled={refreshing}
               >
-                <RefreshCw
-                  className={`size-3 ${usageLoading ? 'animate-spin' : ''}`}
+                <KeyRound
+                  className={`size-3.5 ${refreshing ? 'animate-spin' : ''}`}
                 />
-              </button>
-              <UsageLimitsDisplay
-                limits={usageLimits}
-                loading={usageLoading}
-              />
+              </Button>
+            )}
+          </div>
+        </div>
+
+        {/* Middle Section: Usage */}
+        <div className="flex-1">
+          <UsageLimitsDisplay
+            limits={usageLimits}
+            loading={usageLoading}
+          />
+        </div>
+
+        {/* Bottom Section: Meta & Actions */}
+        <div className="mt-5 flex items-center justify-between pt-3 border-t border-border/30">
+          <div className="flex flex-col gap-0.5">
+            <div className="text-[9px] font-medium text-muted-foreground/40 tabular-nums flex items-center gap-1">
+              <Clock className="size-2.5" />
+              {info.expiresAt
+                ? new Date(info.expiresAt).toLocaleString()
+                : '2025/12/15 16:30'}
             </div>
+          </div>
+
+          <div className="flex items-center gap-0.5">
+            <Button
+              variant="ghost"
+              size="icon"
+              className="size-8 text-muted-foreground/60 hover:text-foreground"
+              onClick={(e) => {
+                e.stopPropagation()
+                refreshUsage()
+              }}
+              disabled={usageLoading}
+            >
+              <RefreshCw
+                className={`size-4 ${usageLoading ? 'animate-spin' : ''}`}
+              />
+            </Button>
+
+            {!isActive && (
+              <Button
+                variant="ghost"
+                size="icon"
+                className="size-8 text-muted-foreground/60 hover:text-primary"
+                onClick={() => onSwitch(profile)}
+              >
+                <ArrowRightLeft className="size-4" />
+              </Button>
+            )}
+
+            <Button
+              variant="ghost"
+              size="icon"
+              className="size-8 text-muted-foreground/60 hover:text-destructive"
+              onClick={() => onDelete(name)}
+            >
+              <Trash2 className="size-4" />
+            </Button>
           </div>
         </div>
       </CardContent>

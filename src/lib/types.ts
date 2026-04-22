@@ -51,14 +51,23 @@ export interface UsageStats {
 }
 
 export interface UsageBucket {
+  /** 0-100. Semantics depend on `remainingBased`:
+   *  - false/undefined (Claude CLI): % USED — red when high, bar fills with consumption.
+   *  - true (Antigravity): % REMAINING — red when low, bar fills opposite direction. */
   utilization: number | null
   resetsAt: string | null
+  /** Dynamic label for multi-model providers (e.g. Antigravity). Legacy Claude CLI slots omit this. */
+  label?: string | null
+  /** When true, `utilization` is remaining % (Antigravity) instead of used % (default). */
+  remainingBased?: boolean
 }
 
 export interface UsageLimits {
   fiveHour: UsageBucket | null
   sevenDay: UsageBucket | null
   sevenDaySonnet: UsageBucket | null
+  /** Dynamic buckets for providers with arbitrary model groupings. When non-empty, frontend renders these instead of the legacy fixed slots. */
+  buckets?: UsageBucket[]
 }
 
 export interface RefreshResult {
@@ -129,6 +138,13 @@ export interface WebhookResponse {
 
 export type IdeType = 'cursor' | 'antigravity' | 'windsurf'
 
+/** IDEs without a public single-user quota API (see research report 260422-0921). */
+const IDE_QUOTA_UNSUPPORTED: readonly IdeType[] = ['cursor', 'windsurf']
+
+export function isIdeQuotaSupported(ideType: IdeType): boolean {
+  return !IDE_QUOTA_UNSUPPORTED.includes(ideType)
+}
+
 export interface IdeInfo {
   ideType: IdeType
   displayName: string
@@ -142,6 +158,7 @@ export interface IdeProfile {
   membershipType: string | null
   displayName: string | null
   ideType: IdeType
+  usage?: UsageLimits | null
 }
 
 export interface IdeSwitchResult {

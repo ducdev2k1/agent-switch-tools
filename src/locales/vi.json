@@ -45,6 +45,7 @@
       "usage_resets_in_hours": "Đặt lại sau {{count}} giờ",
       "usage_resets_in_minutes": "Đặt lại sau {{count}} phút",
       "usage_resetting": "Đang đặt lại...",
+      "usage_unsupported": "Quota không khả dụng",
       "time_unit": {
         "day": "{{count}} ngày",
         "hour": "{{count}} giờ",
