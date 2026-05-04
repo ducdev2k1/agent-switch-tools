@@ -213,5 +213,8 @@
     "later": "Để sau",
     "install_now": "Cài đặt & Khởi động lại",
     "installing": "Đang cài đặt..."
+  },
+  "profiles": {
+    "driftDetected": "Phát hiện đăng nhập Claude mới — đã lưu tài khoản cũ, chuyển sang tài khoản mới."
   }
 }

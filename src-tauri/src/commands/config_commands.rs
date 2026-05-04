@@ -1,8 +1,10 @@
 use serde::{Deserialize, Serialize};
 use std::path::PathBuf;
+use tauri::Emitter;
 
 use crate::modules::providers::claude_cli::config::{self, CredentialProfile};
 use crate::modules::providers::claude_cli::auth;
+use crate::modules::providers::claude_cli::reconcile::{reconcile_active_profile, validate_email_as_folder};
 use crate::modules::shared::paths::{claude_data_dir, claude_dir, home_dir, profiles_dir};
 
 #[tauri::command]
@@ -13,15 +15,25 @@ pub async fn list_credential_profiles(
     let claude = claude_dir(&app)?;
     let claude_data = claude_data_dir(&app)?;
     let profs_dir = profiles_dir(&app)?;
-    let meta = config::read_meta(&claude_data);
 
     config::migrate_legacy_profiles(&claude, &profs_dir);
+
+    // Sync meta with `~/.claude.json` before reading. If the user logged in outside the app,
+    // this saves the new credentials into the new email's folder and updates meta — preserving
+    // the previous profile folder untouched.
+    let (_, drift_detected) = reconcile_active_profile(&home, &claude, &profs_dir, &claude_data)?;
+    if drift_detected {
+        let _ = app.emit("claude-profile-drift-detected", ());
+    }
+
+    let meta = config::read_meta(&claude_data);
 
     let mut profiles: Vec<CredentialProfile> = vec![];
     let active_oauth = auth::read_oauth_from_claude_json(&home);
 
-    let active_name = meta.active_profile_name.clone()
-        .or_else(|| active_oauth.as_ref().and_then(|o| o.email_address.clone()))
+    let active_name = active_oauth.as_ref()
+        .and_then(|o| o.email_address.clone())
+        .or_else(|| meta.active_profile_name.clone())
         .unwrap_or_else(|| "Active".to_string());
 
     let active_path = claude.join(".credentials.json");
@@ -78,6 +90,7 @@ pub async fn save_current_as_profile(app: tauri::AppHandle) -> Result<String, St
         .ok_or("Cannot read oauthAccount from ~/.claude.json")?;
     let email = oauth.email_address.clone()
         .ok_or("No email address found in oauthAccount")?;
+    validate_email_as_folder(&email)?;
 
     let prof_dir = crate::modules::shared::paths::profile_dir(&profs_dir, &email)?;
     let target_path = prof_dir.join("credentials.json");
@@ -87,6 +100,15 @@ pub async fn save_current_as_profile(app: tauri::AppHandle) -> Result<String, St
     auth::write_saved_oauth(&profs_dir, &email, &oauth)?;
 
     let mut meta = config::read_meta(&claude_data);
+    let prev_active = meta.active_profile_name.clone();
+    #[cfg(debug_assertions)]
+    if prev_active.as_ref() != Some(&email) {
+        eprintln!(
+            "[save_current] Active profile changed: {:?} -> {}",
+            prev_active, email
+        );
+    }
+    let _ = &prev_active;
     meta.active_profile_name = Some(email.clone());
     meta.last_switched_at = Some(chrono::Utc::now().to_rfc3339());
     config::write_meta(&claude_data, &meta)?;
@@ -115,15 +137,25 @@ pub async fn switch_credential_profile(
     let target_was_expired = target_info.is_expired;
     let claude_was_running = config::check_claude_running();
 
-    let mut meta = config::read_meta(&claude_data);
-    let current_email = meta.active_profile_name.clone()
-        .or_else(|| auth::read_oauth_from_claude_json(&home).and_then(|o| o.email_address))
-        .unwrap_or_default();
+    // Reconcile first — if user logged in outside the app, this saves current credentials
+    // into the correct folder (matching the actual email) BEFORE we overwrite active_path.
+    let (current_email_opt, drift_detected) =
+        reconcile_active_profile(&home, &claude, &profs_dir, &claude_data)?;
+    if drift_detected {
+        let _ = app.emit("claude-profile-drift-detected", ());
+    }
 
-    if active_path.exists() && !current_email.is_empty() {
+    let mut meta = config::read_meta(&claude_data);
+    let current_email = current_email_opt.unwrap_or_default();
+
+    // Backup current credentials into its own folder (no-op if drift already saved them).
+    // Required when user switches inside the app — meta is in sync, but we still need to
+    // preserve the active credentials before overwriting active_path with the target's.
+    if !drift_detected && active_path.exists() && !current_email.is_empty() && current_email != target_name {
         let prof_dir = crate::modules::shared::paths::profile_dir(&profs_dir, &current_email)?;
         let backup_path = prof_dir.join("credentials.json");
         let _ = std::fs::copy(&active_path, &backup_path);
+        config::set_file_600(&backup_path);
 
         if let Some(oauth) = auth::read_oauth_from_claude_json(&home) {
             let _ = auth::write_saved_oauth(&profs_dir, &current_email, &oauth);

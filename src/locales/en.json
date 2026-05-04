@@ -213,5 +213,8 @@
     "later": "Later",
     "install_now": "Install & Restart",
     "installing": "Installing..."
+  },
+  "profiles": {
+    "driftDetected": "Detected new Claude login — saved previous account, switched to new one."
   }
 }

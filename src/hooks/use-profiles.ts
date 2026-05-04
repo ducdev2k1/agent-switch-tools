@@ -1,10 +1,15 @@
 import { invoke } from '@tauri-apps/api/core'
-import { useState, useEffect, useCallback } from 'react'
+import { listen, type UnlistenFn } from '@tauri-apps/api/event'
+import { useState, useEffect, useCallback, useRef } from 'react'
+import { useTranslation } from 'react-i18next'
+import { toast } from 'sonner'
 import type { CredentialProfile, SwitchResult } from '@/lib/types'
 
 export function useCredentialProfiles() {
+  const { t } = useTranslation()
   const [profiles, setProfiles] = useState<CredentialProfile[]>([])
   const [loading, setLoading] = useState(false)
+  const lastFocusRefreshRef = useRef(0)
 
   const load = useCallback(async () => {
     setLoading(true)
@@ -21,6 +26,38 @@ export function useCredentialProfiles() {
   useEffect(() => {
     load()
   }, [load])
+
+  // Refresh when window regains focus — covers the case where the user runs
+  // `claude /login` outside the app and switches back. Backend reconcile will
+  // detect the drift and emit `claude-profile-drift-detected`.
+  useEffect(() => {
+    const onFocus = () => {
+      const now = Date.now()
+      if (now - lastFocusRefreshRef.current < 1000) return
+      lastFocusRefreshRef.current = now
+      load()
+    }
+    window.addEventListener('focus', onFocus)
+    return () => window.removeEventListener('focus', onFocus)
+  }, [load])
+
+  // Listen for backend drift detection. Triggered when the user logs into a
+  // different Claude account outside the app — the previous profile is auto-saved
+  // and the new one becomes active.
+  useEffect(() => {
+    let unlisten: UnlistenFn | null = null
+    listen('claude-profile-drift-detected', () => {
+      toast.info(t('profiles.driftDetected'))
+      load()
+    })
+      .then((fn) => {
+        unlisten = fn
+      })
+      .catch((e) => console.error('Failed to listen drift event:', e))
+    return () => {
+      unlisten?.()
+    }
+  }, [load, t])
 
   /** Save current active credentials (auto-detect email from oauthAccount) */
   const saveCurrentAs = async (): Promise<string> => {

@@ -2,7 +2,7 @@ use tauri::Manager;
 use tauri_plugin_autostart::MacosLauncher;
 
 mod commands;
-mod modules;
+pub mod modules;
 mod quota_refresh_worker;
 mod tray;
 
