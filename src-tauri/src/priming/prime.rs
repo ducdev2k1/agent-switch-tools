@@ -17,13 +17,13 @@ const CONFIRM_INTERVAL_SECS: u64 = 10;
 /// confirm the reset clock actually moved. Reuses the existing OAuth refresh and
 /// quota-read paths. Cross-platform: no OS wake/daemon involvement.
 pub async fn prime_account(creds_path: &Path) -> PrimeResult {
-    // D1 — ensure a usable access token (auto-refresh when near expiry).
+    // Ensure a usable access token (auto-refresh when near expiry).
     let token = match ensure_fresh_token(creds_path).await {
         Ok(t) => t,
         Err(e) => return PrimeResult::Failed { reason: format!("token: {e}") },
     };
 
-    // D2 — don't prime into a window that is already running.
+    // Don't prime into a window that is already running.
     let before = fetch_anthropic_usage(&token, true).await;
     let baseline = before
         .as_ref()
@@ -33,12 +33,12 @@ pub async fn prime_account(creds_path: &Path) -> PrimeResult {
         return PrimeResult::Hold { reset_at: reset };
     }
 
-    // D3 — send the priming message.
+    // Send the priming message.
     if let Err(e) = send_hi(&token).await {
         return PrimeResult::Failed { reason: e };
     }
 
-    // D4 — confirm the window anchored to a new future reset.
+    // Confirm the window anchored to a new future reset.
     match confirm_anchored(&token, baseline.as_deref()).await {
         Some(reset_at) => PrimeResult::Success { reset_at },
         None => PrimeResult::Failed {

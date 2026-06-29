@@ -125,8 +125,11 @@ fn build_tray_menu(
     builder = builder.item(&header);
     builder = builder.separator();
 
-    // Active profile indicator (quota stored under the "active" key by the worker)
-    let active_plan = config::read_credential_info(&claude_dir.join(".credentials.json")).subscription_type;
+    // Active profile indicator (quota stored under the "active" key by the worker).
+    // Active credentials live in the real Claude CLI dir (~/.claude), not the app data dir.
+    let active_plan = crate::modules::shared::paths::claude_dir(handle)
+        .ok()
+        .and_then(|d| config::read_credential_info(&d.join(".credentials.json")).subscription_type);
     let active_label = profile_tray_label(
         &format!("✓ {} (active)", active_name),
         &profile_usage("active"),
