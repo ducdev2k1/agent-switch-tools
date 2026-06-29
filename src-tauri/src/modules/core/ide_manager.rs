@@ -1,10 +1,10 @@
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
-use crate::modules::core::path_helpers::{ide_db_path, ide_profiles_dir, ide_tools_dir};
-use crate::modules::core::sqlite_auth::{read_ide_auth_keys, write_ide_auth_keys};
-use crate::modules::providers::IdeType;
+use crate::modules::core::path_helpers::{ide_credential_source, ide_profiles_dir, ide_tools_dir};
+use crate::modules::providers::antigravity::{self, CACHED_EMAIL_KEY, CACHED_NAME_KEY};
 use crate::modules::providers::claude_cli::config::{read_meta, record_switch_usage, write_meta};
+use crate::modules::providers::{IdeProvider, IdeType};
 
 // ========== Validation ==========
 
@@ -60,6 +60,28 @@ pub fn write_saved_auth_keys(profiles_dir: &std::path::Path, name: &str, data: &
     Ok(())
 }
 
+/// For variants that don't store identity locally (Antigravity IDE/CLI), resolve email+name
+/// via Google userinfo (authoritative for the token's own account) and cache them into the
+/// auth map so they persist into saved profiles. No-op for variants whose email is offline.
+///
+/// Note: `~/.gemini/google_accounts.json` is deliberately NOT used — it tracks the *Gemini*
+/// CLI account, which can differ from the Antigravity CLI's logged-in account.
+async fn ensure_identity(
+    ide_type: &IdeType,
+    provider: &dyn IdeProvider,
+    data: &mut HashMap<String, String>,
+) {
+    if provider.extract_email(data).is_some() {
+        return;
+    }
+    if let Some((email, name)) = antigravity::oauth::resolve_email_name(ide_type, data).await {
+        data.insert(CACHED_EMAIL_KEY.to_string(), email);
+        if let Some(n) = name {
+            data.insert(CACHED_NAME_KEY.to_string(), n);
+        }
+    }
+}
+
 pub fn check_ide_running(ide_type: &IdeType) -> bool {
     let provider = ide_type.provider();
     #[cfg(unix)]
@@ -77,15 +99,16 @@ pub async fn list_profiles(app: &tauri::AppHandle, ide_type_str: &str) -> Result
     let ide_type = IdeType::from_str(ide_type_str)?;
     let provider = ide_type.provider();
     
-    let db_path = ide_db_path(app, &ide_type)?;
+    let source = ide_credential_source(app, &ide_type)?;
     let tools_dir = ide_tools_dir(app, &ide_type)?;
     let profs_dir = ide_profiles_dir(app, &ide_type)?;
     let meta = read_meta(&tools_dir);
 
     let mut profiles: Vec<IdeProfile> = vec![];
-    if db_path.exists() {
-        if let Ok(data) = read_ide_auth_keys(&db_path, provider.auth_keys()) {
+    if source.exists() {
+        if let Ok(mut data) = source.read(provider.auth_keys()) {
             if !data.is_empty() {
+                ensure_identity(&ide_type, provider.as_ref(), &mut data).await;
                 let email = provider.extract_email(&data);
                 let active_name = email.clone().or_else(|| meta.active_profile_name.clone()).unwrap_or_else(|| "Active".to_string());
                 let display_name = provider.extract_display_name(&data);
@@ -117,11 +140,12 @@ pub async fn list_profiles(app: &tauri::AppHandle, ide_type_str: &str) -> Result
 pub async fn save_current_profile(app: &tauri::AppHandle, ide_type_str: &str) -> Result<String, String> {
     let ide_type = IdeType::from_str(ide_type_str)?;
     let provider = ide_type.provider();
-    let db_path = ide_db_path(app, &ide_type)?;
+    let source = ide_credential_source(app, &ide_type)?;
     let tools_dir = ide_tools_dir(app, &ide_type)?;
     let profs_dir = ide_profiles_dir(app, &ide_type)?;
-    
-    let data = read_ide_auth_keys(&db_path, provider.auth_keys())?;
+
+    let mut data = source.read(provider.auth_keys())?;
+    ensure_identity(&ide_type, provider.as_ref(), &mut data).await;
     let email = provider.extract_email(&data).ok_or("No email found")?;
     let name = sanitize_profile_name(&email)?;
     write_saved_auth_keys(&profs_dir, &name, &data)?;
@@ -138,24 +162,25 @@ pub async fn switch_profile(app: &tauri::AppHandle, ide_type_str: &str, target_n
     let ide_type = IdeType::from_str(ide_type_str)?;
     let provider = ide_type.provider();
     
-    let db_path = ide_db_path(app, &ide_type)?;
+    let source = ide_credential_source(app, &ide_type)?;
     let tools_dir = ide_tools_dir(app, &ide_type)?;
     let profs_dir = ide_profiles_dir(app, &ide_type)?;
-    
+
     let ide_was_running = check_ide_running(&ide_type);
     let target_data = read_saved_auth_keys(&profs_dir, &target_name)?;
     let mut meta = read_meta(&tools_dir);
-    
-    if let Ok(curr) = read_ide_auth_keys(&db_path, provider.auth_keys()) {
+
+    if let Ok(mut curr) = source.read(provider.auth_keys()) {
         if !curr.is_empty() {
-            let email = meta.active_profile_name.clone().or_else(|| provider.extract_email(&curr)).unwrap_or_default();
+            ensure_identity(&ide_type, provider.as_ref(), &mut curr).await;
+            let email = provider.extract_email(&curr).or_else(|| meta.active_profile_name.clone()).unwrap_or_default();
             if !email.is_empty() {
                 let _ = write_saved_auth_keys(&profs_dir, &email, &curr);
                 record_switch_usage(&mut meta, &email);
             }
         }
     }
-    write_ide_auth_keys(&db_path, &target_data)?;
+    source.write(provider.auth_keys()[0], &target_data)?;
     meta.active_profile_name = Some(target_name.clone());
     meta.last_switched_at = Some(chrono::Utc::now().to_rfc3339());
     write_meta(&tools_dir, &meta)?;

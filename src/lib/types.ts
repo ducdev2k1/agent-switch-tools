@@ -206,7 +206,12 @@ export interface WebhookResponse {
 
 // ========== IDE Multi-Account ==========
 
-export type IdeType = 'cursor' | 'antigravity' | 'windsurf'
+export type IdeType =
+  | 'cursor'
+  | 'antigravity'
+  | 'antigravity-ide'
+  | 'antigravity-cli'
+  | 'windsurf'
 
 /** IDEs without a public single-user quota API (see research report 260422-0921). */
 const IDE_QUOTA_UNSUPPORTED: readonly IdeType[] = ['cursor', 'windsurf']

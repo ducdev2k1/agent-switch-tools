@@ -17,6 +17,8 @@ const PNG_LOGOS: Record<string, string> = {
   'claude-code': claudeLogo,
   cursor: cursorLogo,
   antigravity: antigravityLogo,
+  'antigravity-ide': antigravityLogo,
+  'antigravity-cli': antigravityLogo,
   windsurf: windsurfLogo,
 }
 

@@ -13,10 +13,24 @@ import { ViewToggle, type ViewMode } from '@/components/view-toggle'
 import { useClaudeConfig } from '@/hooks/use-claude-config'
 import { useInstalledIdes } from '@/hooks/use-installed-ides'
 import { useCredentialProfiles } from '@/hooks/use-profiles'
-import type { AppUpdaterState, CredentialProfile } from '@/lib/types'
+import type { AppUpdaterState, CredentialProfile, IdeType } from '@/lib/types'
 import { listen } from '@tauri-apps/api/event'
 import { BarChart3, Braces, RefreshCw, Save, Settings, Shield } from 'lucide-react'
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
+
+/** Antigravity ships as three variants; we group them under one top-level tab. */
+const ANTIGRAVITY_VARIANTS: IdeType[] = [
+  'antigravity',
+  'antigravity-ide',
+  'antigravity-cli',
+]
+const ANTIGRAVITY_GROUP = 'antigravity-group'
+/** Short labels for the variant sub-tabs (the parent tab already says "Antigravity"). */
+const ANTIGRAVITY_SUBLABEL: Record<string, string> = {
+  antigravity: 'Desktop',
+  'antigravity-ide': 'IDE',
+  'antigravity-cli': 'CLI',
+}
 import { useTranslation } from 'react-i18next'
 import { toast } from 'sonner'
 
@@ -42,6 +56,33 @@ export function Dashboard({ onOpenSettings, updater }: DashboardProps) {
   const { ides: installedIdes } = useInstalledIdes()
   const [activeTab, setActiveTab] = useState('claude-code')
   const [viewMode, setViewMode] = useState<ViewMode>('grid')
+
+  // Split installed agents: Antigravity variants live under one grouped tab; the rest stay top-level.
+  const installedAntigravity = useMemo(
+    () =>
+      installedIdes.filter(
+        (ide) => ide.isInstalled && ANTIGRAVITY_VARIANTS.includes(ide.ideType),
+      ),
+    [installedIdes],
+  )
+  const installedOther = useMemo(
+    () =>
+      installedIdes.filter(
+        (ide) => ide.isInstalled && !ANTIGRAVITY_VARIANTS.includes(ide.ideType),
+      ),
+    [installedIdes],
+  )
+  const [antigravitySubTab, setAntigravitySubTab] = useState<string>('')
+
+  // Default the Antigravity sub-tab to the first installed variant.
+  useEffect(() => {
+    if (
+      installedAntigravity.length > 0 &&
+      !installedAntigravity.some((ide) => ide.ideType === antigravitySubTab)
+    ) {
+      setAntigravitySubTab(installedAntigravity[0].ideType)
+    }
+  }, [installedAntigravity, antigravitySubTab])
 
   const [pendingTrayProfile, setPendingTrayProfile] = useState<string | null>(
     null,
@@ -96,8 +137,14 @@ export function Dashboard({ onOpenSettings, updater }: DashboardProps) {
     const unlisten = listen<string>('tray-switch-ide-profile', (event) => {
       const colonIdx = event.payload.indexOf(':')
       if (colonIdx > 0) {
-        const ideType = event.payload.substring(0, colonIdx)
-        setActiveTab(ideType)
+        const ideType = event.payload.substring(0, colonIdx) as IdeType
+        // Antigravity variants live under the grouped tab + a variant sub-tab.
+        if (ANTIGRAVITY_VARIANTS.includes(ideType)) {
+          setActiveTab(ANTIGRAVITY_GROUP)
+          setAntigravitySubTab(ideType)
+        } else {
+          setActiveTab(ideType)
+        }
         // The IdeDashboardSection will handle the actual switch via its own UI
         toast.info(`Switched to ${ideType} tab. Select profile to switch.`)
       }
@@ -254,22 +301,33 @@ export function Dashboard({ onOpenSettings, updater }: DashboardProps) {
                 className="size-4"
               />
             </TabsTrigger>
-            {installedIdes
-              .filter((ide) => ide.isInstalled)
-              .map((ide) => (
-                <TabsTrigger
-                  key={ide.ideType}
-                  value={ide.ideType}
-                  className="px-2.5"
-                  title={ide.displayName}
-                  aria-label={ide.displayName}
-                >
-                  <IdeLogo
-                    name={ide.ideType}
-                    className="size-4"
-                  />
-                </TabsTrigger>
-              ))}
+            {installedOther.map((ide) => (
+              <TabsTrigger
+                key={ide.ideType}
+                value={ide.ideType}
+                className="px-2.5"
+                title={ide.displayName}
+                aria-label={ide.displayName}
+              >
+                <IdeLogo
+                  name={ide.ideType}
+                  className="size-4"
+                />
+              </TabsTrigger>
+            ))}
+            {installedAntigravity.length > 0 && (
+              <TabsTrigger
+                value={ANTIGRAVITY_GROUP}
+                className="px-2.5"
+                title="Antigravity"
+                aria-label="Antigravity"
+              >
+                <IdeLogo
+                  name="antigravity"
+                  className="size-4"
+                />
+              </TabsTrigger>
+            )}
             <TabsTrigger
               value="usage"
               className="px-2.5"
@@ -359,22 +417,58 @@ export function Dashboard({ onOpenSettings, updater }: DashboardProps) {
             </div>
           </TabsContent>
 
-          {/* IDE tabs — one per installed IDE */}
-          {installedIdes
-            .filter((ide) => ide.isInstalled)
-            .map((ide) => (
-              <TabsContent
-                key={ide.ideType}
-                value={ide.ideType}
-                className="mt-4"
+          {/* Non-Antigravity IDE tabs — one per installed IDE */}
+          {installedOther.map((ide) => (
+            <TabsContent
+              key={ide.ideType}
+              value={ide.ideType}
+              className="mt-4"
+            >
+              <IdeDashboardSection
+                ideType={ide.ideType}
+                ideName={ide.displayName}
+                viewMode={viewMode}
+              />
+            </TabsContent>
+          ))}
+
+          {/* Antigravity grouped tab — nested sub-tabs per variant (Desktop / IDE / CLI) */}
+          {installedAntigravity.length > 0 && (
+            <TabsContent
+              value={ANTIGRAVITY_GROUP}
+              className="mt-4"
+            >
+              <Tabs
+                value={antigravitySubTab}
+                onValueChange={setAntigravitySubTab}
               >
-                <IdeDashboardSection
-                  ideType={ide.ideType}
-                  ideName={ide.displayName}
-                  viewMode={viewMode}
-                />
-              </TabsContent>
-            ))}
+                <TabsList>
+                  {installedAntigravity.map((ide) => (
+                    <TabsTrigger
+                      key={ide.ideType}
+                      value={ide.ideType}
+                      className="text-xs px-3"
+                    >
+                      {ANTIGRAVITY_SUBLABEL[ide.ideType] ?? ide.displayName}
+                    </TabsTrigger>
+                  ))}
+                </TabsList>
+                {installedAntigravity.map((ide) => (
+                  <TabsContent
+                    key={ide.ideType}
+                    value={ide.ideType}
+                    className="mt-4"
+                  >
+                    <IdeDashboardSection
+                      ideType={ide.ideType}
+                      ideName={ide.displayName}
+                      viewMode={viewMode}
+                    />
+                  </TabsContent>
+                ))}
+              </Tabs>
+            </TabsContent>
+          )}
 
           {/* Usage / cost analytics tab */}
           <TabsContent

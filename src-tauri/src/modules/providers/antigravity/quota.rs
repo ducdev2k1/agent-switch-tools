@@ -1,19 +1,19 @@
-use serde::{Deserialize, Serialize};
+use serde::Deserialize;
 use std::collections::HashMap;
 use std::sync::Mutex;
 use std::time::Instant;
 
 use crate::modules::quota::{UsageBucket, UsageLimits};
 
-// 3-tier fallback: sandbox first (per Antigravity-Manager reference) then daily then prod
-const QUOTA_API_ENDPOINTS: [&str; 3] = [
-    "https://daily-cloudcode-pa.sandbox.googleapis.com/v1internal:fetchAvailableModels",
-    "https://daily-cloudcode-pa.googleapis.com/v1internal:fetchAvailableModels",
-    "https://cloudcode-pa.googleapis.com/v1internal:fetchAvailableModels",
+// Antigravity's current quota model (per Google Gemini plan update) exposes per-group
+// Weekly + 5-hour rate-limit buckets via `retrieveUserQuotaSummary`. This replaces the older
+// per-model `fetchAvailableModels` remainingFraction (single window). No project id is needed.
+// 3-tier host fallback mirrors the native client (prod → sandbox → legacy).
+const QUOTA_SUMMARY_ENDPOINTS: [&str; 3] = [
+    "https://daily-cloudcode-pa.googleapis.com/v1internal:retrieveUserQuotaSummary",
+    "https://daily-cloudcode-pa.sandbox.googleapis.com/v1internal:retrieveUserQuotaSummary",
+    "https://cloudcode-pa.googleapis.com/v1internal:retrieveUserQuotaSummary",
 ];
-
-const LOAD_CODE_ASSIST_URL: &str =
-    "https://daily-cloudcode-pa.sandbox.googleapis.com/v1internal:loadCodeAssist";
 
 // Antigravity native UA — Google's quota API gates on this string
 const ANTIGRAVITY_UA: &str =
@@ -32,50 +32,27 @@ fn hash_token(token: &str) -> u64 {
 }
 
 #[derive(Debug, Deserialize)]
-struct LoadCodeAssistResponse {
-    #[serde(rename = "cloudaicompanionProject")]
-    project_id: Option<String>,
+struct QuotaSummary {
+    #[serde(default)]
+    groups: Vec<QuotaGroup>,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
-struct QuotaResponse {
-    models: HashMap<String, ModelInfo>,
-}
-
-#[derive(Debug, Serialize, Deserialize)]
-struct ModelInfo {
-    #[serde(rename = "quotaInfo")]
-    quota_info: Option<QuotaInfo>,
+#[derive(Debug, Deserialize)]
+struct QuotaGroup {
     #[serde(rename = "displayName")]
     display_name: Option<String>,
+    #[serde(default)]
+    buckets: Vec<QuotaBucketRaw>,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
-struct QuotaInfo {
-    #[serde(rename = "remainingFraction")]
-    remaining_fraction: Option<f64>,
+#[derive(Debug, Deserialize)]
+struct QuotaBucketRaw {
+    #[serde(rename = "displayName")]
+    display_name: Option<String>,
     #[serde(rename = "resetTime")]
     reset_time: Option<String>,
-}
-
-/// Step 1 — resolve cloudaicompanionProject via loadCodeAssist.
-async fn fetch_project_id(token: &str) -> Option<String> {
-    let client = &crate::modules::shared::http::CLIENT;
-    let body = serde_json::json!({ "metadata": { "ideType": "ANTIGRAVITY" } });
-    let res = client
-        .post(LOAD_CODE_ASSIST_URL)
-        .header("Authorization", format!("Bearer {}", token))
-        .header("Content-Type", "application/json")
-        .header("User-Agent", ANTIGRAVITY_UA)
-        .json(&body)
-        .send()
-        .await
-        .ok()?;
-    if !res.status().is_success() {
-        return None;
-    }
-    let parsed: LoadCodeAssistResponse = res.json().await.ok()?;
-    parsed.project_id
+    #[serde(rename = "remainingFraction")]
+    remaining_fraction: Option<f64>,
 }
 
 pub async fn fetch_antigravity_quota(token: &str) -> Option<UsageLimits> {
@@ -109,17 +86,16 @@ fn read_cache(key: u64, max_age_secs: u64) -> Option<Option<UsageLimits>> {
 }
 
 async fn try_fetch(token: &str) -> Option<UsageLimits> {
-    let project_id = fetch_project_id(token).await?;
-    let payload = serde_json::json!({ "project": project_id });
     let client = &crate::modules::shared::http::CLIENT;
+    let empty = serde_json::json!({});
 
-    for url in QUOTA_API_ENDPOINTS {
+    for url in QUOTA_SUMMARY_ENDPOINTS {
         let res = client
             .post(url)
             .header("Authorization", format!("Bearer {}", token))
             .header("Content-Type", "application/json")
             .header("User-Agent", ANTIGRAVITY_UA)
-            .json(&payload)
+            .json(&empty)
             .send()
             .await;
 
@@ -127,92 +103,55 @@ async fn try_fetch(token: &str) -> Option<UsageLimits> {
         if !response.status().is_success() {
             continue;
         }
-        let Ok(parsed) = response.json::<QuotaResponse>().await else { continue };
-        return Some(map_to_usage_limits(parsed));
+        let Ok(parsed) = response.json::<QuotaSummary>().await else {
+            continue;
+        };
+        let limits = map_summary(parsed);
+        if !limits.buckets.is_empty() {
+            return Some(limits);
+        }
     }
     None
 }
 
-/// Map Antigravity models into 3 grouped buckets matching native IDE rate-limit pools:
-///   1. "Gemini Pro"    — High + Low variants (shared quota)
-///   2. "Gemini Flash"  — Flash family (shared quota)
-///   3. "Claude / GPT"  — premium pool (Claude Sonnet/Opus + GPT-OSS share the same resetTime)
-///
-/// All variants within a group share the same remainingFraction/resetTime per API observation,
-/// so we collapse them into one row labeled after the shared family name.
-///
-/// `utilization` carries **remaining %** (0-100) per Antigravity convention:
-/// 100 = quota full (bar full, green), 0 = exhausted (bar empty, red).
-/// Opposite of Claude CLI. Bucket sets `remaining_based = true` so frontend inverts color.
-fn map_to_usage_limits(data: QuotaResponse) -> UsageLimits {
-    let mut pro: Option<(f64, String)> = None;
-    let mut flash: Option<(f64, String)> = None;
-    let mut premium: Option<(f64, String)> = None;
-
-    for (model_id, info) in data.models {
-        let Some(q) = info.quota_info else { continue };
-        let Some(frac) = q.remaining_fraction else { continue };
-        let Some(reset) = q.reset_time else { continue };
-        let Some(display) = info.display_name else { continue };
-        if display.is_empty() || model_id.starts_with("chat_") || model_id.starts_with("tab_") {
-            continue;
-        }
-        let slot = classify_group(&display);
-        // Within a group, pick the entry with lowest remaining (worst-case visibility)
-        let target = match slot {
-            Group::Pro => &mut pro,
-            Group::Flash => &mut flash,
-            Group::Premium => &mut premium,
-            Group::Other => continue,
-        };
-        if target.as_ref().map_or(true, |(f, _)| frac < *f) {
-            *target = Some((frac, reset));
-        }
-    }
-
+/// Map the quota summary into flat buckets. Each group (e.g. "Gemini Models",
+/// "Claude and GPT models") contributes its Weekly + 5-hour buckets, labeled
+/// "<group> — <window>". `utilization` carries **remaining %** (Antigravity convention):
+/// 100 = full, 0 = exhausted; `remaining_based = true` tells the frontend to invert colors.
+fn map_summary(summary: QuotaSummary) -> UsageLimits {
     let mut buckets: Vec<UsageBucket> = Vec::new();
-    if let Some((f, r)) = pro {
-        buckets.push(bucket(f, r, "Gemini Pro"));
-    }
-    if let Some((f, r)) = flash {
-        buckets.push(bucket(f, r, "Gemini Flash"));
-    }
-    if let Some((f, r)) = premium {
-        buckets.push(bucket(f, r, "Claude / GPT"));
+
+    for group in summary.groups {
+        let group_name = group
+            .display_name
+            .unwrap_or_default()
+            .trim_end_matches(" models")
+            .trim_end_matches(" Models")
+            .to_string();
+
+        for b in group.buckets {
+            let Some(frac) = b.remaining_fraction else {
+                continue;
+            };
+            let window = b.display_name.unwrap_or_default();
+            let label = if group_name.is_empty() {
+                window
+            } else if window.is_empty() {
+                group_name.clone()
+            } else {
+                format!("{} — {}", group_name, window)
+            };
+            buckets.push(UsageBucket {
+                utilization: Some((frac.max(0.0).min(1.0)) * 100.0),
+                resets_at: b.reset_time,
+                label: Some(label),
+                remaining_based: true,
+            });
+        }
     }
 
     UsageLimits {
         buckets,
         ..Default::default()
-    }
-}
-
-fn bucket(remaining: f64, reset_at: String, label: &str) -> UsageBucket {
-    let remaining_pct = (remaining.max(0.0).min(1.0)) * 100.0;
-    UsageBucket {
-        utilization: Some(remaining_pct),
-        resets_at: Some(reset_at),
-        label: Some(label.to_string()),
-        remaining_based: true,
-    }
-}
-
-enum Group {
-    Pro,
-    Flash,
-    Premium,
-    Other,
-}
-
-fn classify_group(display: &str) -> Group {
-    let lower = display.to_lowercase();
-    if lower.contains("gemini") && lower.contains("pro") {
-        Group::Pro
-    } else if lower.contains("gemini") && lower.contains("flash") {
-        Group::Flash
-    } else if lower.contains("claude") || lower.contains("gpt") {
-        Group::Premium
-    } else {
-        Group::Other
     }
 }

@@ -20,11 +20,14 @@ Chi tiết phát hiện (đã verify trên máy): xem `reports/findings.md`.
 
 | # | Phase | Trạng thái | Mô tả |
 |---|-------|-----------|-------|
-| 1 | [Variant architecture](phase-01-variant-architecture.md) | ⬜ Chưa làm | Tách 3 IdeType + trừu tượng hóa CredentialSource (vscdb vs json-file) |
-| 2 | [IDE-new credential reader](phase-02-ide-new-credential-reader.md) | ⬜ Chưa làm | Đọc email/plan/token bản IDE mới (không có antigravityAuthStatus) |
-| 3 | [CLI support](phase-03-cli-support.md) | ⬜ Chưa làm | Reader/writer cho file JSON CLI + refresh Google OAuth |
-| 4 | [Refresh & quota unification](phase-04-refresh-quota-unification.md) | ⬜ Chưa làm | Parser oauthToken robust + refresh/quota cho cả 3 biến thể |
-| 5 | [UI / i18n / docs](phase-05-ui-i18n-docs.md) | ⬜ Chưa làm | Hiển thị 3 biến thể, badge, cập nhật docs |
+| 1 | [Variant architecture](phase-01-variant-architecture.md) | ✅ Done | Tách 3 IdeType + trừu tượng hóa CredentialSource (vscdb vs json-file) |
+| 2 | [IDE-new credential reader](phase-02-ide-new-credential-reader.md) | ✅ Done | Đọc token bản IDE mới + email qua Google userinfo (cache) |
+| 3 | [CLI support](phase-03-cli-support.md) | ✅ Done | Reader/writer file JSON CLI + refresh Google OAuth (ISO expiry) |
+| 4 | [Refresh & quota unification](phase-04-refresh-quota-unification.md) | ✅ Done | Parser oauthToken dò theo sentinel key + refresh/quota cho cả 3 biến thể |
+| 5 | [UI / i18n / docs](phase-05-ui-i18n-docs.md) | ✅ Done | UI data-driven tự hiển thị 3 biến thể; README + .env.example cập nhật |
+
+> **Build verify:** `cargo check` ✅ · `tsc --noEmit` ✅ · `vite build` ✅
+> **Còn cần test thực tế (cần OAuth client secret từ CI):** refresh token + userinfo end-to-end cho IDE-new/CLI.
 
 ## Nguyên tắc thiết kế
 

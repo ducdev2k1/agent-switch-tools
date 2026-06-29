@@ -28,7 +28,9 @@
 | **Claude Code** | Anthropic CLI | `~/.claude/.credentials.json` |
 | **Cursor** | IDE | `state.vscdb` (SQLite) |
 | **Windsurf** | IDE | `state.vscdb` (protobuf email) |
-| **Antigravity** | IDE | `state.vscdb` (JSON email) |
+| **Antigravity** | Desktop | `~/.config/Antigravity` → `state.vscdb` (JSON email) |
+| **Antigravity IDE** | IDE | `~/.config/Antigravity IDE` → `state.vscdb` (OAuth proto) |
+| **Antigravity CLI** | CLI | `~/.gemini/antigravity-cli/antigravity-oauth-token` (JSON) |
 
 The app auto-detects which agents are installed on your machine and only shows them in the UI.
 
@@ -46,7 +48,11 @@ All app-managed data lives in a single directory:
 │   └── profiles/{email}/
 ├── windsurf/
 │   └── profiles/{email}/
-└── antigravity/
+├── antigravity/
+│   └── profiles/{email}/
+├── antigravity-ide/
+│   └── profiles/{email}/
+└── antigravity-cli/
     └── profiles/{email}/
 ```
 
@@ -143,7 +149,9 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 | **Claude Code** | Anthropic CLI | `~/.claude/.credentials.json` |
 | **Cursor** | IDE | `state.vscdb` (SQLite) |
 | **Windsurf** | IDE | `state.vscdb` (protobuf email) |
-| **Antigravity** | IDE | `state.vscdb` (JSON email) |
+| **Antigravity** | Desktop | `~/.config/Antigravity` → `state.vscdb` (JSON email) |
+| **Antigravity IDE** | IDE | `~/.config/Antigravity IDE` → `state.vscdb` (OAuth proto) |
+| **Antigravity CLI** | CLI | `~/.gemini/antigravity-cli/antigravity-oauth-token` (JSON) |
 
 App tự động phát hiện agent nào đã cài trên máy và chỉ hiển thị những cái đang có.
 
@@ -161,7 +169,11 @@ Toàn bộ dữ liệu app quản lý nằm trong một thư mục duy nhất:
 │   └── profiles/{email}/
 ├── windsurf/
 │   └── profiles/{email}/
-└── antigravity/
+├── antigravity/
+│   └── profiles/{email}/
+├── antigravity-ide/
+│   └── profiles/{email}/
+└── antigravity-cli/
     └── profiles/{email}/
 ```
 

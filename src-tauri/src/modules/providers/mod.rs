@@ -9,10 +9,12 @@ pub mod windsurf;
 
 /// Supported IDE types for profile management
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
-#[serde(rename_all = "lowercase")]
+#[serde(rename_all = "kebab-case")]
 pub enum IdeType {
     Cursor,
     Antigravity,
+    AntigravityIde,
+    AntigravityCli,
     Windsurf,
 }
 
@@ -27,13 +29,21 @@ pub struct IdeInfo {
 
 impl IdeType {
     pub fn all() -> &'static [IdeType] {
-        &[IdeType::Cursor, IdeType::Antigravity, IdeType::Windsurf]
+        &[
+            IdeType::Cursor,
+            IdeType::Antigravity,
+            IdeType::AntigravityIde,
+            IdeType::AntigravityCli,
+            IdeType::Windsurf,
+        ]
     }
 
     pub fn id(&self) -> &'static str {
         match self {
             IdeType::Cursor => "cursor",
             IdeType::Antigravity => "antigravity",
+            IdeType::AntigravityIde => "antigravity-ide",
+            IdeType::AntigravityCli => "antigravity-cli",
             IdeType::Windsurf => "windsurf",
         }
     }
@@ -42,6 +52,8 @@ impl IdeType {
         match s.to_lowercase().as_str() {
             "cursor" => Ok(IdeType::Cursor),
             "antigravity" => Ok(IdeType::Antigravity),
+            "antigravity-ide" => Ok(IdeType::AntigravityIde),
+            "antigravity-cli" => Ok(IdeType::AntigravityCli),
             "windsurf" => Ok(IdeType::Windsurf),
             _ => Err(format!("Unknown IDE type: {}", s)),
         }
@@ -51,6 +63,8 @@ impl IdeType {
         match self {
             IdeType::Cursor => Box::new(cursor::CursorProvider),
             IdeType::Antigravity => Box::new(antigravity::AntigravityProvider),
+            IdeType::AntigravityIde => Box::new(antigravity::AntigravityIdeProvider),
+            IdeType::AntigravityCli => Box::new(antigravity::AntigravityCliProvider),
             IdeType::Windsurf => Box::new(windsurf::WindsurfProvider),
         }
     }

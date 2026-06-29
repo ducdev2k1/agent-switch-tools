@@ -117,36 +117,77 @@ pub fn parse_oauth_token_blob(base64_blob: &str) -> Option<OAuthTokenInfo> {
     })
 }
 
+/// Find the inner base64 payload by scanning the outer map for the entry whose key is
+/// `oauthTokenInfoSentinelKey`, regardless of its position. The blob is a sequence of
+/// map entries (each a length-delimited message `{ f1: string key, f2: message value }`);
+/// newer Antigravity builds reorder these (e.g. `authStateWithContextSentinelKey` first),
+/// so position-based parsing is unsafe.
 fn extract_inner_base64(buf: &[u8]) -> Option<String> {
-    // f1 msg
-    let (tag, pos) = read_varint(buf, 0)?;
+    let mut pos = 0usize;
+    while pos < buf.len() {
+        let (tag, p) = read_varint(buf, pos)?;
+        pos = p;
+        match tag & 7 {
+            2 => {
+                let (entry, p2) = read_length_delimited(buf, pos)?;
+                pos = p2;
+                if let Some(b64) = entry_oauth_base64(entry) {
+                    return Some(b64);
+                }
+            }
+            0 => {
+                let (_, p2) = read_varint(buf, pos)?;
+                pos = p2;
+            }
+            _ => return None,
+        }
+    }
+    None
+}
+
+/// If a map entry's key is `oauthTokenInfoSentinelKey`, return the base64 string nested in
+/// its value message (`value { f1: string }`); otherwise `None`.
+fn entry_oauth_base64(entry: &[u8]) -> Option<String> {
+    let mut pos = 0usize;
+    let mut key: Option<String> = None;
+    let mut value_msg: Option<&[u8]> = None;
+    while pos < entry.len() {
+        let (tag, p) = read_varint(entry, pos)?;
+        pos = p;
+        let field = tag >> 3;
+        let wire = tag & 7;
+        match (field, wire) {
+            (1, 2) => {
+                let (s, p2) = read_length_delimited(entry, pos)?;
+                key = std::str::from_utf8(s).ok().map(String::from);
+                pos = p2;
+            }
+            (2, 2) => {
+                let (m, p2) = read_length_delimited(entry, pos)?;
+                value_msg = Some(m);
+                pos = p2;
+            }
+            (_, 0) => {
+                let (_, p2) = read_varint(entry, pos)?;
+                pos = p2;
+            }
+            (_, 2) => {
+                let (_, p2) = read_length_delimited(entry, pos)?;
+                pos = p2;
+            }
+            _ => return None,
+        }
+    }
+    if key.as_deref() != Some("oauthTokenInfoSentinelKey") {
+        return None;
+    }
+    let vm = value_msg?;
+    let (tag, p) = read_varint(vm, 0)?;
     if tag != (1 << 3 | 2) {
         return None;
     }
-    let (outer_msg, _) = read_length_delimited(buf, pos)?;
-
-    // Within outer_msg: skip f1 string, take f2 msg
-    let mut p = 0usize;
-    let (t1, p1) = read_varint(outer_msg, p)?;
-    if t1 & 7 != 2 {
-        return None;
-    }
-    let (_, p2) = read_length_delimited(outer_msg, p1)?;
-    p = p2;
-
-    let (t2, p3) = read_varint(outer_msg, p)?;
-    if t2 >> 3 != 2 || t2 & 7 != 2 {
-        return None;
-    }
-    let (f2_msg, _) = read_length_delimited(outer_msg, p3)?;
-
-    // Within f2_msg: f1 string (the base64 payload)
-    let (t3, p4) = read_varint(f2_msg, 0)?;
-    if t3 != (1 << 3 | 2) {
-        return None;
-    }
-    let (payload_bytes, _) = read_length_delimited(f2_msg, p4)?;
-    std::str::from_utf8(payload_bytes).ok().map(String::from)
+    let (payload, _) = read_length_delimited(vm, p)?;
+    std::str::from_utf8(payload).ok().map(String::from)
 }
 
 fn read_varint(buf: &[u8], mut pos: usize) -> Option<(u64, usize)> {
@@ -261,8 +302,13 @@ pub async fn get_fresh_access_token(
         .unwrap_or(false);
 
     if !is_expired {
+        // Desktop build: flat apiKey is the live bearer.
         if let Some(k) = current_apikey {
             return Some((k, token_info.map(|t| t.refresh_token)));
+        }
+        // IDE build: no flat apiKey — the proto's own access_token is the live bearer.
+        if let Some(t) = token_info {
+            return Some((t.access_token.clone(), Some(t.refresh_token)));
         }
     }
 
@@ -276,4 +322,104 @@ pub async fn get_fresh_access_token(
             current_apikey.map(|k| (k, Some(refresh)))
         }
     }
+}
+
+// ========== Antigravity CLI token (JSON file) ==========
+
+/// Parsed view of the CLI token file (`~/.gemini/antigravity-cli/antigravity-oauth-token`).
+pub struct CliToken {
+    pub access_token: String,
+    pub refresh_token: Option<String>,
+    pub expiry_unix: Option<i64>,
+}
+
+/// Parse the CLI token JSON: `{ "token": { access_token, refresh_token, expiry(ISO-8601) }, ... }`.
+pub fn parse_cli_token(json_str: &str) -> Option<CliToken> {
+    let v: serde_json::Value = serde_json::from_str(json_str).ok()?;
+    let t = v.get("token")?;
+    let access_token = t.get("access_token")?.as_str()?.to_string();
+    let refresh_token = t.get("refresh_token").and_then(|x| x.as_str()).map(String::from);
+    let expiry_unix = t
+        .get("expiry")
+        .and_then(|x| x.as_str())
+        .and_then(|s| chrono::DateTime::parse_from_rfc3339(s).ok())
+        .map(|dt| dt.timestamp());
+    Some(CliToken { access_token, refresh_token, expiry_unix })
+}
+
+/// Return a fresh CLI access token, refreshing via Google OAuth if near expiry.
+/// On refresh, returns `Some((token, Some(updated_json)))` so the caller can persist the file;
+/// when still valid, returns `Some((token, None))`.
+pub async fn get_fresh_cli_access_token(json_str: &str) -> Option<(String, Option<String>)> {
+    let token = parse_cli_token(json_str)?;
+    let now = std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .map(|d| d.as_secs() as i64)
+        .unwrap_or(0);
+    let expired = token.expiry_unix.map(|e| now >= e - 60).unwrap_or(true);
+    if !expired {
+        return Some((token.access_token, None));
+    }
+    let Some(refresh) = token.refresh_token.clone() else {
+        return Some((token.access_token, None));
+    };
+    match refresh_access_token(&refresh).await {
+        Ok((new_access, new_exp_unix)) => {
+            let updated = serde_json::from_str::<serde_json::Value>(json_str)
+                .ok()
+                .map(|mut v| {
+                    if let Some(t) = v.get_mut("token") {
+                        t["access_token"] = serde_json::Value::String(new_access.clone());
+                        if let Some(dt) = chrono::DateTime::from_timestamp(new_exp_unix as i64, 0) {
+                            t["expiry"] = serde_json::Value::String(dt.to_rfc3339());
+                        }
+                    }
+                    v
+                })
+                .and_then(|v| serde_json::to_string_pretty(&v).ok());
+            Some((new_access, updated))
+        }
+        Err(e) => {
+            eprintln!("[antigravity-cli] refresh failed: {}", e);
+            Some((token.access_token, None))
+        }
+    }
+}
+
+// ========== Identity (email/name) resolution via Google userinfo ==========
+
+/// Fetch the account's email + display name from Google's userinfo endpoint using a Bearer token.
+pub async fn fetch_userinfo(access_token: &str) -> Option<(String, Option<String>)> {
+    let client = &crate::modules::shared::http::CLIENT;
+    let res = client
+        .get("https://www.googleapis.com/oauth2/v3/userinfo")
+        .bearer_auth(access_token)
+        .send()
+        .await
+        .ok()?;
+    if !res.status().is_success() {
+        return None;
+    }
+    let v: serde_json::Value = res.json().await.ok()?;
+    let email = v.get("email").and_then(|x| x.as_str())?.to_string();
+    let name = v.get("name").and_then(|x| x.as_str()).map(String::from);
+    Some((email, name))
+}
+
+/// Resolve (email, name) for variants that don't store identity locally
+/// (Antigravity IDE + CLI). Returns `None` for other variants (caller uses offline extraction).
+pub async fn resolve_email_name(
+    ide_type: &crate::modules::providers::IdeType,
+    auth_data: &std::collections::HashMap<String, String>,
+) -> Option<(String, Option<String>)> {
+    use crate::modules::providers::IdeType;
+    let access = match ide_type {
+        IdeType::AntigravityIde => get_fresh_access_token(auth_data).await.map(|(t, _)| t),
+        IdeType::AntigravityCli => {
+            let json = auth_data.get(super::CLI_TOKEN_KEY)?;
+            get_fresh_cli_access_token(json).await.map(|(t, _)| t)
+        }
+        _ => None,
+    }?;
+    fetch_userinfo(&access).await
 }

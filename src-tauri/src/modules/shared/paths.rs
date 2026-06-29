@@ -41,6 +41,15 @@ pub fn profile_dir(profiles: &PathBuf, name: &str) -> Result<PathBuf, String> {
     Ok(dir)
 }
 
+/// ~/.gemini/antigravity-cli/antigravity-oauth-token — Antigravity CLI OAuth token file.
+/// The CLI stores credentials as a plain JSON file (not a state.vscdb).
+pub fn antigravity_cli_token_path(app: &tauri::AppHandle) -> Result<PathBuf, String> {
+    Ok(home_dir(app)?
+        .join(".gemini")
+        .join("antigravity-cli")
+        .join("antigravity-oauth-token"))
+}
+
 /// Resolve OS-specific application support directory for an IDE
 pub fn ide_app_dir(app: &tauri::AppHandle, app_dir_name: &str) -> Result<PathBuf, String> {
     #[cfg(target_os = "macos")]

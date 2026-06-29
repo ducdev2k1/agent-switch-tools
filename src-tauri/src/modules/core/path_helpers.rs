@@ -1,7 +1,8 @@
 use std::path::PathBuf;
 
+use crate::modules::core::credential_source::CredentialSource;
 use crate::modules::providers::{IdeInfo, IdeType};
-use crate::modules::shared::paths::{claude_tools_dir, ide_app_dir};
+use crate::modules::shared::paths::{antigravity_cli_token_path, claude_tools_dir, ide_app_dir};
 
 /// Resolve absolute path to IDE's state.vscdb
 pub fn ide_db_path(app: &tauri::AppHandle, ide_type: &IdeType) -> Result<PathBuf, String> {
@@ -13,10 +14,24 @@ pub fn ide_db_path(app: &tauri::AppHandle, ide_type: &IdeType) -> Result<PathBuf
         .join("state.vscdb"))
 }
 
-/// Check if an IDE is installed by verifying state.vscdb exists
+/// Resolve the live credential store for an agent.
+/// Most agents use a `state.vscdb`; the Antigravity CLI uses a JSON token file.
+pub fn ide_credential_source(
+    app: &tauri::AppHandle,
+    ide_type: &IdeType,
+) -> Result<CredentialSource, String> {
+    match ide_type {
+        IdeType::AntigravityCli => {
+            Ok(CredentialSource::JsonFile(antigravity_cli_token_path(app)?))
+        }
+        _ => Ok(CredentialSource::Vscdb(ide_db_path(app, ide_type)?)),
+    }
+}
+
+/// Check if an IDE is installed by verifying its credential store exists
 pub fn ide_is_installed(app: &tauri::AppHandle, ide_type: &IdeType) -> bool {
-    ide_db_path(app, ide_type)
-        .map(|p| p.exists())
+    ide_credential_source(app, ide_type)
+        .map(|s| s.exists())
         .unwrap_or(false)
 }
 
