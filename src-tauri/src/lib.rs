@@ -3,6 +3,7 @@ use tauri_plugin_autostart::MacosLauncher;
 
 mod commands;
 pub mod modules;
+mod priming;
 mod quota_refresh_worker;
 mod tray;
 
@@ -35,6 +36,7 @@ pub fn run() {
                 }
             }
             quota_refresh_worker::spawn_quota_worker(app.handle().clone());
+            priming::scheduler::spawn_prime_scheduler(app.handle().clone());
             Ok(())
         })
         .on_window_event(|window, event| {
@@ -82,6 +84,13 @@ pub fn run() {
             commands::session_usage_commands::get_session_usage,
             // Cost/usage analytics
             commands::usage_report_commands::get_usage,
+            // Scheduled priming
+            commands::priming_commands::set_auto_prime,
+            commands::priming_commands::set_auto_prime_all,
+            commands::priming_commands::prime_now,
+            commands::priming_commands::get_auto_prime_settings,
+            commands::priming_commands::get_auto_prime_log,
+            commands::priming_commands::get_auto_prime_stats,
             // System info
             commands::system_info_commands::get_system_info,
         ])
