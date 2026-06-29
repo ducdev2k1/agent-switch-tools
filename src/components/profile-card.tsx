@@ -6,10 +6,12 @@ import { useProfileUsage, useTokenRefresh } from '@/hooks/use-usage-stats'
 import type { CredentialProfile } from '@/lib/types'
 import {
   ArrowRightLeft,
+  Building2,
   Clock,
   Crown,
   KeyRound,
   RefreshCw,
+  ShieldCheck,
   Trash2,
 } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
@@ -36,6 +38,13 @@ export function ProfileCard({
 }: ProfileCardProps) {
   const { t } = useTranslation()
   const { name, isActive, info } = profile
+  const acc = profile.oauthAccount
+  const title = acc?.displayName || acc?.emailAddress || name
+  // Show the email separately only when the display name occupies the title.
+  const subParts = [
+    acc?.displayName ? acc?.emailAddress : null,
+    acc?.organizationName,
+  ].filter(Boolean)
   const {
     limits: usageLimits,
     loading: usageLoading,
@@ -58,20 +67,26 @@ export function ProfileCard({
       )}
 
       <CardContent className="p-4 flex flex-col h-full">
-        {/* Top Section: Checkbox & Email */}
+        {/* Top Section: Identity */}
         <div className="flex items-start justify-between gap-2 mb-3">
-          <div className="flex items-center gap-2.5 min-w-0">
+          <div className="flex items-start gap-2.5 min-w-0">
             {/* Decorative Checkbox */}
-            <div className="size-4 rounded border border-muted-foreground/30 shrink-0 flex items-center justify-center bg-muted/20">
+            <div className="size-4 mt-0.5 rounded border border-muted-foreground/30 shrink-0 flex items-center justify-center bg-muted/20">
               {isActive && <div className="size-2 rounded-sm bg-success/80" />}
             </div>
 
             <div className="flex flex-col min-w-0">
               <span className="text-sm font-bold truncate text-foreground/90 group-hover:text-primary transition-colors">
-                {profile.oauthAccount?.emailAddress || name}
+                {title}
               </span>
 
-              <div className="flex items-center gap-1.5 mt-1 flex-wrap">
+              {subParts.length > 0 && (
+                <span className="text-[11px] text-muted-foreground/80 truncate">
+                  {subParts.join(' · ')}
+                </span>
+              )}
+
+              <div className="flex items-center gap-1.5 mt-1.5 flex-wrap">
                 {info.subscriptionType && (
                   <Badge
                     variant="secondary"
@@ -79,6 +94,14 @@ export function ProfileCard({
                   >
                     <Crown className="size-2 mr-1 text-primary/70" />
                     {formatSubscription(info.subscriptionType, t)}
+                  </Badge>
+                )}
+                {info.rateLimitTier && (
+                  <Badge
+                    variant="outline"
+                    className="h-4 px-1.5 text-[8px] font-mono lowercase tracking-tight"
+                  >
+                    {info.rateLimitTier}
                   </Badge>
                 )}
                 {isActive && (
@@ -97,6 +120,22 @@ export function ProfileCard({
                     {t('common.labels.expired')}
                   </Badge>
                 )}
+              </div>
+
+              {/* Scopes + account type */}
+              <div className="flex items-center gap-2.5 mt-1.5 text-[10px] text-muted-foreground/70 flex-wrap">
+                {info.scopes?.length > 0 && (
+                  <span className="flex items-center gap-1">
+                    <ShieldCheck className="size-2.5" />
+                    {t('common.labels.scopes', { count: info.scopes.length })}
+                  </span>
+                )}
+                <span className="flex items-center gap-1">
+                  <Building2 className="size-2.5" />
+                  {info.organizationUuid
+                    ? t('common.labels.organization_account')
+                    : t('common.labels.personal_account')}
+                </span>
               </div>
             </div>
           </div>
