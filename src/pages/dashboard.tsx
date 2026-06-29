@@ -20,11 +20,15 @@ import {
   BarChart3,
   Braces,
   MonitorSmartphone,
+  MousePointer2,
+  Orbit,
   RefreshCw,
   Save,
   Settings,
   Shield,
+  Wind,
 } from 'lucide-react'
+import type { LucideIcon } from 'lucide-react'
 import { useCallback, useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { toast } from 'sonner'
@@ -32,6 +36,20 @@ import { toast } from 'sonner'
 interface DashboardProps {
   onOpenSettings: () => void
   updater: AppUpdaterState
+}
+
+/** Distinct tab icon per IDE so the icon-only tab bar stays distinguishable. */
+function ideIcon(ideType: string): LucideIcon {
+  switch (ideType) {
+    case 'cursor':
+      return MousePointer2
+    case 'windsurf':
+      return Wind
+    case 'antigravity':
+      return Orbit
+    default:
+      return MonitorSmartphone
+  }
 }
 
 export function Dashboard({ onOpenSettings, updater }: DashboardProps) {
@@ -260,29 +278,35 @@ export function Dashboard({ onOpenSettings, updater }: DashboardProps) {
           <TabsList className="w-full justify-start">
             <TabsTrigger
               value="claude-code"
-              className="gap-1.5"
+              className="px-2.5"
+              title="Claude Code"
+              aria-label="Claude Code"
             >
-              <Braces className="size-3.5" />
-              Claude Code
+              <Braces className="size-4" />
             </TabsTrigger>
             {installedIdes
               .filter((ide) => ide.isInstalled)
-              .map((ide) => (
-                <TabsTrigger
-                  key={ide.ideType}
-                  value={ide.ideType}
-                  className="gap-1.5"
-                >
-                  <MonitorSmartphone className="size-3.5" />
-                  {ide.displayName}
-                </TabsTrigger>
-              ))}
+              .map((ide) => {
+                const Icon = ideIcon(ide.ideType)
+                return (
+                  <TabsTrigger
+                    key={ide.ideType}
+                    value={ide.ideType}
+                    className="px-2.5"
+                    title={ide.displayName}
+                    aria-label={ide.displayName}
+                  >
+                    <Icon className="size-4" />
+                  </TabsTrigger>
+                )
+              })}
             <TabsTrigger
               value="usage"
-              className="gap-1.5"
+              className="px-2.5"
+              title="Usage"
+              aria-label="Usage"
             >
-              <BarChart3 className="size-3.5" />
-              Usage
+              <BarChart3 className="size-4" />
             </TabsTrigger>
           </TabsList>
 
