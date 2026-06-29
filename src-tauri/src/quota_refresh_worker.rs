@@ -95,6 +95,9 @@ pub fn spawn_quota_worker(app: AppHandle) {
                 let _ = app.emit("all-profiles-usage-updated", &all_usage);
             }
 
+            // Signal the usage/cost view to refetch its report on the same cadence.
+            let _ = app.emit("usage-changed", ());
+
             // Backward compat: emit active-only event for CLI status bar / useUsageLimits
             if let Some(limits) = active_limits {
                 let _ = app.emit("usage-updated", &limits);

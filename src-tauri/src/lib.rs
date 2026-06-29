@@ -80,6 +80,8 @@ pub fn run() {
             commands::device_commands::rename_device,
             // Session usage
             commands::session_usage_commands::get_session_usage,
+            // Cost/usage analytics
+            commands::usage_report_commands::get_usage,
             // System info
             commands::system_info_commands::get_system_info,
         ])
