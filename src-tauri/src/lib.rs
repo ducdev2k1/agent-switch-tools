@@ -93,6 +93,9 @@ pub fn run() {
             commands::priming_commands::get_auto_prime_stats,
             // System info
             commands::system_info_commands::get_system_info,
+            // Metadata
+            commands::metadata_commands::get_manager_meta,
+            commands::metadata_commands::set_active_profile_name,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

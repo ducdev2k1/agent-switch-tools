@@ -142,8 +142,8 @@ pub fn set_file_600(path: &PathBuf) {
     }
 }
 
-pub fn migrate_legacy_profiles(claude: &PathBuf, profs_dir: &PathBuf) {
-    let claude_data = match profs_dir.parent() {
+pub fn migrate_legacy_profiles(_claude: &PathBuf, profs_dir: &PathBuf) {
+    let _claude_data = match profs_dir.parent() {
         Some(d) => d.to_path_buf(),
         None => return,
     };
