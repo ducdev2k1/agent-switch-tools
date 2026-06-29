@@ -8,6 +8,32 @@ use crate::modules::providers::claude_cli::config;
 use crate::modules::core::path_helpers::{ide_db_path, ide_is_installed, ide_profiles_dir, ide_tools_dir};
 use crate::modules::providers::IdeType;
 use crate::modules::core::sqlite_auth::read_ide_auth_keys;
+use crate::modules::quota::{profile_usage, UsageLimits};
+
+/// Format a tray label like "Work  ·  96%  ·  Pro".
+/// Quota and plan segments are dropped when not yet available.
+fn profile_tray_label(text: &str, quota: &Option<UsageLimits>, plan: &Option<String>) -> String {
+    let mut parts = vec![text.to_string()];
+    if let Some(pct) = quota
+        .as_ref()
+        .and_then(|q| q.five_hour.as_ref())
+        .and_then(|b| b.utilization)
+    {
+        parts.push(format!("{}%", pct.round() as i64));
+    }
+    if let Some(p) = plan.as_ref().filter(|p| !p.is_empty()) {
+        parts.push(capitalize(p));
+    }
+    parts.join("  ·  ")
+}
+
+fn capitalize(s: &str) -> String {
+    let mut chars = s.chars();
+    match chars.next() {
+        Some(first) => first.to_uppercase().collect::<String>() + chars.as_str(),
+        None => String::new(),
+    }
+}
 
 /// Setup system tray with profile quick-switch menu
 pub fn setup_tray(app: &tauri::App) -> Result<(), Box<dyn std::error::Error>> {
@@ -99,8 +125,13 @@ fn build_tray_menu(
     builder = builder.item(&header);
     builder = builder.separator();
 
-    // Active profile indicator
-    let active_label = format!("✓ {} (active)", active_name);
+    // Active profile indicator (quota stored under the "active" key by the worker)
+    let active_plan = config::read_credential_info(&claude_dir.join(".credentials.json")).subscription_type;
+    let active_label = profile_tray_label(
+        &format!("✓ {} (active)", active_name),
+        &profile_usage("active"),
+        &active_plan,
+    );
     let active_item = MenuItemBuilder::with_id("active", &active_label)
         .enabled(false)
         .build(handle)?;
@@ -118,7 +149,12 @@ fn build_tray_menu(
 
         for name in names {
             let id = format!("switch:{}", name);
-            let item = MenuItemBuilder::with_id(id, &format!("  {}", name)).build(handle)?;
+            let plan = config::read_credential_info(
+                &profiles_dir.join(&name).join("credentials.json"),
+            )
+            .subscription_type;
+            let label = profile_tray_label(&format!("  {}", name), &profile_usage(&name), &plan);
+            let item = MenuItemBuilder::with_id(id, &label).build(handle)?;
             builder = builder.item(&item);
         }
     }

@@ -89,6 +89,9 @@ pub fn spawn_quota_worker(app: AppHandle) {
 
             // Emit per-profile map for all profile cards
             if !all_usage.is_empty() {
+                // Cache for the tray, then rebuild it so menu labels show fresh %.
+                crate::modules::quota::store_profile_usage(&all_usage);
+                crate::tray::refresh_tray_menu(&app);
                 let _ = app.emit("all-profiles-usage-updated", &all_usage);
             }
 
