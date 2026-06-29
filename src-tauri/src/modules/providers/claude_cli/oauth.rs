@@ -31,20 +31,23 @@ struct RefreshResponse {
     expires_in: i64,
 }
 
-/// Ensure the credentials file at `creds_path` has a non-expired accessToken.
-/// If the stored token is within EXPIRY_SKEW_SECS of expiry, refresh via Anthropic
-/// and rewrite the file atomically (preserving non-OAuth fields).
-///
-/// Returns the valid accessToken (fresh or untouched) on success.
-/// Errors out only on hard failures — callers can fall back to whatever apiKey they had.
-pub async fn ensure_fresh_token(creds_path: &Path) -> Result<String, String> {
+/// Parsed view of a Claude credentials file.
+struct Creds {
+    root: serde_json::Value,
+    access: String,
+    refresh: Option<String>,
+    expires_at_ms: Option<i64>,
+}
+
+/// Read + parse a credentials file, extracting the OAuth fields we care about.
+fn load_creds(creds_path: &Path) -> Result<Creds, String> {
     let content = std::fs::read_to_string(creds_path)
         .map_err(|e| format!("read credentials: {}", e))?;
-    let mut root: serde_json::Value =
+    let root: serde_json::Value =
         serde_json::from_str(&content).map_err(|e| format!("parse credentials: {}", e))?;
 
     let oauth = root
-        .get_mut("claudeAiOauth")
+        .get("claudeAiOauth")
         .ok_or("credentials missing claudeAiOauth")?;
 
     let access = oauth
@@ -58,37 +61,71 @@ pub async fn ensure_fresh_token(creds_path: &Path) -> Result<String, String> {
         .map(String::from);
     let expires_at_ms = oauth.get("expiresAt").and_then(|v| v.as_i64());
 
-    if !needs_refresh(expires_at_ms) {
-        return Ok(access);
+    Ok(Creds { root, access, refresh, expires_at_ms })
+}
+
+/// Exchange the refresh token at Anthropic, write the rotated tokens back into
+/// `root` (preserving non-OAuth fields) and persist atomically. Returns the new
+/// accessToken. Propagates errors so callers can decide whether to fall back.
+async fn perform_refresh(
+    creds_path: &Path,
+    root: &mut serde_json::Value,
+    refresh_token: &str,
+) -> Result<String, String> {
+    let new_tokens = refresh_access_token(refresh_token).await?;
+    let now_ms = now_millis();
+    if let Some(obj) = root.get_mut("claudeAiOauth").and_then(|v| v.as_object_mut()) {
+        obj.insert("accessToken".into(), serde_json::Value::String(new_tokens.access_token.clone()));
+        obj.insert("refreshToken".into(), serde_json::Value::String(new_tokens.refresh_token));
+        obj.insert(
+            "expiresAt".into(),
+            serde_json::Value::Number((now_ms + new_tokens.expires_in * 1000).into()),
+        );
+    }
+    if let Err(e) = write_atomic(creds_path, root) {
+        eprintln!("[claude_cli] failed to persist refreshed credentials: {}", e);
+        // still return the new token — in-process use still works
+    }
+    Ok(new_tokens.access_token)
+}
+
+/// Ensure the credentials file at `creds_path` has a non-expired accessToken.
+/// If the stored token is within EXPIRY_SKEW_SECS of expiry, refresh via Anthropic
+/// and rewrite the file atomically (preserving non-OAuth fields).
+///
+/// Returns the valid accessToken (fresh or untouched) on success.
+/// Errors out only on hard failures — callers can fall back to whatever apiKey they had.
+pub async fn ensure_fresh_token(creds_path: &Path) -> Result<String, String> {
+    let mut creds = load_creds(creds_path)?;
+
+    if !needs_refresh(creds.expires_at_ms) {
+        return Ok(creds.access);
     }
 
-    let Some(refresh_token) = refresh else {
+    let Some(refresh_token) = creds.refresh.clone() else {
         // No refresh_token stored → return whatever we have, caller may 401
-        return Ok(access);
+        return Ok(creds.access);
     };
 
-    match refresh_access_token(&refresh_token).await {
-        Ok(new_tokens) => {
-            let now_ms = now_millis();
-            if let Some(obj) = oauth.as_object_mut() {
-                obj.insert("accessToken".into(), serde_json::Value::String(new_tokens.access_token.clone()));
-                obj.insert("refreshToken".into(), serde_json::Value::String(new_tokens.refresh_token));
-                obj.insert(
-                    "expiresAt".into(),
-                    serde_json::Value::Number((now_ms + new_tokens.expires_in * 1000).into()),
-                );
-            }
-            if let Err(e) = write_atomic(creds_path, &root) {
-                eprintln!("[claude_cli] failed to persist refreshed credentials: {}", e);
-                // still return the new token — in-process use still works
-            }
-            Ok(new_tokens.access_token)
-        }
+    match perform_refresh(creds_path, &mut creds.root, &refresh_token).await {
+        Ok(token) => Ok(token),
         Err(e) => {
             eprintln!("[claude_cli] token refresh failed: {}", e);
-            Ok(access) // best-effort: return stale token
+            Ok(creds.access) // best-effort: return stale token
         }
     }
+}
+
+/// Force a token refresh regardless of remaining TTL — used by the manual
+/// "Refresh Token" action. Unlike `ensure_fresh_token`, hard failures propagate
+/// so the UI can surface a real error instead of silently keeping a stale token.
+pub async fn force_refresh_token(creds_path: &Path) -> Result<String, String> {
+    let mut creds = load_creds(creds_path)?;
+    let refresh_token = creds
+        .refresh
+        .clone()
+        .ok_or("credentials missing refreshToken")?;
+    perform_refresh(creds_path, &mut creds.root, &refresh_token).await
 }
 
 fn needs_refresh(expires_at_ms: Option<i64>) -> bool {
