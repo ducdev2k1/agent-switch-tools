@@ -167,7 +167,9 @@
       "session_usage_preview": "Xem trước phiên",
       "session_usage_no_data": "Không có dữ liệu phiên trong khoảng này",
       "session_usage_sessions_found": "{{count}} phiên được tìm thấy",
-      "session_usage_tokens": "{{input}} vào / {{output}} ra"
+      "session_usage_tokens": "{{input}} vào / {{output}} ra",
+      "session_usage_messages": "{{count}} tin nhắn",
+      "session_usage_no_branch": "không nhánh"
     },
     "device": {
       "title": "Định danh thiết bị",

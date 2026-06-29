@@ -167,7 +167,9 @@
       "session_usage_preview": "Preview Sessions",
       "session_usage_no_data": "No session data found for this period",
       "session_usage_sessions_found": "{{count}} sessions found",
-      "session_usage_tokens": "{{input}} in / {{output}} out"
+      "session_usage_tokens": "{{input}} in / {{output}} out",
+      "session_usage_messages": "{{count}} messages",
+      "session_usage_no_branch": "no branch"
     },
     "device": {
       "title": "Device Identity",
