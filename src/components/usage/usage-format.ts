@@ -5,8 +5,10 @@ export function totalTokens(t: TokenBreakdown): number {
   return t.input + t.output + t.cacheRead + t.cacheCreation
 }
 
-/** Compact token count, e.g. 1.2M / 345K / 980. */
+/** Compact token count, e.g. 1.5T / 8.0B / 1.2M / 345K / 980. */
 export function formatTokens(n: number): string {
+  if (n >= 1_000_000_000_000) return `${(n / 1_000_000_000_000).toFixed(1)}T`
+  if (n >= 1_000_000_000) return `${(n / 1_000_000_000).toFixed(1)}B`
   if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M`
   if (n >= 1_000) return `${(n / 1_000).toFixed(1)}K`
   return `${n}`
