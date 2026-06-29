@@ -100,7 +100,7 @@ function UsageRow({
       </div>
       {resetText && (
         <div className="flex justify-end items-center gap-1.5">
-          <p className="text-[10px] font-medium text-muted-foreground/70 tabular-nums">
+          <p className="text-[9px] font-medium text-muted-foreground/50 tabular-nums">
             {resetText}
           </p>
           {absText && (
