@@ -25,6 +25,8 @@ const ANTIGRAVITY_VARIANTS: IdeType[] = [
   'antigravity-cli',
 ]
 const ANTIGRAVITY_GROUP = 'antigravity-group'
+/** Temporarily hidden top-level IDE tabs (remove an entry to re-enable). */
+const HIDDEN_IDES: IdeType[] = ['cursor', 'windsurf']
 /** Short labels for the variant sub-tabs (the parent tab already says "Antigravity"). */
 const ANTIGRAVITY_SUBLABEL: Record<string, string> = {
   antigravity: 'Desktop',
@@ -68,7 +70,10 @@ export function Dashboard({ onOpenSettings, updater }: DashboardProps) {
   const installedOther = useMemo(
     () =>
       installedIdes.filter(
-        (ide) => ide.isInstalled && !ANTIGRAVITY_VARIANTS.includes(ide.ideType),
+        (ide) =>
+          ide.isInstalled &&
+          !ANTIGRAVITY_VARIANTS.includes(ide.ideType) &&
+          !HIDDEN_IDES.includes(ide.ideType),
       ),
     [installedIdes],
   )
