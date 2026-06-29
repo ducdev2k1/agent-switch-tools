@@ -15,7 +15,7 @@
 | **Antigravity IDE** | IDE | `~/.config/Antigravity IDE` → `state.vscdb` (OAuth proto) |
 | **Antigravity CLI** | CLI | `~/.gemini/antigravity-cli/antigravity-oauth-token` (file JSON) |
 
-> Từ v1.0.12, Antigravity được tách thành 3 biến thể độc lập (Desktop / IDE / CLI). Trên UI chúng được gộp trong **một tab "Antigravity"** với các sub-tab riêng. Cursor và Windsurf tạm ẩn khỏi dashboard và tray.
+> Từ v1.0.12, Antigravity được tách thành 3 biến thể độc lập (Desktop / IDE / CLI). Trên UI chúng được gộp trong **một tab "Antigravity"** với các sub-tab riêng. Cursor và Windsurf tạm ẩn khỏi dashboard và tray. Từ v1.0.13, Antigravity cũng được **tạm ẩn khỏi giao diện** để khắc phục lỗi, nhưng mã nguồn vẫn giữ nguyên.
 
 ### Vấn đề
 

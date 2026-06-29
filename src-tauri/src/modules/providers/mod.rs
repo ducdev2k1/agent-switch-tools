@@ -38,6 +38,20 @@ impl IdeType {
         ]
     }
 
+    /// IDEs hidden from every UI surface (tray menu + dashboard). They keep
+    /// working internally — switching/quota still function — they are just not
+    /// shown. Remove an arm here to re-enable an IDE in the UI.
+    pub fn is_hidden(&self) -> bool {
+        matches!(
+            self,
+            IdeType::Cursor
+                | IdeType::Windsurf
+                | IdeType::Antigravity
+                | IdeType::AntigravityIde
+                | IdeType::AntigravityCli
+        )
+    }
+
     pub fn id(&self) -> &'static str {
         match self {
             IdeType::Cursor => "cursor",

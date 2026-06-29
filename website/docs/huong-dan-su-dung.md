@@ -16,6 +16,8 @@ Có ít nhất 1 trong các agent sau đã được cài và đăng nhập:
 
 App tự động phát hiện agent nào đã cài và chỉ hiển thị những cái đang có.
 
+> **Lưu ý v1.0.13:** Antigravity (Desktop / IDE / CLI) hiện đang **tạm ẩn khỏi giao diện** để khắc phục các lỗi còn tồn đọng. Claude Code là agent được hỗ trợ đầy đủ. Mã nguồn Antigravity vẫn giữ nguyên và có thể bật lại sau.
+
 ---
 
 ## Lần đầu sử dụng

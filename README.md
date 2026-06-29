@@ -34,6 +34,8 @@
 
 The app auto-detects which agents are installed on your machine and only shows them in the UI.
 
+> **Note:** As of v1.0.13, Antigravity (Desktop/IDE/CLI) is temporarily hidden from the UI while fixes are being applied. The code remains fully functional and can be re-enabled in future versions. Claude Code is the fully supported agent at this time.
+
 ## 🗂️ Data Location
 
 All app-managed data lives in a single directory:
@@ -154,6 +156,8 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 | **Antigravity CLI** | CLI | `~/.gemini/antigravity-cli/antigravity-oauth-token` (JSON) |
 
 App tự động phát hiện agent nào đã cài trên máy và chỉ hiển thị những cái đang có.
+
+> **Lưu ý:** Từ v1.0.13, Antigravity (Desktop/IDE/CLI) được **tạm ẩn khỏi giao diện** để khắc phục các lỗi còn tồn đọng. Mã nguồn vẫn giữ nguyên và có thể bật lại trong phiên bản tương lai. Hiện tại Claude Code là agent được hỗ trợ đầy đủ.
 
 ## 🗂️ Vị trí dữ liệu
 

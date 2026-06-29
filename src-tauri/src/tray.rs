@@ -162,9 +162,9 @@ fn build_tray_menu(
         }
     }
 
-    // IDE sections (Antigravity). Cursor and Windsurf are temporarily hidden.
+    // IDE sections. Hidden IDEs (Cursor, Windsurf, Antigravity*) are skipped.
     for ide_type in IdeType::all() {
-        if matches!(ide_type, IdeType::Cursor | IdeType::Windsurf) {
+        if ide_type.is_hidden() {
             continue;
         }
         if !ide_is_installed(handle, ide_type) {

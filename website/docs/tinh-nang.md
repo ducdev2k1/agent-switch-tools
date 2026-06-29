@@ -3,6 +3,8 @@ sidebar_position: 2
 title: Tính Năng Chi Tiết
 ---
 
+> **Lưu ý v1.0.13:** Antigravity (Desktop / IDE / CLI) hiện đang **tạm ẩn khỏi giao diện** để khắc phục các lỗi còn tồn đọng. Mã nguồn vẫn giữ nguyên đầy đủ và có thể bật lại sau. Claude Code là agent được hỗ trợ đầy đủ.
+
 ## 1. Quản lý đa tài khoản (Profile Management)
 
 ### Vấn đề
@@ -111,9 +113,11 @@ Headers:
 
 **Kết quả trả về**: % đã sử dụng và thời gian reset cho mỗi loại quota.
 
-#### Quota Antigravity (cả 3 biến thể) — cập nhật từ v1.0.12
+#### Quota Antigravity (cả 3 biến thể) — cập nhật từ v1.0.12, tạm ẩn từ v1.0.13
 
 Theo chính sách Gemini mới, Antigravity tính quota theo **giới hạn Weekly + 5 giờ cho từng nhóm model**. App gọi endpoint mới (đúng cái lệnh `usage` native dùng):
+
+> **Lưu ý:** Từ v1.0.13, Antigravity được tạm ẩn khỏi giao diện để khắc phục lỗi. Mã nguồn tích hợp quota này vẫn giữ nguyên.
 
 ```
 POST https://daily-cloudcode-pa.googleapis.com/v1internal:retrieveUserQuotaSummary

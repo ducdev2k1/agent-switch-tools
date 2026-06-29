@@ -53,6 +53,9 @@ pub fn ide_profiles_dir(app: &tauri::AppHandle, ide_type: &IdeType) -> Result<Pa
 pub async fn list_installed_ides(app: tauri::AppHandle) -> Result<Vec<IdeInfo>, String> {
     let mut ides = Vec::new();
     for ide_type in IdeType::all() {
+        if ide_type.is_hidden() {
+            continue;
+        }
         let provider = ide_type.provider();
         ides.push(IdeInfo {
             ide_type: *ide_type,

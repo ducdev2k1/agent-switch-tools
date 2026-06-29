@@ -127,10 +127,10 @@ src-tauri/src/modules/
 │   │   └── quota.rs             ← Anthropic /api/oauth/usage + stale-cache
 │   ├── cursor/                  ← Cursor IDE provider
 │   ├── windsurf/                ← Windsurf IDE provider
-│   └── antigravity/             ← Antigravity (Google Cloud Code) — 3 biến thể
+│   └── antigravity/             ← Antigravity (Google Cloud Code) — 3 biến thể (tạm ẩn từ v1.0.13)
 │       ├── mod.rs               ← AntigravityProvider (Desktop) + AntigravityIdeProvider + AntigravityCliProvider
 │       ├── oauth.rs             ← Proto parse (theo sentinel key) + OAuth refresh + CLI token + userinfo
-│       └── quota.rs             ← retrieveUserQuotaSummary (Weekly + 5h) — v1.0.12
+│       └── quota.rs             ← retrieveUserQuotaSummary (Weekly + 5h) — v1.0.12 (code vẫn giữ)
 ├── quota/                       ← Shared types: UsageBucket, UsageLimits
 └── shared/                      ← Hạ tầng chung: HTTP client, logger, paths
 ```

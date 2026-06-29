@@ -1,5 +1,7 @@
 # Tính Năng Chi Tiết
 
+> **Lưu ý v1.0.13:** Antigravity (Desktop / IDE / CLI) hiện đang **tạm ẩn khỏi giao diện** để khắc phục các lỗi còn tồn đọng. Mã nguồn vẫn giữ nguyên đầy đủ và có thể bật lại sau. Claude Code là agent được hỗ trợ đầy đủ.
+
 ## 1. Quản lý đa tài khoản (Profile Management)
 
 ### Vấn đề
@@ -93,12 +95,13 @@ Mỗi provider có cách hiển thị quota khác nhau:
 - Hiển thị **% đã dùng** (0% = còn mới, 100% = hết). Bar càng đầy = đã dùng càng nhiều, đỏ khi ≥80%.
 - Reset time hiển thị kèm giờ đồng hồ 12h: `R: 2h 15m (3:45 PM)` *(từ v1.0.11)*
 
-**Antigravity (Google)** *(cập nhật mô hình mới từ v1.0.12)*
+**Antigravity (Google)** *(cập nhật mô hình mới từ v1.0.12, tạm ẩn từ v1.0.13)*
 - Theo chính sách Gemini mới, quota tính theo **giới hạn Weekly + 5 giờ cho từng nhóm model**:
   - **Gemini — Weekly Limit / Five Hour Limit** (Gemini Flash, Gemini Pro)
   - **Claude and GPT — Weekly Limit / Five Hour Limit** (Claude Opus/Sonnet, GPT-OSS)
 - Hiển thị **% còn lại** (100% = đầy quota, 0% = cạn). Bar đầy = còn nhiều, đỏ khi ≤20%.
 - Áp dụng cho cả 3 biến thể (Desktop / IDE / CLI).
+- *(Từ v1.0.13: tạm ẩn khỏi giao diện, mã nguồn vẫn giữ nguyên)*
 
 **Cursor & Windsurf**
 - Hiển thị "Quota không khả dụng" — hai IDE này chưa expose public single-user quota API.
@@ -113,7 +116,7 @@ Headers:
   anthropic-beta: oauth-2025-04-20
 ```
 
-**Antigravity** — gọi Google Cloud Code API *(cập nhật từ v1.0.12)*:
+**Antigravity** — gọi Google Cloud Code API *(cập nhật từ v1.0.12, tạm ẩn từ v1.0.13)*:
 - `POST daily-cloudcode-pa.googleapis.com/v1internal:retrieveUserQuotaSummary` (body rỗng `{}`) → trả về `groups[].buckets[]` gồm Weekly + 5-hour cho mỗi nhóm model. Đây chính là endpoint mà lệnh `usage` native của Antigravity dùng (thay cho `loadCodeAssist` + `fetchAvailableModels` cũ, không cần project ID nữa).
 - Bearer token:
   - **Desktop**: trích `apiKey` từ `antigravityAuthStatus` JSON.

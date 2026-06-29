@@ -27,6 +27,12 @@ pub fn run() {
             }
         }))
         .setup(|app| {
+            // Migrate data from the pre-rebrand layout before anything reads it,
+            // then clean up the old renamed app bundle (macOS; no-op elsewhere).
+            if let Ok(home) = modules::shared::paths::home_dir(app.handle()) {
+                modules::core::legacy_migration::migrate_legacy_data(&home);
+                modules::core::legacy_uninstall::remove_legacy_app(&home);
+            }
             if let Err(e) = tray::setup_tray(app) {
                 eprintln!("Warning: Could not initialize system tray: {e}");
             }
