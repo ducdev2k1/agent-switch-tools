@@ -1,9 +1,26 @@
 # Plan: Port 3 Feature từ ai-switcher
 
 **Created:** 2026-06-29 08:18
-**Status:** Pending
-**Branch:** main
+**Status:** ✅ All 5 phases implemented (branch `feat/port-ai-switcher-features`) — pending build/test on a machine with cargo + pnpm
+**Branch:** feat/port-ai-switcher-features
 **Mode:** PORT idiomatic (xia) — risk LOW, đã qua challenge gate
+
+## Implementation Status
+
+| Phase | Status | Commit |
+|---|---|---|
+| 1 — Tray % quota + plan | ✅ done | `5c43984` (+ fix `3bb871e`) |
+| 2 — Cost analytics backend | ✅ done | `db397b2` |
+| 3 — Cost analytics UI (recharts) | ✅ done | `5873e84` |
+| 4 — Scheduled priming backend | ✅ done | `bd33bd1` |
+| 5 — Scheduled priming UI | ✅ done | `efc8737` |
+
+**Code review:** DONE_WITH_CONCERNS → H1 (active plan path) + M1 (plan refs in comments) fixed in `3bb871e`. No compile-blockers found; 7/7 commands wired; no regressions; no macOS-only APIs.
+
+**⚠️ Before merge (this env has no cargo/node):**
+- `cd src-tauri && cargo check`
+- `pnpm install` (lockfile needs recharts) then `pnpm build` (tsc) — verify recharts v3 Tooltip types
+- Smoke test: tray %/plan, Usage tab, Prime now
 
 ## Goals
 
