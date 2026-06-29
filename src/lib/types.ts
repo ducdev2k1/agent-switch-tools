@@ -107,6 +107,31 @@ export interface SessionUsage {
 /** Provenance of cost figures: live fetch, disk cache, or no pricing data. */
 export type PriceStatus = 'live' | 'saved' | 'hidden'
 
+/** Per-profile scheduled-priming configuration. */
+export interface AutoPrimeSetting {
+  enabled: boolean
+  /** Local time of day to prime, "HH:MM" (24h). */
+  time: string
+  lastPrimedDate: string | null
+  lastResult: string | null
+}
+
+/** Outcome of a single prime attempt (discriminated on `status`). */
+export type PrimeResult =
+  | { status: 'success'; resetAt: string }
+  | { status: 'hold'; resetAt: string }
+  | { status: 'failed'; reason: string }
+  | { status: 'skipped'; reason: string }
+
+/** Per-day aggregate of prime outcomes. */
+export interface PrimeDayStat {
+  date: string
+  success: number
+  failed: number
+  hold: number
+  skip: number
+}
+
 export interface UsageReport {
   total: TokenBreakdown
   totalCostUsd: number | null

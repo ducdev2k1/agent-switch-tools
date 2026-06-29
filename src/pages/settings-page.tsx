@@ -1,3 +1,4 @@
+import { AutoSessionView } from '@/components/auto-session/auto-session-view'
 import { DeviceSettingsPanel } from '@/components/device-settings-panel'
 import { GeneralSettingsPanel } from '@/components/general-settings-panel'
 import { SessionUsageWebhookPanel } from '@/components/session-usage-webhook-panel'
@@ -5,7 +6,7 @@ import { WebhookSettingsPanel } from '@/components/webhook-settings-panel'
 import { Button } from '@/components/ui/button'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import type { AppUpdaterState } from '@/lib/types'
-import { ArrowLeft, Info, Settings, Webhook } from 'lucide-react'
+import { ArrowLeft, Info, Settings, Timer, Webhook } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 
 interface SettingsPageProps {
@@ -52,6 +53,13 @@ export function SettingsPage({ onBack, updater }: SettingsPageProps) {
               {t('settings.tabs.general')}
             </TabsTrigger>
             <TabsTrigger
+              value="auto-session"
+              className="justify-start gap-2 px-3 py-2 data-[state=active]:bg-accent"
+            >
+              <Timer className="size-4" />
+              Auto Session
+            </TabsTrigger>
+            <TabsTrigger
               value="webhook"
               className="justify-start gap-2 px-3 py-2 data-[state=active]:bg-accent"
             >
@@ -74,6 +82,13 @@ export function SettingsPage({ onBack, updater }: SettingsPageProps) {
               className="mt-0"
             >
               <GeneralSettingsPanel updater={updater} />
+            </TabsContent>
+
+            <TabsContent
+              value="auto-session"
+              className="mt-0"
+            >
+              <AutoSessionView />
             </TabsContent>
 
             <TabsContent
