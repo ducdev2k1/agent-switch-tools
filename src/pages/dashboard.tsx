@@ -5,6 +5,7 @@ import { IdeDashboardSection } from '@/components/ide-dashboard-section'
 import { ProfileCard } from '@/components/profile-card'
 import { ProfileTable } from '@/components/profile-table'
 import { SwitchConfirmationDialog } from '@/components/switch-confirmation-dialog'
+import { UsageView } from '@/components/usage/usage-view'
 import { Button } from '@/components/ui/button'
 import { Separator } from '@/components/ui/separator'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
@@ -16,6 +17,7 @@ import { useUsageStats } from '@/hooks/use-usage-stats'
 import type { AppUpdaterState, CredentialProfile } from '@/lib/types'
 import { listen } from '@tauri-apps/api/event'
 import {
+  BarChart3,
   Braces,
   MonitorSmartphone,
   RefreshCw,
@@ -275,6 +277,13 @@ export function Dashboard({ onOpenSettings, updater }: DashboardProps) {
                   {ide.displayName}
                 </TabsTrigger>
               ))}
+            <TabsTrigger
+              value="usage"
+              className="gap-1.5"
+            >
+              <BarChart3 className="size-3.5" />
+              Usage
+            </TabsTrigger>
           </TabsList>
 
           {/* Claude Code tab */}
@@ -378,6 +387,14 @@ export function Dashboard({ onOpenSettings, updater }: DashboardProps) {
                 />
               </TabsContent>
             ))}
+
+          {/* Usage / cost analytics tab */}
+          <TabsContent
+            value="usage"
+            className="mt-4"
+          >
+            <UsageView />
+          </TabsContent>
         </Tabs>
       </main>
 

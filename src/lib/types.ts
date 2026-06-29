@@ -75,6 +75,51 @@ export interface RefreshResult {
   message: string
 }
 
+/** Token counts split by billing category (Claude Code cost analytics). */
+export interface TokenBreakdown {
+  input: number
+  output: number
+  cacheRead: number
+  cacheCreation: number
+}
+
+export interface DayUsage {
+  date: string
+  tokens: TokenBreakdown
+  costUsd: number | null
+}
+
+export interface ModelUsage {
+  model: string
+  tokens: TokenBreakdown
+  costUsd: number | null
+}
+
+export interface SessionUsage {
+  id: string
+  date: string
+  model: string
+  project: string
+  tokens: TokenBreakdown
+  costUsd: number | null
+}
+
+/** Provenance of cost figures: live fetch, disk cache, or no pricing data. */
+export type PriceStatus = 'live' | 'saved' | 'hidden'
+
+export interface UsageReport {
+  total: TokenBreakdown
+  totalCostUsd: number | null
+  today: TokenBreakdown
+  todayCostUsd: number | null
+  daily: DayUsage[]
+  byModel: ModelUsage[]
+  sessions: SessionUsage[]
+  generatedAt: string
+  priceStatus: PriceStatus
+  priceUpdatedAt: string | null
+}
+
 export interface ProfileUsage {
   lastActiveAt: string | null
   totalActiveMinutes: number
