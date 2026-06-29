@@ -20,26 +20,25 @@ const PNG_LOGOS: Record<string, string> = {
   windsurf: windsurfLogo,
 }
 
-/** Fallback — generic monitor outline. */
+/** Fallback for unknown/not-yet-loaded tools — a spinning loading ring. */
 function GenericLogo({ className }: LogoProps) {
   return (
     <svg
       viewBox="0 0 24 24"
-      className={className}
+      className={`${className ?? ''} animate-spin`}
       aria-hidden="true"
       fill="none"
       stroke="currentColor"
-      strokeWidth="1.7"
-      strokeLinejoin="round"
+      strokeWidth="2.2"
+      strokeLinecap="round"
     >
-      <rect
-        x="3"
-        y="4"
-        width="18"
-        height="12"
-        rx="1.5"
+      <circle
+        cx="12"
+        cy="12"
+        r="9"
+        className="opacity-20"
       />
-      <path d="M8 20 H16 M12 16 V20" />
+      <path d="M21 12a9 9 0 0 0-9-9" />
     </svg>
   )
 }
