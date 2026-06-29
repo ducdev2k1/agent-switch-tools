@@ -99,7 +99,7 @@ function UsageRow({
         />
       </div>
       {resetText && (
-        <div className="flex justify-end items-center gap-1.5">
+        <div className="flex justify-between items-center gap-1.5">
           <p className="text-[9px] font-medium text-muted-foreground/50 tabular-nums">
             {resetText}
           </p>
@@ -145,9 +145,8 @@ export function UsageLimitsDisplay({
 
   if (!limits) return null
 
-  const dynamicBuckets = limits.buckets?.filter(
-    (b) => b.utilization != null,
-  ) ?? []
+  const dynamicBuckets =
+    limits.buckets?.filter((b) => b.utilization != null) ?? []
   const hasDynamic = dynamicBuckets.length > 0
 
   const hasLegacy =

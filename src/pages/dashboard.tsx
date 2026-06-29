@@ -1,5 +1,4 @@
 import { AddAccountDialog } from '@/components/add-account-dialog'
-import { CliStatusBar } from '@/components/cli-status-bar'
 import { DeleteConfirmDialog } from '@/components/delete-confirm-dialog'
 import { IdeDashboardSection } from '@/components/ide-dashboard-section'
 import { ProfileCard } from '@/components/profile-card'
@@ -14,7 +13,6 @@ import { ViewToggle, type ViewMode } from '@/components/view-toggle'
 import { useClaudeConfig } from '@/hooks/use-claude-config'
 import { useInstalledIdes } from '@/hooks/use-installed-ides'
 import { useCredentialProfiles } from '@/hooks/use-profiles'
-import { useUsageStats } from '@/hooks/use-usage-stats'
 import type { AppUpdaterState, CredentialProfile } from '@/lib/types'
 import { listen } from '@tauri-apps/api/event'
 import { BarChart3, Braces, RefreshCw, Save, Settings, Shield } from 'lucide-react'
@@ -39,13 +37,7 @@ export function Dashboard({ onOpenSettings, updater }: DashboardProps) {
     refresh,
   } = useCredentialProfiles()
 
-  const {
-    state: cliState,
-    loading: cliLoading,
-    refresh: refreshCli,
-  } = useClaudeConfig()
-
-  const { stats: usageStats } = useUsageStats()
+  const { refresh: refreshCli } = useClaudeConfig()
   const { updateVersion, installing, install } = updater
   const { ides: installedIdes } = useInstalledIdes()
   const [activeTab, setActiveTab] = useState('claude-code')
@@ -320,12 +312,6 @@ export function Dashboard({ onOpenSettings, updater }: DashboardProps) {
                 </Button>
               </div>
             </div>
-
-            <CliStatusBar
-              cliState={cliState}
-              usageStats={usageStats}
-              loading={cliLoading}
-            />
 
             <Separator />
 
