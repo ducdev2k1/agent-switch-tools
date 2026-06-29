@@ -26,7 +26,11 @@ Agent Switch Tools tạo một hệ thống **profile** thống nhất — mỗi
 │           └── auth-backup.json    ← Backup auth keys từ state.vscdb
 ├── windsurf/                   ← Windsurf IDE data
 │   └── profiles/{email}/
-└── antigravity/                ← Antigravity IDE data
+├── antigravity/                ← Antigravity Desktop data
+│   └── profiles/{email}/
+├── antigravity-ide/            ← Antigravity IDE data
+│   └── profiles/{email}/
+└── antigravity-cli/            ← Antigravity CLI data
     └── profiles/{email}/
 ```
 
@@ -89,12 +93,12 @@ Mỗi provider có cách hiển thị quota khác nhau:
 - Hiển thị **% đã dùng** (0% = còn mới, 100% = hết). Bar càng đầy = đã dùng càng nhiều, đỏ khi ≥80%.
 - Reset time hiển thị kèm giờ đồng hồ 12h: `R: 2h 15m (3:45 PM)` *(từ v1.0.11)*
 
-**Antigravity (Google)** *(từ v1.0.11)*
-- 3 bucket theo rate-limit pool:
-  - **Gemini Pro** — 3.1 Pro High/Low + 3 Pro High/Low
-  - **Gemini Flash** — 3 Flash + 3.1 Flash Lite
-  - **Claude / GPT** — Claude Sonnet/Opus 4.6 + GPT-OSS 120B
+**Antigravity (Google)** *(cập nhật mô hình mới từ v1.0.12)*
+- Theo chính sách Gemini mới, quota tính theo **giới hạn Weekly + 5 giờ cho từng nhóm model**:
+  - **Gemini — Weekly Limit / Five Hour Limit** (Gemini Flash, Gemini Pro)
+  - **Claude and GPT — Weekly Limit / Five Hour Limit** (Claude Opus/Sonnet, GPT-OSS)
 - Hiển thị **% còn lại** (100% = đầy quota, 0% = cạn). Bar đầy = còn nhiều, đỏ khi ≤20%.
+- Áp dụng cho cả 3 biến thể (Desktop / IDE / CLI).
 
 **Cursor & Windsurf**
 - Hiển thị "Quota không khả dụng" — hai IDE này chưa expose public single-user quota API.
@@ -109,12 +113,16 @@ Headers:
   anthropic-beta: oauth-2025-04-20
 ```
 
-**Antigravity** — flow 2 bước với Google Cloud Code API:
-1. `POST cloudcode-pa.googleapis.com/v1internal:loadCodeAssist` → lấy `cloudaicompanionProject` (project ID)
-2. `POST cloudcode-pa.googleapis.com/v1internal:fetchAvailableModels` với `{"project": pid}` → lấy quotaInfo cho từng model
-- Bearer token: trích `apiKey` từ `antigravityAuthStatus` JSON
+**Antigravity** — gọi Google Cloud Code API *(cập nhật từ v1.0.12)*:
+- `POST daily-cloudcode-pa.googleapis.com/v1internal:retrieveUserQuotaSummary` (body rỗng `{}`) → trả về `groups[].buckets[]` gồm Weekly + 5-hour cho mỗi nhóm model. Đây chính là endpoint mà lệnh `usage` native của Antigravity dùng (thay cho `loadCodeAssist` + `fetchAvailableModels` cũ, không cần project ID nữa).
+- Bearer token:
+  - **Desktop**: trích `apiKey` từ `antigravityAuthStatus` JSON.
+  - **IDE**: trích access_token từ protobuf blob `antigravityUnifiedStateSync.oauthToken` (không còn `antigravityAuthStatus`).
+  - **CLI**: đọc access_token từ file JSON `~/.gemini/antigravity-cli/antigravity-oauth-token`.
 - User-Agent bắt buộc giả lập IDE native: `Antigravity/X.Y.Z ... Chrome/... Electron/...`
-- **OAuth refresh tự động** *(từ v1.0.11)*: nếu access token hết hạn (~1h TTL), app tự đổi refresh token đã lưu trong protobuf blob sang access token mới qua `oauth2.googleapis.com/token` — saved profile lấy quota được ngay cả khi không switch trong ngày.
+- **OAuth refresh tự động**: nếu access token hết hạn (~1h TTL), app tự đổi refresh token sang access token mới qua `oauth2.googleapis.com/token` (cần `ANTIGRAVITY_OAUTH_CLIENT_ID` + `CLIENT_SECRET` — OAuth client công khai của Antigravity, nạp qua `build.rs`/`.env` lúc build hoặc CI secrets).
+- **Email/identity** (IDE & CLI không lưu email local): lấy qua Google `userinfo` rồi cache vào profile.
+- **Lưu ý eligibility**: nếu tài khoản Google chưa xác minh (vd chưa có SĐT), API trả `403 "Verify your account"` → không có quota, đúng như CLI native.
 
 ### Tự động cập nhật (Background Worker)
 

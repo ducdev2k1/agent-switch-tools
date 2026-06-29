@@ -114,9 +114,10 @@ Từ v1.0.11, toàn bộ logic backend tách thành 4 nhóm rõ ràng thay cho t
 ```
 src-tauri/src/modules/
 ├── core/                        ← Logic dùng chung giữa các IDE
-│   ├── path_helpers.rs          ← Resolve state.vscdb, IDE app dir, per-IDE profiles dir
+│   ├── path_helpers.rs          ← Resolve state.vscdb / token file, IDE app dir, profiles dir
 │   ├── sqlite_auth.rs           ← Đọc/ghi ItemTable SQLite với retry on-lock
-│   └── ide_manager.rs           ← Save/read saved auth-keys.json per profile
+│   ├── credential_source.rs     ← Trừu tượng nguồn creds: Vscdb (SQLite) | JsonFile (CLI) — v1.0.12
+│   └── ide_manager.rs           ← Save/read auth-keys.json + resolve email (userinfo)
 ├── providers/                   ← Triết lý: 1 provider = 1 module
 │   ├── mod.rs                   ← Trait IdeProvider + enum IdeType + IdeInfo
 │   ├── utils.rs                 ← Helpers dùng chung (ví dụ extract plan từ proto JSON)
@@ -126,24 +127,30 @@ src-tauri/src/modules/
 │   │   └── quota.rs             ← Anthropic /api/oauth/usage + stale-cache
 │   ├── cursor/                  ← Cursor IDE provider
 │   ├── windsurf/                ← Windsurf IDE provider
-│   └── antigravity/             ← Antigravity (Google Cloud Code)
-│       ├── mod.rs               ← Provider impl: auth keys, email, membership
-│       ├── oauth.rs             ← Protobuf parse + OAuth refresh (v1.0.11)
-│       └── quota.rs             ← loadCodeAssist + fetchAvailableModels
+│   └── antigravity/             ← Antigravity (Google Cloud Code) — 3 biến thể
+│       ├── mod.rs               ← AntigravityProvider (Desktop) + AntigravityIdeProvider + AntigravityCliProvider
+│       ├── oauth.rs             ← Proto parse (theo sentinel key) + OAuth refresh + CLI token + userinfo
+│       └── quota.rs             ← retrieveUserQuotaSummary (Weekly + 5h) — v1.0.12
 ├── quota/                       ← Shared types: UsageBucket, UsageLimits
 └── shared/                      ← Hạ tầng chung: HTTP client, logger, paths
 ```
 
+> `build.rs` (thư mục `src-tauri/`) nạp `.env` lúc build để cấp `ANTIGRAVITY_OAUTH_CLIENT_ID/SECRET` cho `option_env!` (CI inject từ secrets).
+
 **Trait `IdeProvider`** chuẩn hóa interface mỗi IDE:
-- `auth_keys()` — danh sách key cần đọc/ghi trong `state.vscdb`
-- `token_key()` — key chứa access token
+- `auth_keys()` — danh sách key cần đọc/ghi trong nguồn creds (key đầu = key chính, dùng cho `JsonFile`)
+- `token_key()` — key chứa access token (None với Antigravity IDE/CLI vì token nằm trong proto/JSON)
 - `extract_email()`, `extract_display_name()`, `extract_membership()` — trích thông tin hiển thị
-- `normalize_token(raw)` — chuẩn hóa token (ví dụ Antigravity: trích `apiKey` từ JSON wrapper)
+- `normalize_token(raw)` — chuẩn hóa token (Desktop: `apiKey`; CLI: `token.access_token`)
+
+**`CredentialSource`** (v1.0.12) cho phép cùng luồng profile/switch/quota chạy trên 2 loại nguồn:
+- `Vscdb(path)` — Cursor/Windsurf/Antigravity Desktop+IDE (SQLite `state.vscdb`)
+- `JsonFile(path)` — Antigravity CLI (`~/.gemini/antigravity-cli/antigravity-oauth-token`)
 
 **Provider quota riêng**:
 - Claude CLI → Anthropic `/api/oauth/usage`
-- Antigravity → 2-step Google Cloud Code API + OAuth refresh flow
-- Cursor & Windsurf → không có public API, UI hiển thị "Quota không khả dụng"
+- Antigravity (cả 3 biến thể) → `retrieveUserQuotaSummary` (Weekly + 5h) + OAuth refresh + userinfo
+- Cursor & Windsurf → không có public API; tạm ẩn khỏi dashboard/tray
 
 ### Các file đặc biệt
 
