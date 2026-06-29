@@ -162,8 +162,11 @@ fn build_tray_menu(
         }
     }
 
-    // IDE sections (Cursor, Antigravity)
+    // IDE sections (Antigravity). Cursor and Windsurf are temporarily hidden.
     for ide_type in IdeType::all() {
+        if matches!(ide_type, IdeType::Cursor | IdeType::Windsurf) {
+            continue;
+        }
         if !ide_is_installed(handle, ide_type) {
             continue;
         }
