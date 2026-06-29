@@ -11,7 +11,13 @@ use crate::modules::usage::pricing::{load_price_table, ModelPrice};
 /// (0 = all time). Token data is reused from the session-log parser; cost is
 /// derived from the LiteLLM price table.
 pub async fn build_report(claude_dir: &Path, cache_dir: &Path, range_days: u32) -> UsageReport {
-    let since = since_for(range_days);
+    // "Today" (1 day) buckets by hour from local midnight; longer ranges by day.
+    let hourly = range_days == 1;
+    let since = if hourly {
+        start_of_today_utc()
+    } else {
+        since_for(range_days)
+    };
     let summaries = parse_session_logs(&claude_dir.to_path_buf(), since);
     let prices = load_price_table(cache_dir).await;
     let have_prices = prices.status != PriceStatus::Hidden;
@@ -32,13 +38,19 @@ pub async fn build_report(claude_dir: &Path, cache_dir: &Path, range_days: u32) 
             cache_read: s.total_cache_read,
             cache_creation: s.total_cache_write,
         };
-        let date = local_date(&s.started_at);
+        let cal_date = local_date(&s.started_at);
+        // Chart bucket: hour-of-day in "today" mode, otherwise the calendar date.
+        let bucket = if hourly {
+            local_hour(&s.started_at)
+        } else {
+            cal_date.clone()
+        };
         let cost = prices.lookup(&s.model).map(|p| cost_of(&tokens, &p));
 
         total.add(&tokens);
         total_cost += cost.unwrap_or(0.0);
 
-        let day = daily.entry(date.clone()).or_default();
+        let day = daily.entry(bucket.clone()).or_default();
         day.0.add(&tokens);
         day.1 += cost.unwrap_or(0.0);
 
@@ -46,14 +58,14 @@ pub async fn build_report(claude_dir: &Path, cache_dir: &Path, range_days: u32) 
         model.0.add(&tokens);
         model.1 += cost.unwrap_or(0.0);
 
-        if date == today {
+        if cal_date == today {
             today_tokens.add(&tokens);
             today_cost += cost.unwrap_or(0.0);
         }
 
         sessions.push(SessionUsage {
             id: s.session_id.clone(),
-            date,
+            date: bucket,
             model: s.model.clone(),
             project: s.project.clone(),
             tokens,
@@ -95,6 +107,27 @@ pub async fn build_report(claude_dir: &Path, cache_dir: &Path, range_days: u32) 
         generated_at: chrono::Utc::now().to_rfc3339(),
         price_status: prices.status,
         price_updated_at: prices.updated_at,
+    }
+}
+
+/// Local midnight of the current day, expressed in UTC.
+fn start_of_today_utc() -> chrono::DateTime<chrono::Utc> {
+    let now = chrono::Local::now();
+    now.date_naive()
+        .and_hms_opt(0, 0, 0)
+        .and_then(|naive| naive.and_local_timezone(chrono::Local).single())
+        .map(|dt| dt.with_timezone(&chrono::Utc))
+        .unwrap_or_else(chrono::Utc::now)
+}
+
+/// Local hour-of-day label, e.g. "08:00".
+fn local_hour(rfc3339: &str) -> String {
+    match chrono::DateTime::parse_from_rfc3339(rfc3339) {
+        Ok(ts) => ts
+            .with_timezone(&chrono::Local)
+            .format("%H:00")
+            .to_string(),
+        Err(_) => "00:00".to_string(),
     }
 }
 

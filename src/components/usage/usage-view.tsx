@@ -44,6 +44,14 @@ export function UsageView() {
   const [range, setRange] = useState<UsageRange>(7)
   const { report, loading } = useUsageReport(range)
   const showCost = report?.priceStatus !== 'hidden'
+  const hourly = range === 1
+  const chartTitle = hourly
+    ? showCost
+      ? t('usage.chart.cost_by_hour')
+      : t('usage.chart.tokens_by_hour')
+    : showCost
+      ? t('usage.chart.cost_by_day')
+      : t('usage.chart.tokens_by_day')
 
   return (
     <div className="space-y-6">
@@ -84,11 +92,7 @@ export function UsageView() {
 
       <Card>
         <CardHeader>
-          <CardTitle className="text-sm">
-            {showCost
-              ? t('usage.chart.cost_by_day')
-              : t('usage.chart.tokens_by_day')}
-          </CardTitle>
+          <CardTitle className="text-sm">{chartTitle}</CardTitle>
         </CardHeader>
         <CardContent>
           {report ? (

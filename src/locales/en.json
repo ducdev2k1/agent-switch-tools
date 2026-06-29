@@ -241,6 +241,8 @@
     "chart": {
       "cost_by_day": "Cost by day",
       "tokens_by_day": "Tokens by day",
+      "cost_by_hour": "Cost by hour",
+      "tokens_by_hour": "Tokens by hour",
       "tokens_suffix": "tokens",
       "no_data": "No usage in this range"
     },

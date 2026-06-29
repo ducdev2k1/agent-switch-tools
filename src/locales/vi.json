@@ -241,6 +241,8 @@
     "chart": {
       "cost_by_day": "Chi phí theo ngày",
       "tokens_by_day": "Token theo ngày",
+      "cost_by_hour": "Chi phí theo giờ",
+      "tokens_by_hour": "Token theo giờ",
       "tokens_suffix": "token",
       "no_data": "Không có dữ liệu trong khoảng này"
     },

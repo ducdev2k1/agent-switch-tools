@@ -57,9 +57,10 @@ export function UsageCostChart({
   showCost: boolean
 }) {
   const { t } = useTranslation()
-  // Keep the chart readable: only the most recent MAX_BARS days.
+  // Keep the chart readable: only the most recent MAX_BARS buckets.
+  // Daily buckets are "YYYY-MM-DD" (show MM-DD); hourly buckets are "HH:00" (show as-is).
   const data: ChartDatum[] = daily.slice(-MAX_BARS).map((d) => ({
-    date: d.date.slice(5),
+    date: d.date.length > 5 ? d.date.slice(5) : d.date,
     value: showCost ? (d.costUsd ?? 0) : totalTokens(d.tokens),
     tokens: totalTokens(d.tokens),
     cost: d.costUsd,
