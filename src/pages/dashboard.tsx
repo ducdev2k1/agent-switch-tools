@@ -4,6 +4,7 @@ import { DeleteConfirmDialog } from '@/components/delete-confirm-dialog'
 import { IdeDashboardSection } from '@/components/ide-dashboard-section'
 import { ProfileCard } from '@/components/profile-card'
 import { ProfileTable } from '@/components/profile-table'
+import { IdeLogo } from '@/components/ide-logo'
 import { SwitchConfirmationDialog } from '@/components/switch-confirmation-dialog'
 import { UsageView } from '@/components/usage/usage-view'
 import { Button } from '@/components/ui/button'
@@ -16,19 +17,7 @@ import { useCredentialProfiles } from '@/hooks/use-profiles'
 import { useUsageStats } from '@/hooks/use-usage-stats'
 import type { AppUpdaterState, CredentialProfile } from '@/lib/types'
 import { listen } from '@tauri-apps/api/event'
-import {
-  BarChart3,
-  Braces,
-  MonitorSmartphone,
-  MousePointer2,
-  Orbit,
-  RefreshCw,
-  Save,
-  Settings,
-  Shield,
-  Wind,
-} from 'lucide-react'
-import type { LucideIcon } from 'lucide-react'
+import { BarChart3, Braces, RefreshCw, Save, Settings, Shield } from 'lucide-react'
 import { useCallback, useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { toast } from 'sonner'
@@ -36,20 +25,6 @@ import { toast } from 'sonner'
 interface DashboardProps {
   onOpenSettings: () => void
   updater: AppUpdaterState
-}
-
-/** Distinct tab icon per IDE so the icon-only tab bar stays distinguishable. */
-function ideIcon(ideType: string): LucideIcon {
-  switch (ideType) {
-    case 'cursor':
-      return MousePointer2
-    case 'windsurf':
-      return Wind
-    case 'antigravity':
-      return Orbit
-    default:
-      return MonitorSmartphone
-  }
 }
 
 export function Dashboard({ onOpenSettings, updater }: DashboardProps) {
@@ -282,24 +257,27 @@ export function Dashboard({ onOpenSettings, updater }: DashboardProps) {
               title="Claude Code"
               aria-label="Claude Code"
             >
-              <Braces className="size-4" />
+              <IdeLogo
+                name="claude"
+                className="size-4"
+              />
             </TabsTrigger>
             {installedIdes
               .filter((ide) => ide.isInstalled)
-              .map((ide) => {
-                const Icon = ideIcon(ide.ideType)
-                return (
-                  <TabsTrigger
-                    key={ide.ideType}
-                    value={ide.ideType}
-                    className="px-2.5"
-                    title={ide.displayName}
-                    aria-label={ide.displayName}
-                  >
-                    <Icon className="size-4" />
-                  </TabsTrigger>
-                )
-              })}
+              .map((ide) => (
+                <TabsTrigger
+                  key={ide.ideType}
+                  value={ide.ideType}
+                  className="px-2.5"
+                  title={ide.displayName}
+                  aria-label={ide.displayName}
+                >
+                  <IdeLogo
+                    name={ide.ideType}
+                    className="size-4"
+                  />
+                </TabsTrigger>
+              ))}
             <TabsTrigger
               value="usage"
               className="px-2.5"
