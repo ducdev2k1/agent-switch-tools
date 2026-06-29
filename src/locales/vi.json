@@ -105,6 +105,7 @@
     "back": "Quay lại",
     "tabs": {
       "general": "Chung",
+      "auto_session": "Phiên tự động",
       "webhook": "Webhook",
       "about": "Giới thiệu"
     },
@@ -216,5 +217,81 @@
   },
   "profiles": {
     "driftDetected": "Phát hiện đăng nhập Claude mới — đã lưu tài khoản cũ, chuyển sang tài khoản mới."
+  },
+  "usage": {
+    "tab": "Mức sử dụng",
+    "range": {
+      "today": "Hôm nay",
+      "7d": "7 ngày",
+      "30d": "30 ngày",
+      "90d": "90 ngày",
+      "all": "Tất cả"
+    },
+    "price_status": {
+      "live": "Giá trực tuyến",
+      "saved": "Giá đã lưu",
+      "hidden": "Ẩn chi phí"
+    },
+    "tiles": {
+      "total_cost": "Tổng chi phí",
+      "today_cost": "Chi phí hôm nay",
+      "output_tokens": "Token đầu ra",
+      "cache_read": "Cache đọc"
+    },
+    "chart": {
+      "cost_by_day": "Chi phí theo ngày",
+      "tokens_by_day": "Token theo ngày",
+      "tokens_suffix": "token",
+      "no_data": "Không có dữ liệu trong khoảng này"
+    },
+    "by_model": "Theo model",
+    "recent_sessions": "Phiên gần đây",
+    "refreshing": "Đang làm mới...",
+    "table": {
+      "model": "Model",
+      "input": "Vào",
+      "output": "Ra",
+      "cache": "Cache",
+      "total": "Tổng",
+      "cost": "Chi phí",
+      "date": "Ngày",
+      "project": "Dự án",
+      "tokens": "Token",
+      "no_models": "Không có dữ liệu model trong khoảng này",
+      "no_sessions": "Không có phiên trong khoảng này"
+    }
+  },
+  "auto_session": {
+    "banner": "Tính năng prime chỉ chạy khi ứng dụng đang mở. Bật \"Khởi động cùng hệ thống\" ở tab Chung để ứng dụng tự chạy cùng máy.",
+    "apply_all": "Áp dụng cho tất cả hồ sơ",
+    "enable_all": "Bật tất cả",
+    "disable_all": "Tắt tất cả",
+    "no_profiles": "Không tìm thấy hồ sơ Claude",
+    "prime_now": "Prime ngay",
+    "reset_hint": "{{time}} → đặt lại ~{{reset}}",
+    "daily_stats": "Thống kê theo ngày",
+    "activity_log": "Nhật ký hoạt động",
+    "no_activity": "Chưa có hoạt động",
+    "stats": {
+      "date": "Ngày",
+      "success": "Thành công",
+      "hold": "Tạm hoãn",
+      "failed": "Thất bại",
+      "skip": "Bỏ qua"
+    },
+    "result": {
+      "success": "Đã prime — cửa sổ đặt lại lúc {{reset}}",
+      "hold": "Đang có cửa sổ chạy (đặt lại {{reset}})",
+      "failed": "Prime thất bại: {{reason}}",
+      "skipped": "Đã bỏ qua: {{reason}}"
+    },
+    "result_badge": {
+      "success": "thành công",
+      "failed": "thất bại",
+      "hold": "tạm hoãn",
+      "skip": "bỏ qua"
+    },
+    "enabled_toast": "Đã bật prime cho {{count}} hồ sơ",
+    "disabled_toast": "Đã tắt prime cho tất cả hồ sơ"
   }
 }

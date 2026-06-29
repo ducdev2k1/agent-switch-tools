@@ -3,8 +3,8 @@ import { invoke } from '@tauri-apps/api/core'
 import { listen } from '@tauri-apps/api/event'
 import { useCallback, useEffect, useState } from 'react'
 
-/** Date-range options exposed by the usage view (days; 0 = all time). */
-export type UsageRange = 7 | 30 | 90 | 0
+/** Date-range options exposed by the usage view (days; 1 = today, 0 = all time). */
+export type UsageRange = 1 | 7 | 30 | 90 | 0
 
 /**
  * Loads the Claude Code cost/usage report for the selected range and refetches

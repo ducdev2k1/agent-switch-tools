@@ -105,6 +105,7 @@
     "back": "Back",
     "tabs": {
       "general": "General",
+      "auto_session": "Auto Session",
       "webhook": "Webhook",
       "about": "About"
     },
@@ -216,5 +217,81 @@
   },
   "profiles": {
     "driftDetected": "Detected new Claude login — saved previous account, switched to new one."
+  },
+  "usage": {
+    "tab": "Usage",
+    "range": {
+      "today": "Today",
+      "7d": "7d",
+      "30d": "30d",
+      "90d": "90d",
+      "all": "All"
+    },
+    "price_status": {
+      "live": "Live prices",
+      "saved": "Saved prices",
+      "hidden": "Cost hidden"
+    },
+    "tiles": {
+      "total_cost": "Total cost",
+      "today_cost": "Today cost",
+      "output_tokens": "Output tokens",
+      "cache_read": "Cache read"
+    },
+    "chart": {
+      "cost_by_day": "Cost by day",
+      "tokens_by_day": "Tokens by day",
+      "tokens_suffix": "tokens",
+      "no_data": "No usage in this range"
+    },
+    "by_model": "By model",
+    "recent_sessions": "Recent sessions",
+    "refreshing": "Refreshing…",
+    "table": {
+      "model": "Model",
+      "input": "Input",
+      "output": "Output",
+      "cache": "Cache",
+      "total": "Total",
+      "cost": "Cost",
+      "date": "Date",
+      "project": "Project",
+      "tokens": "Tokens",
+      "no_models": "No model usage in this range",
+      "no_sessions": "No sessions in this range"
+    }
+  },
+  "auto_session": {
+    "banner": "Priming only runs while this app is open. Enable \"Start on system startup\" in the General tab so it launches with your system.",
+    "apply_all": "Apply to all profiles",
+    "enable_all": "Enable all",
+    "disable_all": "Disable all",
+    "no_profiles": "No Claude profiles found",
+    "prime_now": "Prime now",
+    "reset_hint": "{{time}} → reset ~{{reset}}",
+    "daily_stats": "Daily stats",
+    "activity_log": "Activity log",
+    "no_activity": "No activity yet",
+    "stats": {
+      "date": "Date",
+      "success": "Success",
+      "hold": "Hold",
+      "failed": "Failed",
+      "skip": "Skip"
+    },
+    "result": {
+      "success": "Primed — window resets at {{reset}}",
+      "hold": "A window is already running (resets {{reset}})",
+      "failed": "Prime failed: {{reason}}",
+      "skipped": "Skipped: {{reason}}"
+    },
+    "result_badge": {
+      "success": "success",
+      "failed": "failed",
+      "hold": "hold",
+      "skip": "skip"
+    },
+    "enabled_toast": "Enabled priming for {{count}} profiles",
+    "disabled_toast": "Disabled priming for all profiles"
   }
 }

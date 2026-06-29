@@ -57,7 +57,7 @@ export function SettingsPage({ onBack, updater }: SettingsPageProps) {
               className="justify-start gap-2 px-3 py-2 data-[state=active]:bg-accent"
             >
               <Timer className="size-4" />
-              Auto Session
+              {t('settings.tabs.auto_session')}
             </TabsTrigger>
             <TabsTrigger
               value="webhook"

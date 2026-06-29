@@ -5,27 +5,31 @@ import { useAutoPrime } from '@/hooks/use-auto-prime'
 import { useCredentialProfiles } from '@/hooks/use-profiles'
 import type { PrimeResult } from '@/lib/types'
 import { useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { toast } from 'sonner'
 import { AutoPrimeRow } from './auto-prime-row'
 import { AutoPrimeStats } from './auto-prime-stats'
 
 const TIME_RE = /^([01]\d|2[0-3]):[0-5]\d$/
 
-function describe(r: PrimeResult): string {
-  if (r.status === 'success') return `Primed — window resets ${r.resetAt}`
-  if (r.status === 'hold')
-    return `A window is already running (resets ${r.resetAt})`
-  if (r.status === 'failed') return `Prime failed: ${r.reason}`
-  return `Skipped: ${r.reason}`
-}
-
 export function AutoSessionView() {
+  const { t } = useTranslation()
   const { profiles } = useCredentialProfiles()
   const { settings, log, stats, setAutoPrime, setAll, primeNow } = useAutoPrime()
   const [allTime, setAllTime] = useState('09:00')
 
   const names = profiles.map((p) => p.name)
   const validAll = TIME_RE.test(allTime)
+
+  const describe = (r: PrimeResult): string => {
+    if (r.status === 'success')
+      return t('auto_session.result.success', { reset: r.resetAt })
+    if (r.status === 'hold')
+      return t('auto_session.result.hold', { reset: r.resetAt })
+    if (r.status === 'failed')
+      return t('auto_session.result.failed', { reason: r.reason })
+    return t('auto_session.result.skipped', { reason: r.reason })
+  }
 
   const handlePrimeNow = async (name: string) => {
     const result = await primeNow(name)
@@ -41,22 +45,22 @@ export function AutoSessionView() {
     setAll(names, enabled, allTime)
     toast.success(
       enabled
-        ? `Enabled priming for ${names.length} profiles`
-        : 'Disabled priming for all profiles',
+        ? t('auto_session.enabled_toast', { count: names.length })
+        : t('auto_session.disabled_toast'),
     )
   }
 
   return (
     <div className="space-y-6">
       <div className="rounded-lg border border-warning/30 bg-warning/5 px-4 py-3 text-sm">
-        Priming only runs while this app is open. Enable{' '}
-        <span className="font-medium">Autostart</span> in the General tab so it
-        launches with your system.
+        {t('auto_session.banner')}
       </div>
 
       <Card>
         <CardHeader>
-          <CardTitle className="text-sm">Apply to all profiles</CardTitle>
+          <CardTitle className="text-sm">
+            {t('auto_session.apply_all')}
+          </CardTitle>
         </CardHeader>
         <CardContent className="flex items-center gap-3">
           <Input
@@ -70,7 +74,7 @@ export function AutoSessionView() {
             onClick={() => applyAll(true)}
             disabled={!validAll || names.length === 0}
           >
-            Enable all
+            {t('auto_session.enable_all')}
           </Button>
           <Button
             size="sm"
@@ -78,7 +82,7 @@ export function AutoSessionView() {
             onClick={() => applyAll(false)}
             disabled={names.length === 0}
           >
-            Disable all
+            {t('auto_session.disable_all')}
           </Button>
         </CardContent>
       </Card>
@@ -86,7 +90,7 @@ export function AutoSessionView() {
       <div className="space-y-2">
         {names.length === 0 ? (
           <p className="py-4 text-center text-sm text-muted-foreground">
-            No Claude profiles found
+            {t('auto_session.no_profiles')}
           </p>
         ) : (
           names.map((name) => (
@@ -105,7 +109,9 @@ export function AutoSessionView() {
 
       <Card>
         <CardHeader>
-          <CardTitle className="text-sm">Daily stats</CardTitle>
+          <CardTitle className="text-sm">
+            {t('auto_session.daily_stats')}
+          </CardTitle>
         </CardHeader>
         <CardContent>
           <AutoPrimeStats stats={stats} />
@@ -114,7 +120,9 @@ export function AutoSessionView() {
 
       <Card>
         <CardHeader>
-          <CardTitle className="text-sm">Activity log</CardTitle>
+          <CardTitle className="text-sm">
+            {t('auto_session.activity_log')}
+          </CardTitle>
         </CardHeader>
         <CardContent>
           {log ? (
@@ -122,7 +130,9 @@ export function AutoSessionView() {
               {log}
             </pre>
           ) : (
-            <p className="text-sm text-muted-foreground">No activity yet</p>
+            <p className="text-sm text-muted-foreground">
+              {t('auto_session.no_activity')}
+            </p>
           )}
         </CardContent>
       </Card>

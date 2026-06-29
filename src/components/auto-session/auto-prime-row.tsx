@@ -4,6 +4,7 @@ import { Input } from '@/components/ui/input'
 import { Switch } from '@/components/ui/switch'
 import type { AutoPrimeSetting, PrimeResult } from '@/lib/types'
 import { useState } from 'react'
+import { useTranslation } from 'react-i18next'
 
 const TIME_RE = /^([01]\d|2[0-3]):[0-5]\d$/
 
@@ -36,6 +37,7 @@ export function AutoPrimeRow({
   onSave: (name: string, enabled: boolean, time: string) => void
   onPrimeNow: (name: string) => Promise<PrimeResult>
 }) {
+  const { t } = useTranslation()
   const [time, setTime] = useState(setting?.time || '09:00')
   const [enabled, setEnabled] = useState(setting?.enabled ?? false)
   const [priming, setPriming] = useState(false)
@@ -61,7 +63,7 @@ export function AutoPrimeRow({
         <div className="truncate font-medium">{name}</div>
         {valid && (
           <div className="text-xs text-muted-foreground">
-            {time} → reset ~{resetHint(time)}
+            {t('auto_session.reset_hint', { time, reset: resetHint(time) })}
           </div>
         )}
         {setting?.lastResult && (
@@ -69,7 +71,7 @@ export function AutoPrimeRow({
             variant={RESULT_VARIANT[setting.lastResult] ?? 'secondary'}
             className="mt-1"
           >
-            {setting.lastResult}
+            {t(`auto_session.result_badge.${setting.lastResult}`)}
           </Badge>
         )}
       </div>
@@ -92,7 +94,7 @@ export function AutoPrimeRow({
         onClick={handlePrime}
         disabled={priming}
       >
-        {priming ? '…' : 'Prime now'}
+        {priming ? '…' : t('auto_session.prime_now')}
       </Button>
     </div>
   )

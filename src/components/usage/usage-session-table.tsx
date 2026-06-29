@@ -1,4 +1,5 @@
 import type { SessionUsage } from '@/lib/types'
+import { useTranslation } from 'react-i18next'
 import { formatCost, formatTokens, totalTokens } from './usage-format'
 
 export function UsageSessionTable({
@@ -8,10 +9,11 @@ export function UsageSessionTable({
   sessions: SessionUsage[]
   showCost: boolean
 }) {
+  const { t } = useTranslation()
   if (sessions.length === 0) {
     return (
       <p className="py-6 text-center text-sm text-muted-foreground">
-        No sessions in this range
+        {t('usage.table.no_sessions')}
       </p>
     )
   }
@@ -21,11 +23,15 @@ export function UsageSessionTable({
       <table className="w-full text-sm">
         <thead>
           <tr className="border-b text-left text-xs text-muted-foreground">
-            <th className="py-2 pr-4 font-medium">Date</th>
-            <th className="py-2 pr-4 font-medium">Project</th>
-            <th className="py-2 pr-4 font-medium">Model</th>
-            <th className="py-2 pr-4 font-medium">Tokens</th>
-            {showCost && <th className="py-2 font-medium">Cost</th>}
+            <th className="py-2 pr-4 font-medium">{t('usage.table.date')}</th>
+            <th className="py-2 pr-4 font-medium">
+              {t('usage.table.project')}
+            </th>
+            <th className="py-2 pr-4 font-medium">{t('usage.table.model')}</th>
+            <th className="py-2 pr-4 font-medium">{t('usage.table.tokens')}</th>
+            {showCost && (
+              <th className="py-2 font-medium">{t('usage.table.cost')}</th>
+            )}
           </tr>
         </thead>
         <tbody>

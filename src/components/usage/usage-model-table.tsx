@@ -1,4 +1,5 @@
 import type { ModelUsage } from '@/lib/types'
+import { useTranslation } from 'react-i18next'
 import { formatCost, formatTokens, totalTokens } from './usage-format'
 
 export function UsageModelTable({
@@ -8,10 +9,11 @@ export function UsageModelTable({
   models: ModelUsage[]
   showCost: boolean
 }) {
+  const { t } = useTranslation()
   if (models.length === 0) {
     return (
       <p className="py-6 text-center text-sm text-muted-foreground">
-        No model usage in this range
+        {t('usage.table.no_models')}
       </p>
     )
   }
@@ -21,12 +23,14 @@ export function UsageModelTable({
       <table className="w-full text-sm">
         <thead>
           <tr className="border-b text-left text-xs text-muted-foreground">
-            <th className="py-2 pr-4 font-medium">Model</th>
-            <th className="py-2 pr-4 font-medium">Input</th>
-            <th className="py-2 pr-4 font-medium">Output</th>
-            <th className="py-2 pr-4 font-medium">Cache</th>
-            <th className="py-2 pr-4 font-medium">Total</th>
-            {showCost && <th className="py-2 font-medium">Cost</th>}
+            <th className="py-2 pr-4 font-medium">{t('usage.table.model')}</th>
+            <th className="py-2 pr-4 font-medium">{t('usage.table.input')}</th>
+            <th className="py-2 pr-4 font-medium">{t('usage.table.output')}</th>
+            <th className="py-2 pr-4 font-medium">{t('usage.table.cache')}</th>
+            <th className="py-2 pr-4 font-medium">{t('usage.table.total')}</th>
+            {showCost && (
+              <th className="py-2 font-medium">{t('usage.table.cost')}</th>
+            )}
           </tr>
         </thead>
         <tbody>

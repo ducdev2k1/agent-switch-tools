@@ -273,8 +273,8 @@ export function Dashboard({ onOpenSettings, updater }: DashboardProps) {
             <TabsTrigger
               value="usage"
               className="px-2.5"
-              title="Usage"
-              aria-label="Usage"
+              title={t('usage.tab')}
+              aria-label={t('usage.tab')}
             >
               <BarChart3 className="size-4" />
             </TabsTrigger>

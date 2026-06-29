@@ -1,4 +1,5 @@
 import type { DayUsage } from '@/lib/types'
+import { useTranslation } from 'react-i18next'
 import {
   Bar,
   BarChart,
@@ -26,10 +27,12 @@ function ChartTooltip({
   active,
   payload,
   showCost,
+  tokensLabel,
 }: {
   active?: boolean
   payload?: TooltipPayload[]
   showCost: boolean
+  tokensLabel: string
 }) {
   if (!active || !payload?.length) return null
   const d = payload[0].payload
@@ -37,7 +40,7 @@ function ChartTooltip({
     <div className="rounded-md border bg-popover px-3 py-2 text-xs shadow-md">
       <div className="font-medium">{d.date}</div>
       <div className="text-muted-foreground">
-        {formatTokens(d.tokens)} tokens
+        {formatTokens(d.tokens)} {tokensLabel}
       </div>
       {showCost && (
         <div className="text-muted-foreground">{formatCost(d.cost)}</div>
@@ -53,6 +56,7 @@ export function UsageCostChart({
   daily: DayUsage[]
   showCost: boolean
 }) {
+  const { t } = useTranslation()
   // Keep the chart readable: only the most recent MAX_BARS days.
   const data: ChartDatum[] = daily.slice(-MAX_BARS).map((d) => ({
     date: d.date.slice(5),
@@ -64,7 +68,7 @@ export function UsageCostChart({
   if (data.length === 0) {
     return (
       <div className="flex h-48 items-center justify-center text-sm text-muted-foreground">
-        No usage in this range
+        {t('usage.chart.no_data')}
       </div>
     )
   }
@@ -90,7 +94,12 @@ export function UsageCostChart({
         />
         <Tooltip
           cursor={{ fill: 'var(--muted)' }}
-          content={<ChartTooltip showCost={showCost} />}
+          content={
+            <ChartTooltip
+              showCost={showCost}
+              tokensLabel={t('usage.chart.tokens_suffix')}
+            />
+          }
         />
         <Bar
           dataKey="value"

@@ -1,10 +1,12 @@
 import type { PrimeDayStat } from '@/lib/types'
+import { useTranslation } from 'react-i18next'
 
 export function AutoPrimeStats({ stats }: { stats: PrimeDayStat[] }) {
+  const { t } = useTranslation()
   if (stats.length === 0) {
     return (
       <p className="py-4 text-center text-sm text-muted-foreground">
-        No prime activity yet
+        {t('auto_session.no_activity')}
       </p>
     )
   }
@@ -14,11 +16,21 @@ export function AutoPrimeStats({ stats }: { stats: PrimeDayStat[] }) {
       <table className="w-full text-sm">
         <thead>
           <tr className="border-b text-left text-xs text-muted-foreground">
-            <th className="py-2 pr-4 font-medium">Date</th>
-            <th className="py-2 pr-4 font-medium">Success</th>
-            <th className="py-2 pr-4 font-medium">Hold</th>
-            <th className="py-2 pr-4 font-medium">Failed</th>
-            <th className="py-2 font-medium">Skip</th>
+            <th className="py-2 pr-4 font-medium">
+              {t('auto_session.stats.date')}
+            </th>
+            <th className="py-2 pr-4 font-medium">
+              {t('auto_session.stats.success')}
+            </th>
+            <th className="py-2 pr-4 font-medium">
+              {t('auto_session.stats.hold')}
+            </th>
+            <th className="py-2 pr-4 font-medium">
+              {t('auto_session.stats.failed')}
+            </th>
+            <th className="py-2 font-medium">
+              {t('auto_session.stats.skip')}
+            </th>
           </tr>
         </thead>
         <tbody>
