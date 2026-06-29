@@ -5,16 +5,20 @@ title: Tổng Quan Dự Án
 
 ## Agent Switch Tools là gì?
 
-**Agent Switch Tools** là một ứng dụng desktop (chạy trên máy tính) giúp bạn **quản lý nhiều tài khoản AI coding agent** (Claude Code, Cursor, Windsurf, Antigravity) từ một nơi duy nhất.
+**Agent Switch Tools** là một ứng dụng desktop (chạy trên máy tính) giúp bạn **quản lý nhiều tài khoản AI coding agent** (Claude Code, Cursor, Windsurf, Antigravity — gồm cả Desktop, IDE và CLI) từ một nơi duy nhất.
 
 ### Các AI coding agent được hỗ trợ
 
-| Agent           | Loại            | Cơ chế lưu credentials                |
-| --------------- | --------------- | ------------------------------------- |
-| **Claude Code** | CLI (Anthropic) | File `.credentials.json`              |
-| **Cursor**      | IDE             | SQLite `state.vscdb`                  |
-| **Windsurf**    | IDE             | SQLite `state.vscdb` (protobuf email) |
-| **Antigravity** | IDE             | SQLite `state.vscdb` (JSON email)     |
+| Agent               | Loại            | Cơ chế lưu credentials                                     |
+| ------------------- | --------------- | ---------------------------------------------------------- |
+| **Claude Code**     | CLI (Anthropic) | File `.credentials.json`                                   |
+| **Cursor**          | IDE             | SQLite `state.vscdb`                                       |
+| **Windsurf**        | IDE             | SQLite `state.vscdb` (protobuf email)                      |
+| **Antigravity**     | Desktop         | `~/.config/Antigravity` → `state.vscdb` (JSON email)       |
+| **Antigravity IDE** | IDE             | `~/.config/Antigravity IDE` → `state.vscdb` (OAuth proto)  |
+| **Antigravity CLI** | CLI             | `~/.gemini/antigravity-cli/antigravity-oauth-token` (JSON) |
+
+> Từ v1.0.12, Antigravity được tách thành 3 biến thể độc lập (Desktop / IDE / CLI), gộp trong một tab "Antigravity" với các sub-tab riêng. Cursor và Windsurf tạm ẩn khỏi dashboard và tray.
 
 ### Vấn đề
 

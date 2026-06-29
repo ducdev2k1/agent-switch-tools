@@ -31,7 +31,11 @@ Agent Switch Tools tạo một hệ thống **profile** thống nhất — mỗi
 │           └── auth-backup.json    ← Backup auth keys từ state.vscdb
 ├── windsurf/                   ← Windsurf IDE data
 │   └── profiles/{email}/
-└── antigravity/                ← Antigravity IDE data
+├── antigravity/                ← Antigravity Desktop data
+│   └── profiles/{email}/
+├── antigravity-ide/            ← Antigravity IDE data
+│   └── profiles/{email}/
+└── antigravity-cli/            ← Antigravity CLI data
     └── profiles/{email}/
 ```
 
@@ -106,6 +110,20 @@ Headers:
 ```
 
 **Kết quả trả về**: % đã sử dụng và thời gian reset cho mỗi loại quota.
+
+#### Quota Antigravity (cả 3 biến thể) — cập nhật từ v1.0.12
+
+Theo chính sách Gemini mới, Antigravity tính quota theo **giới hạn Weekly + 5 giờ cho từng nhóm model**. App gọi endpoint mới (đúng cái lệnh `usage` native dùng):
+
+```
+POST https://daily-cloudcode-pa.googleapis.com/v1internal:retrieveUserQuotaSummary
+Body: {}
+Headers: Authorization: Bearer {access_token}, User-Agent: Antigravity/...
+```
+
+- Hiển thị 4 bucket: **Gemini — Weekly / 5h** và **Claude and GPT — Weekly / 5h** (theo **% còn lại**).
+- Token tự refresh qua Google OAuth khi hết hạn; email lấy qua Google `userinfo` (cho IDE/CLI).
+- Nếu tài khoản Google chưa xác minh (vd chưa có SĐT) → API trả `403 "Verify your account"`, không có quota — đúng như CLI native.
 
 ### Tự động cập nhật (Background Worker)
 
