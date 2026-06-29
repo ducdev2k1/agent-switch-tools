@@ -6,6 +6,7 @@
 import antigravityLogo from '@/assets/images/logos/agy.png'
 import claudeLogo from '@/assets/images/logos/claude.png'
 import cursorLogo from '@/assets/images/logos/cursor.png'
+import windsurfLogo from '@/assets/images/logos/windsurf.png'
 
 interface LogoProps {
   className?: string
@@ -16,31 +17,7 @@ const PNG_LOGOS: Record<string, string> = {
   'claude-code': claudeLogo,
   cursor: cursorLogo,
   antigravity: antigravityLogo,
-}
-
-/** Windsurf — teal sail (no official asset yet). */
-function WindsurfLogo({ className }: LogoProps) {
-  return (
-    <svg
-      viewBox="0 0 24 24"
-      className={className}
-      aria-hidden="true"
-    >
-      <path
-        d="M13 3 L13 19 L4 19 Z"
-        fill="#21C2A4"
-      />
-      <line
-        x1="13"
-        y1="3"
-        x2="13"
-        y2="21"
-        stroke="#0E7C6B"
-        strokeWidth="1.6"
-        strokeLinecap="round"
-      />
-    </svg>
-  )
+  windsurf: windsurfLogo,
 }
 
 /** Fallback — generic monitor outline. */
@@ -68,7 +45,13 @@ function GenericLogo({ className }: LogoProps) {
 }
 
 /** Render the brand logo for a tool key (claude / cursor / windsurf / antigravity). */
-export function IdeLogo({ name, className }: { name: string; className?: string }) {
+export function IdeLogo({
+  name,
+  className,
+}: {
+  name: string
+  className?: string
+}) {
   const src = PNG_LOGOS[name]
   if (src) {
     return (
@@ -80,6 +63,5 @@ export function IdeLogo({ name, className }: { name: string; className?: string 
       />
     )
   }
-  if (name === 'windsurf') return <WindsurfLogo className={className} />
   return <GenericLogo className={className} />
 }
