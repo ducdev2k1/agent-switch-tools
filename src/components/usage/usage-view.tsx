@@ -3,6 +3,7 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { useUsageReport, type UsageRange } from '@/hooks/use-usage-report'
 import type { PriceStatus } from '@/lib/types'
+import { Loader2 } from 'lucide-react'
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { UsageCostChart } from './usage-cost-chart'
@@ -68,9 +69,19 @@ export function UsageView() {
             </Button>
           ))}
         </div>
-        {report && priceBadge(report.priceStatus, t)}
+        <div className="flex items-center gap-2">
+          {loading && (
+            <Loader2 className="size-4 animate-spin text-muted-foreground" />
+          )}
+          {report && priceBadge(report.priceStatus, t)}
+        </div>
       </div>
 
+      <div
+        className={`space-y-6 transition-opacity duration-200 ${
+          loading ? 'pointer-events-none opacity-50' : ''
+        }`}
+      >
       <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
         <StatTile
           label={t('usage.tiles.total_cost')}
@@ -135,12 +146,7 @@ export function UsageView() {
           )}
         </CardContent>
       </Card>
-
-      {loading && (
-        <p className="text-center text-xs text-muted-foreground">
-          {t('usage.refreshing')}
-        </p>
-      )}
+      </div>
     </div>
   )
 }
