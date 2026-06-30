@@ -177,6 +177,7 @@ export interface SystemInfo {
 
 export interface AppUpdaterState {
   updateVersion: string | null
+  updateBody: string | null
   showModal: boolean
   dismissModal: () => Promise<void>
   installing: boolean

@@ -11,6 +11,7 @@ import {
   RefreshCw,
   Trash2,
 } from 'lucide-react'
+import type { TFunction } from 'i18next'
 import { useTranslation } from 'react-i18next'
 import { toast } from 'sonner'
 
@@ -22,7 +23,7 @@ interface ProfileTableProps {
 }
 
 /** Human-readable subscription name */
-function formatSubscription(sub: string | null, t: any): string {
+function formatSubscription(sub: string | null, t: TFunction): string {
   if (!sub) return t('common.actions.unknown')
   return sub.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase())
 }
@@ -163,7 +164,7 @@ function ProfileRow({
 
       {/* Actions */}
       <td className="px-4 py-3 align-top text-right">
-        <div className="flex items-center justify-end gap-0.5 opacity-40 group-hover:opacity-100 transition-opacity">
+        <div className="flex items-center justify-end gap-0.5">
           {expired && (
             <Button
               variant="ghost"
@@ -176,6 +177,12 @@ function ProfileRow({
                   toast.success(t('common.messages.token_refreshed'))
                   await onProfilesChanged?.()
                   refreshUsage()
+                } else {
+                  toast.error(
+                    t('common.messages.token_refresh_failed', {
+                      message: result.message,
+                    }),
+                  )
                 }
               }}
               disabled={refreshing}
@@ -189,7 +196,7 @@ function ProfileRow({
           <Button
             variant="ghost"
             size="icon"
-            className="size-8 text-muted-foreground/60 hover:text-foreground"
+            className="size-8 text-muted-foreground/60 hover:text-foreground opacity-40 group-hover:opacity-100 transition-opacity"
             onClick={(e) => {
               e.stopPropagation()
               refreshUsage()
@@ -205,7 +212,7 @@ function ProfileRow({
             <Button
               variant="ghost"
               size="icon"
-              className="size-8 text-muted-foreground/60 hover:text-primary"
+              className="size-8 text-muted-foreground/60 hover:text-primary opacity-40 group-hover:opacity-100 transition-opacity"
               onClick={() => onSwitch(profile)}
             >
               <ArrowRightLeft className="size-4" />
@@ -215,7 +222,7 @@ function ProfileRow({
           <Button
             variant="ghost"
             size="icon"
-            className="size-8 text-muted-foreground/60 hover:text-destructive"
+            className="size-8 text-muted-foreground/60 hover:text-destructive opacity-40 group-hover:opacity-100 transition-opacity"
             onClick={() => onDelete(name)}
           >
             <Trash2 className="size-4" />

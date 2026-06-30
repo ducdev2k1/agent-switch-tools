@@ -53,7 +53,8 @@
       }
     },
     "messages": {
-      "token_refreshed": "Làm mới mã xác thực thành công"
+      "token_refreshed": "Làm mới mã xác thực thành công",
+      "token_refresh_failed": "Làm mới token thất bại: {{message}}"
     }
   },
   "dashboard": {
@@ -213,9 +214,16 @@
     "title": "Có bản cập nhật mới",
     "description": "Phiên bản mới v{{version}} đã sẵn sàng. Bạn có muốn cài đặt ngay không?",
     "version_label": "Phiên bản mới",
+    "whats_new": "Có gì mới",
     "later": "Để sau",
     "install_now": "Cài đặt & Khởi động lại",
     "installing": "Đang cài đặt..."
+  },
+  "changelog": {
+    "title": "Có gì mới",
+    "description": "Những thay đổi nổi bật trong các bản cập nhật gần đây.",
+    "whats_new": "Có gì mới",
+    "latest": "Mới nhất"
   },
   "profiles": {
     "driftDetected": "Phát hiện đăng nhập Claude mới — đã lưu tài khoản cũ, chuyển sang tài khoản mới."

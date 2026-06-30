@@ -1,4 +1,5 @@
 import { AutoSessionView } from '@/components/auto-session/auto-session-view'
+import { ChangelogDialog } from '@/components/changelog-dialog'
 import { DeviceSettingsPanel } from '@/components/device-settings-panel'
 import { GeneralSettingsPanel } from '@/components/general-settings-panel'
 import { SessionUsageWebhookPanel } from '@/components/session-usage-webhook-panel'
@@ -6,7 +7,8 @@ import { WebhookSettingsPanel } from '@/components/webhook-settings-panel'
 import { Button } from '@/components/ui/button'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import type { AppUpdaterState } from '@/lib/types'
-import { ArrowLeft, Info, Settings, Timer, Webhook } from 'lucide-react'
+import { ArrowLeft, Info, Settings, Sparkles, Timer, Webhook } from 'lucide-react'
+import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 
 interface SettingsPageProps {
@@ -116,6 +118,7 @@ export function SettingsPage({ onBack, updater }: SettingsPageProps) {
 /** About tab: app info, author, license, links */
 function AboutPanel() {
   const { t } = useTranslation()
+  const [changelogOpen, setChangelogOpen] = useState(false)
 
   return (
     <div className="space-y-4">
@@ -126,11 +129,20 @@ function AboutPanel() {
         </p>
       </div>
       <div className="space-y-2 text-sm">
-        <div className="flex gap-2">
+        <div className="flex items-center gap-2">
           <span className="text-muted-foreground w-28 shrink-0">
             {t('settings.about.version')}:
           </span>
           <span className="font-mono">v{__APP_VERSION__}</span>
+          <Button
+            variant="outline"
+            size="sm"
+            className="ml-auto h-7 gap-1.5 text-xs"
+            onClick={() => setChangelogOpen(true)}
+          >
+            <Sparkles className="size-3.5" />
+            {t('changelog.whats_new')}
+          </Button>
         </div>
         <div className="flex gap-2">
           <span className="text-muted-foreground w-28 shrink-0">
@@ -158,6 +170,11 @@ function AboutPanel() {
           </a>
         </div>
       </div>
+
+      <ChangelogDialog
+        open={changelogOpen}
+        onOpenChange={setChangelogOpen}
+      />
     </div>
   )
 }

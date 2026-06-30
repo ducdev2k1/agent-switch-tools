@@ -14,6 +14,7 @@ import {
   ShieldCheck,
   Trash2,
 } from 'lucide-react'
+import type { TFunction } from 'i18next'
 import { useTranslation } from 'react-i18next'
 import { toast } from 'sonner'
 
@@ -25,7 +26,7 @@ interface ProfileCardProps {
 }
 
 /** Human-readable subscription name */
-function formatSubscription(sub: string | null, t: any): string {
+function formatSubscription(sub: string | null, t: TFunction): string {
   if (!sub) return t('common.actions.unknown')
   return sub.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase())
 }
@@ -140,7 +141,7 @@ export function ProfileCard({
             </div>
           </div>
 
-          <div className="shrink-0 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity mt-0.5">
+          <div className="shrink-0 flex items-center gap-1 mt-0.5">
             {expired && (
               <Button
                 variant="ghost"
@@ -153,6 +154,12 @@ export function ProfileCard({
                     toast.success(t('common.messages.token_refreshed'))
                     await onProfilesChanged?.()
                     refreshUsage()
+                  } else {
+                    toast.error(
+                      t('common.messages.token_refresh_failed', {
+                        message: result.message,
+                      }),
+                    )
                   }
                 }}
                 disabled={refreshing}

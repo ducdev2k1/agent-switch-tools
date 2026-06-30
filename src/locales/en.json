@@ -53,7 +53,8 @@
       }
     },
     "messages": {
-      "token_refreshed": "Token refreshed successfully"
+      "token_refreshed": "Token refreshed successfully",
+      "token_refresh_failed": "Token refresh failed: {{message}}"
     }
   },
   "dashboard": {
@@ -213,9 +214,16 @@
     "title": "Update Available",
     "description": "A new version v{{version}} is available. Would you like to install it now?",
     "version_label": "New version",
+    "whats_new": "What's new",
     "later": "Later",
     "install_now": "Install & Restart",
     "installing": "Installing..."
+  },
+  "changelog": {
+    "title": "What's New",
+    "description": "Highlights from recent updates.",
+    "whats_new": "What's New",
+    "latest": "Latest"
   },
   "profiles": {
     "driftDetected": "Detected new Claude login — saved previous account, switched to new one."

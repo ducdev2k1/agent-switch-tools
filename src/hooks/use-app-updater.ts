@@ -8,6 +8,7 @@ const DISMISSED_VERSION_KEY = 'update_dismissed_version'
 
 export function useAppUpdater() {
   const [updateVersion, setUpdateVersion] = useState<string | null>(null)
+  const [updateBody, setUpdateBody] = useState<string | null>(null)
   const [showModal, setShowModal] = useState(false)
   const [installing, setInstalling] = useState(false)
   const [checking, setChecking] = useState(false)
@@ -21,6 +22,7 @@ export function useAppUpdater() {
       .then(async (u) => {
         if (!u?.available) return
         setUpdateVersion(u.version)
+        setUpdateBody(u.body ?? null)
 
         // Only show modal if this version wasn't dismissed before
         const dismissed = await settingsStore.get<string>(DISMISSED_VERSION_KEY)
@@ -38,6 +40,7 @@ export function useAppUpdater() {
       const u = await check()
       if (u?.available) {
         setUpdateVersion(u.version)
+        setUpdateBody(u.body ?? null)
         return u.version
       }
       return null
@@ -73,6 +76,7 @@ export function useAppUpdater() {
 
   return {
     updateVersion,
+    updateBody,
     showModal,
     dismissModal,
     installing,

@@ -17,7 +17,7 @@ use std::path::Path;
 
 // Public Claude Code CLI OAuth client id (not a secret — embedded in the CLI binary).
 const CLIENT_ID: &str = "9d1c250a-e61b-44d9-88ed-5944d1962f5e";
-const TOKEN_URL: &str = "https://console.anthropic.com/v1/oauth/token";
+const TOKEN_URL: &str = "https://claude.ai/v1/oauth/token";
 // Anthropic Cloudflare rejects default reqwest UA with 1010. Match the CLI format.
 const CLAUDE_CLI_USER_AGENT: &str = "claude-cli/1.0.0 (external, cli)";
 

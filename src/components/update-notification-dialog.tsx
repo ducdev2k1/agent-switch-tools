@@ -13,6 +13,7 @@ interface UpdateNotificationDialogProps {
   open: boolean
   onDismiss: () => void
   version: string
+  body?: string | null
   installing: boolean
   onInstall: () => void
 }
@@ -22,6 +23,7 @@ export function UpdateNotificationDialog({
   open,
   onDismiss,
   version,
+  body,
   installing,
   onInstall,
 }: UpdateNotificationDialogProps) {
@@ -44,6 +46,17 @@ export function UpdateNotificationDialog({
             <span className="font-mono font-semibold">v{version}</span>
           </span>
         </div>
+
+        {body && body.trim() && (
+          <div className="space-y-1.5">
+            <p className="text-xs font-semibold text-muted-foreground">
+              {t('update_dialog.whats_new')}
+            </p>
+            <div className="max-h-48 overflow-y-auto whitespace-pre-line rounded-lg border bg-muted/30 px-4 py-3 text-sm text-muted-foreground">
+              {body}
+            </div>
+          </div>
+        )}
 
         <DialogFooter className="gap-2 sm:gap-0">
           <Button variant="outline" size="sm" onClick={onDismiss}>

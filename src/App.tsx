@@ -57,6 +57,7 @@ function AppContent({
           open={updater.showModal}
           onDismiss={updater.dismissModal}
           version={updater.updateVersion}
+          body={updater.updateBody}
           installing={updater.installing}
           onInstall={updater.install}
         />
