@@ -1,6 +1,6 @@
+import { TimePicker } from '@/components/time-picker'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
 import { Switch } from '@/components/ui/switch'
 import type { AutoPrimeSetting, PrimeResult } from '@/lib/types'
 import { useState } from 'react'
@@ -48,6 +48,12 @@ export function AutoPrimeRow({
     if (valid) onSave(name, next, time)
   }
 
+  const handleTimeChange = (next: string) => {
+    setTime(next)
+    // TimePicker always yields a valid HH:MM; persist immediately when enabled.
+    if (enabled) onSave(name, enabled, next)
+  }
+
   const handlePrime = async () => {
     setPriming(true)
     try {
@@ -75,14 +81,9 @@ export function AutoPrimeRow({
           </Badge>
         )}
       </div>
-      <Input
-        type="time"
+      <TimePicker
         value={time}
-        onChange={(e) => setTime(e.target.value)}
-        onBlur={() => {
-          if (valid && enabled) onSave(name, enabled, time)
-        }}
-        className="w-28"
+        onChange={handleTimeChange}
       />
       <Switch
         checked={enabled}

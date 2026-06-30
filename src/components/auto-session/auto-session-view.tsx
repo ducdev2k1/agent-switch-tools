@@ -1,6 +1,6 @@
+import { TimePicker } from '@/components/time-picker'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Input } from '@/components/ui/input'
 import { useAutoPrime } from '@/hooks/use-auto-prime'
 import { useCredentialProfiles } from '@/hooks/use-profiles'
 import type { PrimeResult } from '@/lib/types'
@@ -66,11 +66,9 @@ export function AutoSessionView() {
           </CardTitle>
         </CardHeader>
         <CardContent className="flex items-center gap-3">
-          <Input
-            type="time"
+          <TimePicker
             value={allTime}
-            onChange={(e) => setAllTime(e.target.value)}
-            className="w-28"
+            onChange={setAllTime}
           />
           <Button
             size="sm"
