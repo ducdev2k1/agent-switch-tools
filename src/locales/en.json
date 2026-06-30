@@ -275,6 +275,15 @@
   },
   "auto_session": {
     "banner": "Priming only runs while this app is open. Enable \"Start on system startup\" in the General tab so it launches with your system.",
+    "help": {
+      "title": "What is Auto Session?",
+      "intro": "Claude's usage runs in a 5-hour window that starts the moment you first use it that period. Auto Session opens that window for you at a set time each day by sending a tiny one-token message — so your 5-hour window lines up with your working hours and you don't waste it on an off-hours start.",
+      "how_to": "How to use",
+      "step1": "Set the time (HH:MM) you want your session to start — usually when you begin work.",
+      "step2": "Enable it per account, or use \"Enable all\" to apply the same time to every profile at once.",
+      "step3": "Keep the app open at that time — turn on \"Start on system startup\" in the General tab so it's always running.",
+      "note": "It costs just one token on the cheap Haiku model. If a 5-hour window is already running, it is skipped (Hold). Each account is primed once per day."
+    },
     "apply_all": "Apply to all profiles",
     "enable_all": "Enable all",
     "disable_all": "Disable all",

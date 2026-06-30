@@ -302,4 +302,35 @@ Thông tin này được đính kèm trong webhook payload để phân biệt b�
 
 ---
 
+## 10. Phiên tự động (Auto Session / Priming)
+
+### Vấn đề
+
+Claude tính hạn mức theo **cửa sổ 5 giờ**: đồng hồ 5 giờ bắt đầu chạy kể từ **lần đầu tiên bạn dùng** trong giai đoạn đó. Nếu bạn lỡ kích hoạt vào lúc không định làm việc (ví dụ 6h sáng), cửa sổ sẽ reset vào 11h trưa — lệch hẳn với giờ làm thực tế và lãng phí phần lớn quota.
+
+### Giải pháp
+
+Phiên tự động sẽ **tự "mở" cửa sổ 5 giờ vào đúng giờ bạn chọn** mỗi ngày, bằng cách gửi một tin nhắn cực nhỏ (`"hi"`, tối đa 1 token) tới Claude. Nhờ đó cửa sổ 5 giờ trùng với giờ làm việc của bạn, tận dụng tối đa hạn mức.
+
+### Cách hoạt động
+
+- Mỗi tài khoản có một **công tắc bật/tắt** và một **giờ hẹn** (HH:MM).
+- Bộ lập lịch chạy nền **mỗi phút**: khi tới giờ hẹn và tài khoản **chưa prime trong ngày**, app gửi tin nhắn mở cửa sổ.
+- Sau khi gửi, app **kiểm chứng** cửa sổ mới đã thực sự mở (đồng hồ reset nhảy sang mốc tương lai mới) rồi mới báo thành công.
+- Tốn đúng **1 token** trên model Haiku giá rẻ — gần như không ảnh hưởng hạn mức.
+- Nếu một cửa sổ 5 giờ **đang chạy sẵn**, app **bỏ qua** (trạng thái *Hold*) để không phá cửa sổ hiện tại.
+- Mỗi tài khoản chỉ prime **một lần mỗi ngày**.
+
+### Lưu ý quan trọng
+
+Bộ lập lịch **chỉ chạy khi app đang mở**. Để prime đúng giờ kể cả khi bạn chưa mở app thủ công, hãy bật **"Khởi động cùng hệ thống"** trong tab Cài đặt → Chung.
+
+### Theo dõi
+
+Tab **Phiên tự động** còn hiển thị **thống kê theo ngày** (thành công / hold / lỗi / bỏ qua) và **nhật ký hoạt động** để bạn kiểm tra lịch sử prime.
+
+> Xem hướng dẫn thao tác từng bước tại [Hướng dẫn sử dụng → Phiên tự động](huong-dan-su-dung.md#phiên-tự-động-auto-session).
+
+---
+
 **Tiếp theo**: [Tương tác với Claude — Giải thích kỹ thuật](tuong-tac-voi-claude.md)

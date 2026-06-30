@@ -275,6 +275,15 @@
   },
   "auto_session": {
     "banner": "Tính năng prime chỉ chạy khi ứng dụng đang mở. Bật \"Khởi động cùng hệ thống\" ở tab Chung để ứng dụng tự chạy cùng máy.",
+    "help": {
+      "title": "Phiên tự động là gì?",
+      "intro": "Claude tính quota theo cửa sổ 5 giờ, bắt đầu kể từ lần bạn dùng đầu tiên trong giai đoạn đó. Phiên tự động sẽ tự \"mở\" cửa sổ này vào giờ bạn đặt mỗi ngày bằng một tin nhắn cực nhỏ — để cửa sổ 5 giờ trùng với giờ làm việc của bạn, tránh bị lãng phí vì lỡ bắt đầu vào giờ không dùng.",
+      "how_to": "Cách dùng",
+      "step1": "Đặt giờ (HH:MM) bạn muốn bắt đầu phiên — thường là lúc bắt đầu làm việc.",
+      "step2": "Bật cho từng tài khoản, hoặc dùng \"Bật tất cả\" để áp dụng cùng một giờ cho mọi profile.",
+      "step3": "Giữ app mở vào thời điểm đó — bật \"Khởi động cùng hệ thống\" ở tab Chung để app luôn chạy.",
+      "note": "Chỉ tốn đúng 1 token trên model Haiku giá rẻ. Nếu cửa sổ 5 giờ đang chạy thì sẽ bỏ qua (Hold). Mỗi tài khoản chỉ chạy 1 lần/ngày."
+    },
     "apply_all": "Áp dụng cho tất cả hồ sơ",
     "enable_all": "Bật tất cả",
     "disable_all": "Tắt tất cả",

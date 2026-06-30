@@ -107,6 +107,25 @@ Quota hiển thị trực tiếp trên mỗi profile card:
 | Language    | Chọn Tiếng Anh hoặc Tiếng Việt        |
 | Theme       | Light / Dark / System                 |
 
+### Phiên tự động (Auto Session)
+
+Tự động "mở" cửa sổ hạn mức 5 giờ của Claude vào đúng giờ bạn chọn mỗi ngày, để cửa sổ trùng với giờ làm việc (xem giải thích tại [Tính năng → Phiên tự động](tinh-nang.md)).
+
+**Các bước:**
+
+1. Mở **Cài đặt → Phiên tự động**.
+2. Đặt **giờ** (HH:MM) bạn muốn bắt đầu phiên — thường là lúc bắt đầu làm việc.
+3. Bật công tắc cho **từng tài khoản**, hoặc nhập giờ rồi bấm **"Bật tất cả"** để áp dụng cho mọi tài khoản cùng lúc.
+4. Bật **"Khởi động cùng hệ thống"** ở tab Chung để app luôn chạy và prime đúng giờ.
+
+**Mẹo:**
+
+- Bấm **"Prime ngay"** trên một tài khoản để mở cửa sổ thủ công ngay lập tức.
+- Nếu cửa sổ 5 giờ đang chạy, thao tác sẽ hiển thị *Hold* (bỏ qua) — đây là hành vi đúng, tránh phá cửa sổ hiện tại.
+- Xem **thống kê theo ngày** và **nhật ký hoạt động** ngay trong tab để kiểm tra lịch sử.
+
+> Lưu ý: bộ lập lịch chỉ chạy khi app đang mở. Chỉ tốn 1 token mỗi lần prime.
+
 ### Webhook
 
 Cấu hình để app gửi báo cáo usage tới endpoint bên ngoài:

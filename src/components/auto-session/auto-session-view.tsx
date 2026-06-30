@@ -9,6 +9,7 @@ import { useTranslation } from 'react-i18next'
 import { toast } from 'sonner'
 import { AutoPrimeRow } from './auto-prime-row'
 import { AutoPrimeStats } from './auto-prime-stats'
+import { AutoSessionHelp } from './auto-session-help'
 
 const TIME_RE = /^([01]\d|2[0-3]):[0-5]\d$/
 
@@ -52,6 +53,8 @@ export function AutoSessionView() {
 
   return (
     <div className="space-y-6">
+      <AutoSessionHelp />
+
       <div className="rounded-lg border border-warning/30 bg-warning/5 px-4 py-3 text-sm">
         {t('auto_session.banner')}
       </div>
