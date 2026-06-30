@@ -18,7 +18,7 @@ Tài liệu này chỉ ra **chính xác** những chỗ trong code mà Agent Swi
 6. GHI file credentials          ~/.claude/.credentials.json (khi switch)
 7. GHI file OAuth                ~/.claude.json (khi switch)
 8. GỌI Anthropic OAuth API       api.anthropic.com/api/oauth/usage
-9. CHẠY Claude CLI               claude -p "hi" (khi refresh token)
+9. GỌI Anthropic OAuth API       claude.ai/v1/oauth/token (khi refresh token)
 ```
 
 ### IDE (SQLite-based)
@@ -237,35 +237,32 @@ Worker (Rust) ─── emit("usage-updated") ──→ Frontend (React)
 
 ### Khi token hết hạn
 
-**File**: `src-tauri/src/commands/token_refresh.rs`
+**File**: `src-tauri/src/commands/token_refresh.rs`, `src-tauri/src/modules/providers/claude_cli/oauth.rs`
+
+App refresh token **trực tiếp qua OAuth của Anthropic** — không chạy `claude` CLI, không tốn quota, không hoán đổi credentials:
 
 ```rust
-// Refresh token bằng cách chạy Claude CLI
-async fn refresh_token_for_profile(profile_name: &str) -> Result<()> {
-    // 1. Backup credentials hiện tại
-    backup_current_credentials("__temp__")?;
+// Gọi thẳng endpoint OAuth, ghi đè vào đúng file của profile (atomic)
+async fn perform_refresh(creds_path: &Path, refresh_token: &str) -> Result<String> {
+    // POST https://claude.ai/v1/oauth/token
+    //   grant_type=refresh_token, refresh_token, client_id (public Claude Code CLI id)
+    //   header User-Agent: claude-cli/1.0.0 (external, cli)
+    let new = refresh_access_token(refresh_token).await?;
 
-    // 2. Swap credentials sang profile cần refresh
-    restore_credentials(profile_name)?;
-
-    // 3. Chạy Claude CLI (nó sẽ tự refresh token)
-    Command::new("claude")
-        .args(["-p", "hi", "--max-turns", "1"])
-        .output()
-        .await?;
-
-    // 4. Lưu credentials đã refresh
-    backup_current_credentials(profile_name)?;
-
-    // 5. Khôi phục credentials gốc
-    restore_credentials("__temp__")?;
-
-    Ok(())
+    // Anthropic trả access_token + refresh_token mới (xoay vòng) + expires_in.
+    // Ghi đè 3 trường vào file credentials của chính profile đó, không đụng active.
+    write_atomic(creds_path, &new)?;
+    Ok(new.access_token)
 }
 ```
 
-**Tại sao dùng `claude -p "hi"`?**
-Claude Code CLI có cơ chế tự động refresh token trước khi chạy. Bằng cách chạy 1 lệnh đơn giản, CLI sẽ refresh token và ghi lại vào file credentials. App chỉ cần copy file đã refresh.
+**Hai biến thể:**
+
+- `refresh_active_token` → file active `~/.claude/.credentials.json`.
+- `refresh_profile_token` → file của profile đã lưu `profiles/{name}/credentials.json` (ghi tại chỗ, không swap vào slot active).
+
+**Tại sao gọi thẳng OAuth thay vì `claude -p "hi"`?**
+Cách cũ phải hoán đổi credentials vào slot active rồi chạy CLI — dễ tranh chấp với worker nền và có rủi ro hỏng tài khoản active nếu lỗi. Gọi thẳng endpoint OAuth an toàn hơn, nhanh hơn, không tốn quota và refresh được cả profile chưa active mà không cần swap.
 
 ---
 
@@ -415,7 +412,7 @@ pub fn ide_is_installed(app: &AppHandle, ide_type: &IdeType) -> bool {
 │                    │  GHI ───────►│ .credentials.json    │
 │                    │              │ .claude.json         │
 │                    │  HTTP GET ─► │ api.anthropic.com    │
-│                    │  EXEC ─────► │ claude -p "hi"       │
+│                    │  HTTP POST ─►│ claude.ai/oauth/token│
 │                    │              └──────────────────────┘
 │                    │              ┌──────────────────────┐
 │                    │              │ Cursor / Windsurf /  │

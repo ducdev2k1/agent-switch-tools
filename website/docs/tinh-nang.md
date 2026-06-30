@@ -3,7 +3,7 @@ sidebar_position: 2
 title: Tính Năng Chi Tiết
 ---
 
-> **Lưu ý v1.0.13:** Antigravity (Desktop / IDE / CLI) hiện đang **tạm ẩn khỏi giao diện** để khắc phục các lỗi còn tồn đọng. Mã nguồn vẫn giữ nguyên đầy đủ và có thể bật lại sau. Claude Code là agent được hỗ trợ đầy đủ.
+> **Lưu ý:** Hiện tại app **chỉ hiển thị Claude Code**. **Cursor, Windsurf và Antigravity** (Desktop / IDE / CLI) đang **tạm ẩn khỏi giao diện** để khắc phục các lỗi còn tồn đọng — mã nguồn vẫn giữ nguyên đầy đủ và có thể bật lại trong các phiên bản sau. Các phần mô tả Cursor / Windsurf / Antigravity bên dưới vẫn đúng về mặt kỹ thuật và sẽ hoạt động trở lại khi được bật.
 
 ## 1. Quản lý đa tài khoản (Profile Management)
 
@@ -43,11 +43,12 @@ Agent Switch Tools tạo một hệ thống **profile** thống nhất — mỗi
 
 ### Tự động migrate từ cấu trúc cũ
 
-Khi lần đầu chạy v1.0.10, app tự chuyển dữ liệu từ các vị trí cũ:
+App tự chuyển dữ liệu từ các vị trí cũ khi khởi động (chỉ bù phần còn thiếu, không ghi đè dữ liệu mới hơn):
 
 - `~/.claude/.claude-tools/` (v1.0.8–v1.0.9)
 - `~/.claude-tools/` (phiên bản trung gian)
 - File phẳng trong `~/.claude/` (phiên bản rất cũ)
+- **Từ v1.0.13**: app từng được đổi tên (`claude-tools` → `agent-switch-tools`) kèm dời thư mục dữ liệu sang `~/.agent-switch-tools/`. Dữ liệu kẹt ở vị trí cũ (profiles, lịch sử chuyển tài khoản, device identity) được tự khôi phục một lần khi mở app.
 
 ### Các thao tác
 
@@ -74,7 +75,7 @@ Khi nhấn "Switch to B":
   3. Cập nhật meta.json: active = B
 ```
 
-**Với IDE (Cursor/Windsurf/Antigravity)** (SQLite-based):
+**Với IDE (Cursor/Windsurf/Antigravity)** (SQLite-based) — _hiện tạm ẩn khỏi giao diện, mô tả dưới đây áp dụng khi bật lại_:
 
 ```
 Trước khi switch:
@@ -176,18 +177,23 @@ Agent Switch Tools đặt một icon ở System Tray. Khi nhấp chuột phải,
 
 ### Vấn đề
 
-Token (mã xác thực) trong credentials.json có thời hạn. Khi hết hạn, Claude Code CLI sẽ tự động refresh token khi chạy. Nhưng các profile **không active** thì không được refresh → token có thể hết hạn.
+Access token trong `credentials.json` có thời hạn ngắn (~8 giờ). Với tài khoản đang active, Claude Code CLI tự refresh khi chạy. Nhưng các profile **không active** thì không được refresh → token có thể hết hạn ngay lúc bạn muốn chuyển sang.
 
 ### Giải pháp
 
-Khi phát hiện token sắp hết hạn, app sẽ:
+App refresh token **trực tiếp qua endpoint OAuth của Anthropic** (`https://claude.ai/v1/oauth/token`) — **không** chạy `claude` CLI, **không** tốn quota, **không** hoán đổi credentials:
 
-1. Tạm hoán đổi credentials sang profile cần refresh
-2. Chạy lệnh: `claude -p "hi" --max-turns 1` (Claude CLI sẽ tự refresh token)
-3. Copy file credentials đã refresh ngược về profile
-4. Hoán đổi lại credentials gốc
+1. Đọc `refreshToken` từ file credentials của profile.
+2. Gọi Anthropic để lấy access token + refresh token mới (token xoay vòng — token cũ bị vô hiệu).
+3. Ghi đè 3 trường (`accessToken`, `refreshToken`, `expiresAt`) **trực tiếp vào file của đúng profile đó**, ghi an toàn (atomic) và **không đụng tới tài khoản đang active**.
 
-Quá trình này diễn ra ngầm, không ảnh hưởng tới công việc hiện tại.
+Cơ chế này chạy ở 3 nơi:
+
+- **Tự động khi lấy usage** (gồm cả worker nền mỗi 5 phút): nếu token sắp hết hạn thì tự refresh; lỗi thì giữ token cũ (best-effort, không chặn việc xem usage).
+- **Nút "làm mới token" (🔑) thủ công** trên tài khoản hết hạn: refresh ép buộc, hiện thông báo lỗi rõ ràng nếu thất bại.
+- **Phiên tự động (priming)**: refresh trước khi mở cửa sổ 5 giờ.
+
+> Nếu refresh báo lỗi `invalid_grant`, refresh token của tài khoản đó đã hết hiệu lực thật — cần đăng nhập lại tài khoản đó.
 
 ---
 

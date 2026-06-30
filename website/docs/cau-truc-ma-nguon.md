@@ -81,9 +81,10 @@ invoke("list_profiles")  ────►    fn list_credential_profiles()
 
 #### `commands/token_refresh.rs` — Refresh Token
 
-| Command         | Chức năng                                             |
-| --------------- | ----------------------------------------------------- |
-| `refresh_token` | Refresh token cho 1 profile bằng cách chạy Claude CLI |
+| Command                  | Chức năng                                                                                  |
+| ------------------------ | ------------------------------------------------------------------------------------------ |
+| `refresh_active_token`   | Refresh token tài khoản active qua OAuth Anthropic (`claude.ai/v1/oauth/token`)            |
+| `refresh_profile_token`  | Refresh token 1 profile đã lưu, ghi đè file credentials tại chỗ — không chạy Claude CLI    |
 
 #### `commands/webhook_commands.rs` — Webhook
 

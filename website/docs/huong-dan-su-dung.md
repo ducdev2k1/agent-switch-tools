@@ -16,7 +16,7 @@ Có ít nhất 1 trong các agent sau đã được cài và đăng nhập:
 
 App tự động phát hiện agent nào đã cài và chỉ hiển thị những cái đang có.
 
-> **Lưu ý v1.0.13:** Antigravity (Desktop / IDE / CLI) hiện đang **tạm ẩn khỏi giao diện** để khắc phục các lỗi còn tồn đọng. Claude Code là agent được hỗ trợ đầy đủ. Mã nguồn Antigravity vẫn giữ nguyên và có thể bật lại sau.
+> **Lưu ý:** Hiện app **chỉ hiển thị Claude Code**. **Cursor, Windsurf và Antigravity** (Desktop / IDE / CLI) đang **tạm ẩn khỏi giao diện** để khắc phục các lỗi còn tồn đọng — mã nguồn vẫn giữ nguyên và có thể bật lại trong các phiên bản sau. Các bước liên quan tới Cursor / Windsurf / Antigravity bên dưới áp dụng khi chúng được bật lại.
 
 ---
 
@@ -160,13 +160,12 @@ Gửi thống kê token đã dùng trong các phiên Claude Code:
 
 ### Token hết hạn
 
-App tự động phát hiện và refresh token ngầm. Bạn không cần làm gì.
+App tự động refresh token ngầm (gọi thẳng OAuth Anthropic) mỗi khi cập nhật usage — bạn thường không cần làm gì. Trên tài khoản đã hết hạn, bạn cũng có thể bấm nút **🔑 (làm mới token)** để refresh ngay; nếu thất bại app sẽ hiện thông báo lỗi cụ thể.
 
-Nếu refresh thất bại (do network/API issue):
+Nếu refresh báo lỗi `invalid_grant` (refresh token đã hết hiệu lực thật):
 
-1. Chuyển sang profile đó (Switch)
-2. Chạy `claude login` trong terminal để đăng nhập lại
-3. Quay lại Agent Switch Tools → Save profile lại
+1. Chạy `claude login` trong terminal để đăng nhập lại tài khoản đó
+2. Quay lại Agent Switch Tools → Save profile lại
 
 ### Muốn xóa 1 profile
 
