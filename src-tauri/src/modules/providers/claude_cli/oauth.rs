@@ -43,8 +43,14 @@ struct Creds {
 fn load_creds(creds_path: &Path) -> Result<Creds, String> {
     let content = std::fs::read_to_string(creds_path)
         .map_err(|e| format!("read credentials: {}", e))?;
+    parse_creds(&content)
+}
+
+/// Parse a credentials JSON blob (file contents OR a Keychain value) into the OAuth fields we care
+/// about. Storage-independent so refresh works for both the file and the macOS Keychain.
+fn parse_creds(content: &str) -> Result<Creds, String> {
     let root: serde_json::Value =
-        serde_json::from_str(&content).map_err(|e| format!("parse credentials: {}", e))?;
+        serde_json::from_str(content).map_err(|e| format!("parse credentials: {}", e))?;
 
     let oauth = root
         .get("claudeAiOauth")
@@ -72,6 +78,20 @@ async fn perform_refresh(
     root: &mut serde_json::Value,
     refresh_token: &str,
 ) -> Result<String, String> {
+    let token = refresh_into(root, refresh_token).await?;
+    if let Err(e) = write_atomic(creds_path, root) {
+        eprintln!("[claude_cli] failed to persist refreshed credentials: {}", e);
+        // still return the new token — in-process use still works
+    }
+    Ok(token)
+}
+
+/// Exchange the refresh token and write the rotated tokens into `root` in place. No IO — the caller
+/// decides how to persist (`write_atomic` for a file, or serialize + Keychain write for macOS).
+async fn refresh_into(
+    root: &mut serde_json::Value,
+    refresh_token: &str,
+) -> Result<String, String> {
     let new_tokens = refresh_access_token(refresh_token).await?;
     let now_ms = now_millis();
     if let Some(obj) = root.get_mut("claudeAiOauth").and_then(|v| v.as_object_mut()) {
@@ -82,11 +102,44 @@ async fn perform_refresh(
             serde_json::Value::Number((now_ms + new_tokens.expires_in * 1000).into()),
         );
     }
-    if let Err(e) = write_atomic(creds_path, root) {
-        eprintln!("[claude_cli] failed to persist refreshed credentials: {}", e);
-        // still return the new token — in-process use still works
-    }
     Ok(new_tokens.access_token)
+}
+
+/// Blob-in variant of `ensure_fresh_token` for the active credential when it lives in the macOS
+/// Keychain (no file path). Returns `(access_token, Some(updated_blob))` when a refresh rotated the
+/// tokens — the caller persists `updated_blob` back to whatever store holds the active credential —
+/// or `(access_token, None)` when the stored token was still fresh / no refresh token was present.
+pub async fn ensure_fresh_blob(blob: &str) -> Result<(String, Option<String>), String> {
+    let mut creds = parse_creds(blob)?;
+    if !needs_refresh(creds.expires_at_ms) {
+        return Ok((creds.access, None));
+    }
+    let Some(refresh_token) = creds.refresh.clone() else {
+        return Ok((creds.access, None));
+    };
+    match refresh_into(&mut creds.root, &refresh_token).await {
+        Ok(token) => Ok((token, Some(serialize_root(&creds.root)?))),
+        Err(e) => {
+            eprintln!("[claude_cli] token refresh failed: {}", e);
+            Ok((creds.access, None)) // best-effort: return stale token
+        }
+    }
+}
+
+/// Blob-in variant of `force_refresh_token`. Returns `(access_token, updated_blob)`; the caller
+/// persists `updated_blob`. Hard failures propagate so the UI can surface a real error.
+pub async fn force_refresh_blob(blob: &str) -> Result<(String, String), String> {
+    let mut creds = parse_creds(blob)?;
+    let refresh_token = creds
+        .refresh
+        .clone()
+        .ok_or("credentials missing refreshToken")?;
+    let token = refresh_into(&mut creds.root, &refresh_token).await?;
+    Ok((token, serialize_root(&creds.root)?))
+}
+
+fn serialize_root(root: &serde_json::Value) -> Result<String, String> {
+    serde_json::to_string_pretty(root).map_err(|e| e.to_string())
 }
 
 /// Ensure the credentials file at `creds_path` has a non-expired accessToken.

@@ -1,12 +1,13 @@
-use std::path::PathBuf;
 use std::time::Duration;
 
 use tauri::{AppHandle, Emitter};
 use tokio::time::interval;
 
 use crate::modules::providers::claude_cli::config;
+use crate::modules::providers::claude_cli::oauth::ensure_fresh_blob;
+use crate::modules::shared::active_store::ActiveStore;
 use crate::modules::shared::paths::{claude_data_dir, claude_dir, profiles_dir};
-use crate::priming::{prime::prime_account, store, PrimeResult};
+use crate::priming::{prime::{prime_account, prime_with_token}, store, PrimeResult};
 
 const INITIAL_DELAY: u64 = 15;
 const TICK_SECS: u64 = 60;
@@ -49,20 +50,34 @@ async fn run_due(app: &AppHandle) {
 
 /// Prime a single profile by name (also used by the manual `prime_now` command).
 pub async fn run_one(app: &AppHandle, name: &str) -> PrimeResult {
-    match creds_path_for(app, name) {
-        Some(path) => prime_account(&path).await,
-        None => PrimeResult::Skipped {
-            reason: "credentials not found".to_string(),
-        },
-    }
-}
+    let not_found = || PrimeResult::Skipped {
+        reason: "credentials not found".to_string(),
+    };
 
-fn creds_path_for(app: &AppHandle, name: &str) -> Option<PathBuf> {
-    let data_dir = claude_data_dir(app).ok()?;
-    let meta = config::read_meta(&data_dir);
-    if meta.active_profile_name.as_deref() == Some(name) {
-        return claude_dir(app).ok().map(|d| d.join(".credentials.json"));
+    // The active account's credential may live in the macOS Keychain (no file), so prime it from
+    // the resolved token rather than a path.
+    let is_active = claude_data_dir(app)
+        .ok()
+        .map(|dir| config::read_meta(&dir).active_profile_name.as_deref() == Some(name))
+        .unwrap_or(false);
+
+    if is_active {
+        let Ok(cl_dir) = claude_dir(app) else { return not_found() };
+        let store = ActiveStore::new(cl_dir);
+        let Some(blob) = store.read_active() else { return not_found() };
+        return match ensure_fresh_blob(&blob).await {
+            Ok((token, new_blob)) => {
+                if let Some(nb) = new_blob {
+                    let _ = store.write_active(&nb);
+                }
+                prime_with_token(&token).await
+            }
+            Err(e) => PrimeResult::Failed { reason: format!("token: {e}") },
+        };
     }
-    let path = profiles_dir(app).ok()?.join(name).join("credentials.json");
-    path.exists().then_some(path)
+
+    match profiles_dir(app).ok().map(|d| d.join(name).join("credentials.json")) {
+        Some(path) if path.exists() => prime_account(&path).await,
+        _ => not_found(),
+    }
 }

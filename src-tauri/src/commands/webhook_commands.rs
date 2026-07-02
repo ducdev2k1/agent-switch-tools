@@ -4,8 +4,10 @@ use sha2::Sha256;
 
 use crate::modules::providers::claude_cli::config::CredentialProfile;
 use super::config_commands::list_credential_profiles;
-use super::quota_commands::read_token_from_creds;
+use super::quota_commands::{parse_token, read_token_from_creds};
 use crate::modules::providers::claude_cli::quota as claude_quota;
+use crate::modules::shared::active_store::ActiveStore;
+use crate::modules::shared::paths::claude_dir;
 use super::session_usage_commands;
 
 /// Response returned to the frontend after a webhook call
@@ -39,14 +41,8 @@ async fn build_payload(
     include_session_usage: bool,
     member_email: Option<String>,
 ) -> Result<serde_json::Value, String> {
-    use tauri::Manager;
-
     let all_profiles: Vec<CredentialProfile> = list_credential_profiles(app.clone()).await?;
     let active_profile = all_profiles.iter().find(|p| p.is_active);
-    let home = app
-        .path()
-        .home_dir()
-        .map_err(|e| format!("Cannot resolve home dir: {}", e))?;
 
     // Build active profile entry with session_usage attached
     let profile_entry = if let Some(profile) = active_profile {
@@ -62,12 +58,13 @@ async fn build_payload(
             "usage": usage,
         });
 
-        // Optionally include raw credentials.json content
+        // Optionally include raw credential content (from the active store: macOS Keychain or file)
         if include_credentials {
-            let creds_path = home.join(".claude").join(".credentials.json");
-            if let Ok(content) = std::fs::read_to_string(&creds_path) {
-                if let Ok(parsed) = serde_json::from_str::<serde_json::Value>(&content) {
-                    entry["credentials"] = parsed;
+            if let Ok(store) = claude_dir(app).map(ActiveStore::new) {
+                if let Some(blob) = store.read_active() {
+                    if let Ok(parsed) = serde_json::from_str::<serde_json::Value>(&blob) {
+                        entry["credentials"] = parsed;
+                    }
                 }
             }
         }
@@ -135,18 +132,22 @@ async fn get_profile_usage_data(
 ) -> Option<serde_json::Value> {
     use tauri::Manager;
 
-    let home = app.path().home_dir().ok()?;
-    let creds_path = if profile.is_active {
-        home.join(".claude").join(".credentials.json")
+    // Active credential may live in the macOS Keychain (no file), so read it via the active store.
+    let token = if profile.is_active {
+        let store = ActiveStore::new(claude_dir(app).ok()?);
+        parse_token(&store.read_active()?)?
     } else {
-        home.join(".agent-switch-tools")
+        let creds_path = app
+            .path()
+            .home_dir()
+            .ok()?
+            .join(".agent-switch-tools")
             .join("claude")
             .join("profiles")
             .join(&profile.name)
-            .join("credentials.json")
+            .join("credentials.json");
+        read_token_from_creds(&creds_path)?
     };
-
-    let token = read_token_from_creds(&creds_path)?;
     let limits = claude_quota::fetch_anthropic_usage(&token, false).await?;
 
     Some(serde_json::json!({

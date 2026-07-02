@@ -4,6 +4,7 @@ use crate::modules::providers::claude_cli::oauth as claude_oauth;
 use crate::modules::providers::antigravity::quota as anti_quota;
 use crate::modules::providers::claude_cli::config::{self, UsageStats};
 use crate::modules::quota::{UsageLimits};
+use crate::modules::shared::active_store::ActiveStore;
 use crate::modules::shared::paths::{claude_dir, profiles_dir};
 
 #[tauri::command]
@@ -11,10 +12,9 @@ pub async fn get_usage_limits(
     app: tauri::AppHandle,
     force_refresh: Option<bool>,
 ) -> Result<Option<UsageLimits>, String> {
-    let cl_dir = claude_dir(&app)?;
-    let creds_path = cl_dir.join(".credentials.json");
+    let store = ActiveStore::new(claude_dir(&app)?);
 
-    let token = match resolve_claude_token(&creds_path).await {
+    let token = match resolve_active_token(&store).await {
         Some(t) => t,
         None => return Ok(None),
     };
@@ -32,20 +32,18 @@ pub async fn get_profile_usage(
     let cl_dir = claude_dir(&app)?;
     let pr_dir = profiles_dir(&app)?;
 
-    let active_path = cl_dir.join(".credentials.json");
     let saved_path = pr_dir.join(&profile_name).join("credentials.json");
 
-    let creds_path = if is_active.unwrap_or(false) {
-        active_path
+    let token = if is_active.unwrap_or(false) {
+        resolve_active_token(&ActiveStore::new(cl_dir)).await
     } else if saved_path.exists() {
-        saved_path
-    } else if active_path.exists() {
-        active_path
+        resolve_claude_token(&saved_path).await
     } else {
-        return Ok(None);
+        // Not saved yet: fall back to the active store (the profile may be the active account).
+        resolve_active_token(&ActiveStore::new(cl_dir)).await
     };
 
-    let token = match resolve_claude_token(&creds_path).await {
+    let token = match token {
         Some(t) => t,
         None => return Ok(None),
     };
@@ -62,6 +60,20 @@ async fn resolve_claude_token(creds_path: &Path) -> Option<String> {
     match claude_oauth::ensure_fresh_token(creds_path).await {
         Ok(t) => Some(t),
         Err(_) => read_token_from_creds(&creds_path.to_path_buf()),
+    }
+}
+
+/// Return a valid access token for the active account, reading from its store (macOS Keychain or
+/// file). Auto-refreshes near expiry and persists the rotated blob back to the same store.
+async fn resolve_active_token(store: &ActiveStore) -> Option<String> {
+    let blob = store.read_active()?;
+    match claude_oauth::ensure_fresh_blob(&blob).await {
+        Ok((token, Some(new_blob))) => {
+            let _ = store.write_active(&new_blob);
+            Some(token)
+        }
+        Ok((token, None)) => Some(token),
+        Err(_) => parse_token(&blob),
     }
 }
 
@@ -150,7 +162,12 @@ pub async fn get_ide_usage(
 
 pub fn read_token_from_creds(creds_path: &PathBuf) -> Option<String> {
     let content = std::fs::read_to_string(creds_path).ok()?;
-    let v: serde_json::Value = serde_json::from_str(&content).ok()?;
+    parse_token(&content)
+}
+
+/// Extract the OAuth access token from a credentials JSON blob (file OR macOS Keychain value).
+pub fn parse_token(blob: &str) -> Option<String> {
+    let v: serde_json::Value = serde_json::from_str(blob).ok()?;
     v.get("claudeAiOauth")?
         .get("accessToken")?
         .as_str()

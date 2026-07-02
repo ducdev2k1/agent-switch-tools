@@ -83,12 +83,16 @@ pub fn write_meta(dir: &PathBuf, meta: &ManagerMeta) -> Result<(), String> {
 }
 
 pub fn read_credential_info(path: &PathBuf) -> CredentialInfo {
+    match std::fs::read_to_string(path) {
+        Ok(c) => parse_credential_info(&c),
+        Err(_) => CredentialInfo::default(),
+    }
+}
+
+/// Parse credential metadata from a JSON blob (file contents OR a macOS Keychain value).
+pub fn parse_credential_info(content: &str) -> CredentialInfo {
     let default = CredentialInfo::default();
-    let content = match std::fs::read_to_string(path) {
-        Ok(c) => c,
-        Err(_) => return default,
-    };
-    let v: serde_json::Value = match serde_json::from_str(&content) {
+    let v: serde_json::Value = match serde_json::from_str(content) {
         Ok(v) => v,
         Err(_) => return default,
     };

@@ -5,6 +5,7 @@ use tauri::Emitter;
 use crate::modules::providers::claude_cli::config::{self, CredentialProfile};
 use crate::modules::providers::claude_cli::auth;
 use crate::modules::providers::claude_cli::reconcile::{reconcile_active_profile, validate_email_as_folder};
+use crate::modules::shared::active_store::ActiveStore;
 use crate::modules::shared::paths::{claude_data_dir, claude_dir, home_dir, profiles_dir};
 
 #[tauri::command]
@@ -36,9 +37,9 @@ pub async fn list_credential_profiles(
         .or_else(|| meta.active_profile_name.clone())
         .unwrap_or_else(|| "Active".to_string());
 
-    let active_path = claude.join(".credentials.json");
-    if active_path.exists() {
-        let info = config::read_credential_info(&active_path);
+    let store = ActiveStore::new(claude.clone());
+    if let Some(active_blob) = store.read_active() {
+        let info = config::parse_credential_info(&active_blob);
         profiles.push(CredentialProfile {
             name: active_name.clone(),
             is_active: true,
@@ -76,11 +77,11 @@ pub async fn save_current_as_profile(app: tauri::AppHandle) -> Result<String, St
     let claude = claude_dir(&app)?;
     let claude_data = claude_data_dir(&app)?;
     let profs_dir = profiles_dir(&app)?;
-    let active_path = claude.join(".credentials.json");
+    let store = ActiveStore::new(claude.clone());
 
-    if !active_path.exists() {
-        return Err("No active credentials found (.credentials.json)".to_string());
-    }
+    let Some(active_blob) = store.read_active() else {
+        return Err("No active credentials found".to_string());
+    };
 
     let oauth = auth::read_oauth_from_claude_json(&home)
         .ok_or("Cannot read oauthAccount from ~/.claude.json")?;
@@ -90,7 +91,7 @@ pub async fn save_current_as_profile(app: tauri::AppHandle) -> Result<String, St
 
     let prof_dir = crate::modules::shared::paths::profile_dir(&profs_dir, &email)?;
     let target_path = prof_dir.join("credentials.json");
-    std::fs::copy(&active_path, &target_path).map_err(|e| e.to_string())?;
+    std::fs::write(&target_path, &active_blob).map_err(|e| e.to_string())?;
     config::set_file_600(&target_path);
 
     auth::write_saved_oauth(&profs_dir, &email, &oauth)?;
@@ -122,7 +123,7 @@ pub async fn switch_credential_profile(
     let claude = claude_dir(&app)?;
     let claude_data = claude_data_dir(&app)?;
     let profs_dir = profiles_dir(&app)?;
-    let active_path = claude.join(".credentials.json");
+    let store = ActiveStore::new(claude.clone());
     let target_cred_path = profs_dir.join(&target_name).join("credentials.json");
 
     if !target_cred_path.exists() {
@@ -147,18 +148,21 @@ pub async fn switch_credential_profile(
     // Backup current credentials into its own folder (no-op if drift already saved them).
     // Required when user switches inside the app — meta is in sync, but we still need to
     // preserve the active credentials before overwriting active_path with the target's.
-    if !drift_detected && active_path.exists() && !current_email.is_empty() && current_email != target_name {
-        let prof_dir = crate::modules::shared::paths::profile_dir(&profs_dir, &current_email)?;
-        let backup_path = prof_dir.join("credentials.json");
-        let _ = std::fs::copy(&active_path, &backup_path);
-        config::set_file_600(&backup_path);
+    if !drift_detected && !current_email.is_empty() && current_email != target_name {
+        if let Some(active_blob) = store.read_active() {
+            let prof_dir = crate::modules::shared::paths::profile_dir(&profs_dir, &current_email)?;
+            let backup_path = prof_dir.join("credentials.json");
+            let _ = std::fs::write(&backup_path, &active_blob);
+            config::set_file_600(&backup_path);
 
-        if let Some(oauth) = auth::read_oauth_from_claude_json(&home) {
-            let _ = auth::write_saved_oauth(&profs_dir, &current_email, &oauth);
+            if let Some(oauth) = auth::read_oauth_from_claude_json(&home) {
+                let _ = auth::write_saved_oauth(&profs_dir, &current_email, &oauth);
+            }
         }
     }
 
-    std::fs::copy(&target_cred_path, &active_path).map_err(|e| e.to_string())?;
+    let target_blob = std::fs::read_to_string(&target_cred_path).map_err(|e| e.to_string())?;
+    store.write_active(&target_blob)?;
 
     // Always rewrite oauthAccount to the target's identity. If it kept the previous
     // account's email, the next reconcile would treat it as an external login and

@@ -1,6 +1,7 @@
 use serde::Serialize;
 
 use crate::modules::providers::claude_cli::oauth as claude_oauth;
+use crate::modules::shared::active_store::ActiveStore;
 use crate::modules::shared::paths::{claude_dir, profiles_dir};
 
 /// Result returned to frontend after a refresh attempt
@@ -14,24 +15,30 @@ pub struct RefreshResult {
 /// Refresh the OAuth token for the active account.
 ///
 /// Refreshes directly against Anthropic's OAuth endpoint (no `claude` CLI
-/// subprocess, no quota spent), rotating and persisting the credentials file
-/// atomically.
+/// subprocess, no quota spent), rotating and persisting the credential back to
+/// its store (the login Keychain on macOS, the credentials file otherwise).
 #[tauri::command]
 pub async fn refresh_active_token(app: tauri::AppHandle) -> Result<RefreshResult, String> {
-    let creds_path = claude_dir(&app)?.join(".credentials.json");
+    let store = ActiveStore::new(claude_dir(&app)?);
 
-    if !creds_path.exists() {
+    let Some(blob) = store.read_active() else {
         return Ok(RefreshResult {
             success: false,
             message: "No active credentials found".to_string(),
         });
-    }
+    };
 
-    match claude_oauth::force_refresh_token(&creds_path).await {
-        Ok(_) => Ok(RefreshResult {
-            success: true,
-            message: "Token refreshed".to_string(),
-        }),
+    match claude_oauth::force_refresh_blob(&blob).await {
+        Ok((_, new_blob)) => match store.write_active(&new_blob) {
+            Ok(()) => Ok(RefreshResult {
+                success: true,
+                message: "Token refreshed".to_string(),
+            }),
+            Err(e) => Ok(RefreshResult {
+                success: false,
+                message: e,
+            }),
+        },
         Err(e) => Ok(RefreshResult {
             success: false,
             message: e,

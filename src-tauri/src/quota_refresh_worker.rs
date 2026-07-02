@@ -4,24 +4,29 @@ use tokio::time::{interval, Duration};
 
 use crate::modules::providers::claude_cli::quota as claude_quota;
 use crate::modules::quota::UsageLimits;
+use crate::modules::shared::active_store::ActiveStore;
 use crate::modules::shared::paths::{claude_dir, profiles_dir};
 
 const REFRESH_INTERVAL: u64 = 300; // 5 minutes
 const INITIAL_DELAY: u64 = 10; // 10 seconds
 const INTER_PROFILE_DELAY_MS: u64 = 1000; // 1s between API calls to avoid rate limiting
 
-/// Read OAuth access token from a credentials.json file
 use crate::modules::providers::claude_cli::oauth as claude_oauth;
 
-/// Collect (profile_name, creds_path) for active + saved profiles.
+/// Where a profile's credential lives. The active account may be in the macOS Keychain (no file).
+enum CredSource {
+    Active,
+    File(std::path::PathBuf),
+}
+
+/// Collect (profile_name, credential source) for active + saved profiles.
 /// Token resolution deferred to per-profile fetch so expired tokens auto-refresh.
-fn collect_all_profile_paths(app: &AppHandle) -> Vec<(String, std::path::PathBuf)> {
-    let mut result: Vec<(String, std::path::PathBuf)> = Vec::new();
+fn collect_all_profile_sources(app: &AppHandle) -> Vec<(String, CredSource)> {
+    let mut result: Vec<(String, CredSource)> = Vec::new();
 
     if let Ok(cl_dir) = claude_dir(app) {
-        let active_path = cl_dir.join(".credentials.json");
-        if active_path.exists() {
-            result.push(("active".to_string(), active_path));
+        if ActiveStore::new(cl_dir).active_exists() {
+            result.push(("active".to_string(), CredSource::Active));
         }
     }
 
@@ -37,13 +42,33 @@ fn collect_all_profile_paths(app: &AppHandle) -> Vec<(String, std::path::PathBuf
             for name in names {
                 let creds_path = pr_dir.join(&name).join("credentials.json");
                 if creds_path.exists() {
-                    result.push((name, creds_path));
+                    result.push((name, CredSource::File(creds_path)));
                 }
             }
         }
     }
 
     result
+}
+
+/// Resolve a valid access token for a source, auto-refreshing near expiry and persisting the
+/// rotated credential back to its store (Keychain/file for active, file for saved profiles).
+async fn resolve_source_token(app: &AppHandle, source: &CredSource) -> Option<String> {
+    match source {
+        CredSource::Active => {
+            let store = ActiveStore::new(claude_dir(app).ok()?);
+            let blob = store.read_active()?;
+            match claude_oauth::ensure_fresh_blob(&blob).await {
+                Ok((token, Some(new_blob))) => {
+                    let _ = store.write_active(&new_blob);
+                    Some(token)
+                }
+                Ok((token, None)) => Some(token),
+                Err(_) => None,
+            }
+        }
+        CredSource::File(path) => claude_oauth::ensure_fresh_token(path).await.ok(),
+    }
 }
 
 /// Spawns a background worker that refreshes quota usage for ALL profiles every 5 minutes
@@ -57,7 +82,7 @@ pub fn spawn_quota_worker(app: AppHandle) {
         loop {
             ticker.tick().await;
 
-            let profiles = collect_all_profile_paths(&app);
+            let profiles = collect_all_profile_sources(&app);
             if profiles.is_empty() {
                 continue;
             }
@@ -65,15 +90,15 @@ pub fn spawn_quota_worker(app: AppHandle) {
             let mut all_usage: HashMap<String, UsageLimits> = HashMap::new();
             let mut active_limits: Option<UsageLimits> = None;
 
-            for (idx, (name, creds_path)) in profiles.iter().enumerate() {
+            for (idx, (name, source)) in profiles.iter().enumerate() {
                 if idx > 0 {
                     tokio::time::sleep(Duration::from_millis(INTER_PROFILE_DELAY_MS)).await;
                 }
 
-                // Auto-refresh expired tokens before fetching quota (persists back to file)
-                let token = match claude_oauth::ensure_fresh_token(creds_path).await {
-                    Ok(t) => t,
-                    Err(_) => continue,
+                // Auto-refresh expired tokens before fetching quota (persists back to store)
+                let token = match resolve_source_token(&app, source).await {
+                    Some(t) => t,
+                    None => continue,
                 };
 
                 match claude_quota::fetch_anthropic_usage(&token, true).await {

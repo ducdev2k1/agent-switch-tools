@@ -22,9 +22,14 @@ pub async fn prime_account(creds_path: &Path) -> PrimeResult {
         Ok(t) => t,
         Err(e) => return PrimeResult::Failed { reason: format!("token: {e}") },
     };
+    prime_with_token(&token).await
+}
 
+/// Prime using an already-resolved access token. Used for the active account when its credential
+/// lives in the macOS Keychain (no file path to hand to `prime_account`).
+pub async fn prime_with_token(token: &str) -> PrimeResult {
     // Don't prime into a window that is already running.
-    let before = fetch_anthropic_usage(&token, true).await;
+    let before = fetch_anthropic_usage(token, true).await;
     let baseline = before
         .as_ref()
         .and_then(|l| reset_at(l))
@@ -34,12 +39,12 @@ pub async fn prime_account(creds_path: &Path) -> PrimeResult {
     }
 
     // Send the priming message.
-    if let Err(e) = send_hi(&token).await {
+    if let Err(e) = send_hi(token).await {
         return PrimeResult::Failed { reason: e };
     }
 
     // Confirm the window anchored to a new future reset.
-    match confirm_anchored(&token, baseline.as_deref()).await {
+    match confirm_anchored(token, baseline.as_deref()).await {
         Some(reset_at) => PrimeResult::Success { reset_at },
         None => PrimeResult::Failed {
             reason: "sent but window did not anchor in time".to_string(),

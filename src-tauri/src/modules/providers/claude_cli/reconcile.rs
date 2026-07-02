@@ -15,6 +15,7 @@
 use std::path::PathBuf;
 
 use crate::modules::providers::claude_cli::{auth, config};
+use crate::modules::shared::active_store::ActiveStore;
 use crate::modules::shared::paths::profile_dir;
 
 /// Reject email values that would resolve to an unsafe folder name.
@@ -48,10 +49,10 @@ pub fn reconcile_active_profile(
     profs_dir: &PathBuf,
     claude_data: &PathBuf,
 ) -> Result<(Option<String>, bool), String> {
-    let active_path = claude.join(".credentials.json");
-    if !active_path.exists() {
+    let store = ActiveStore::new(claude.clone());
+    let Some(active_blob) = store.read_active() else {
         return Ok((None, false));
-    }
+    };
 
     let oauth = match auth::read_oauth_from_claude_json(home) {
         Some(o) => o,
@@ -69,16 +70,16 @@ pub fn reconcile_active_profile(
 
     if cached_email == actual_email {
         // No drift — but Claude Code rotates tokens while an account is active, and an
-        // external login overwrites `.credentials.json` before we can react. Refreshing
+        // external login overwrites the active credential before we can react. Refreshing
         // the backup on every reconcile guarantees the snapshot we keep of this account
         // is the freshest one available when a new login eventually replaces it.
-        refresh_active_backup(&active_path, profs_dir, &actual_email, &oauth);
+        refresh_active_backup(&active_blob, profs_dir, &actual_email, &oauth);
         return Ok((Some(actual_email), false));
     }
 
     let prof_dir = profile_dir(profs_dir, &actual_email)?;
     let backup_path = prof_dir.join("credentials.json");
-    std::fs::copy(&active_path, &backup_path)
+    std::fs::write(&backup_path, &active_blob)
         .map_err(|e| format!("Reconcile: failed to save active credentials: {}", e))?;
     config::set_file_600(&backup_path);
 
@@ -103,7 +104,7 @@ pub fn reconcile_active_profile(
 /// and identity. Errors are swallowed: a failed refresh only means a slightly
 /// staler backup, never a broken listing.
 fn refresh_active_backup(
-    active_path: &PathBuf,
+    active_blob: &str,
     profs_dir: &PathBuf,
     email: &str,
     oauth: &auth::OAuthAccount,
@@ -112,11 +113,10 @@ fn refresh_active_backup(
         return;
     };
 
-    let live = std::fs::read(active_path).unwrap_or_default();
-    if !live.is_empty() {
+    if !active_blob.is_empty() {
         let backup_path = prof_dir.join("credentials.json");
-        let stored = std::fs::read(&backup_path).unwrap_or_default();
-        if live != stored && std::fs::write(&backup_path, &live).is_ok() {
+        let stored = std::fs::read_to_string(&backup_path).unwrap_or_default();
+        if active_blob != stored && std::fs::write(&backup_path, active_blob).is_ok() {
             config::set_file_600(&backup_path);
         }
     }
