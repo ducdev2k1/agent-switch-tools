@@ -164,9 +164,16 @@ pub async fn switch_credential_profile(
 
     std::fs::copy(&target_cred_path, &active_path).map_err(|e| e.to_string())?;
 
-    if let Some(target_oauth) = auth::read_saved_oauth(&profs_dir, &target_name) {
-        let _ = auth::update_claude_json_oauth(&home, &target_oauth);
-    }
+    // Always rewrite oauthAccount to the target's identity. If it kept the previous
+    // account's email, the next reconcile would treat it as an external login and
+    // snapshot the target's credentials into the previous account's folder.
+    let target_oauth = auth::read_saved_oauth(&profs_dir, &target_name).unwrap_or_else(|| {
+        auth::OAuthAccount {
+            email_address: Some(target_name.clone()),
+            ..Default::default()
+        }
+    });
+    let _ = auth::update_claude_json_oauth(&home, &target_oauth);
 
     if !current_email.is_empty() {
         config::record_switch_usage(&mut meta, &current_email);

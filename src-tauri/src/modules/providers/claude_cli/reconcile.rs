@@ -68,6 +68,11 @@ pub fn reconcile_active_profile(
     let cached_email = meta.active_profile_name.clone().unwrap_or_default();
 
     if cached_email == actual_email {
+        // No drift — but Claude Code rotates tokens while an account is active, and an
+        // external login overwrites `.credentials.json` before we can react. Refreshing
+        // the backup on every reconcile guarantees the snapshot we keep of this account
+        // is the freshest one available when a new login eventually replaces it.
+        refresh_active_backup(&active_path, profs_dir, &actual_email, &oauth);
         return Ok((Some(actual_email), false));
     }
 
@@ -92,4 +97,131 @@ pub fn reconcile_active_profile(
     let _ = (&cached_email, &actual_email);
 
     Ok((Some(actual_email), true))
+}
+
+/// Best-effort sync of the active account's saved copy with the live credentials
+/// and identity. Errors are swallowed: a failed refresh only means a slightly
+/// staler backup, never a broken listing.
+fn refresh_active_backup(
+    active_path: &PathBuf,
+    profs_dir: &PathBuf,
+    email: &str,
+    oauth: &auth::OAuthAccount,
+) {
+    let Ok(prof_dir) = profile_dir(profs_dir, email) else {
+        return;
+    };
+
+    let live = std::fs::read(active_path).unwrap_or_default();
+    if !live.is_empty() {
+        let backup_path = prof_dir.join("credentials.json");
+        let stored = std::fs::read(&backup_path).unwrap_or_default();
+        if live != stored && std::fs::write(&backup_path, &live).is_ok() {
+            config::set_file_600(&backup_path);
+        }
+    }
+
+    let new_identity = serde_json::to_string_pretty(oauth).unwrap_or_default();
+    let stored_identity =
+        std::fs::read_to_string(prof_dir.join("oauth.json")).unwrap_or_default();
+    if !new_identity.is_empty() && new_identity != stored_identity {
+        let _ = auth::write_saved_oauth(profs_dir, email, oauth);
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    struct Env {
+        _tmp: tempfile::TempDir,
+        home: PathBuf,
+        claude: PathBuf,
+        profs: PathBuf,
+        data: PathBuf,
+    }
+
+    /// Sandbox mirroring the real layout: ~/.claude.json, ~/.claude/.credentials.json,
+    /// app data dir with meta.json and profiles/.
+    fn setup(actual_email: &str, cached_email: &str) -> Env {
+        let tmp = tempfile::tempdir().unwrap();
+        let home = tmp.path().to_path_buf();
+        let claude = home.join(".claude");
+        let data = home.join("appdata");
+        let profs = data.join("profiles");
+        std::fs::create_dir_all(&claude).unwrap();
+        std::fs::create_dir_all(&profs).unwrap();
+
+        std::fs::write(
+            home.join(".claude.json"),
+            format!(r#"{{ "oauthAccount": {{ "emailAddress": "{}" }} }}"#, actual_email),
+        )
+        .unwrap();
+        std::fs::write(claude.join(".credentials.json"), r#"{"claudeAiOauth":{"accessToken":"new-token"}}"#).unwrap();
+
+        let meta = config::ManagerMeta {
+            active_profile_name: Some(cached_email.to_string()),
+            ..Default::default()
+        };
+        config::write_meta(&data, &meta).unwrap();
+
+        Env { _tmp: tmp, home, claude, profs, data }
+    }
+
+    /// The reported bug: user logs into a new account outside the app. Reconcile must
+    /// detect the drift, snapshot the new account into its own folder, keep the old
+    /// account's folder untouched, and point meta at the new email.
+    #[test]
+    fn external_login_saves_new_account_and_preserves_old() {
+        let env = setup("chuongdt@test.vn", "anhtct@test.vn");
+
+        // Pre-existing backup of the old account must survive.
+        let old_dir = env.profs.join("anhtct@test.vn");
+        std::fs::create_dir_all(&old_dir).unwrap();
+        std::fs::write(old_dir.join("credentials.json"), r#"{"claudeAiOauth":{"accessToken":"old-token"}}"#).unwrap();
+
+        let (actual, drift) =
+            reconcile_active_profile(&env.home, &env.claude, &env.profs, &env.data).unwrap();
+
+        assert_eq!(actual.as_deref(), Some("chuongdt@test.vn"));
+        assert!(drift, "external login must be detected as drift");
+
+        let new_cred = env.profs.join("chuongdt@test.vn").join("credentials.json");
+        assert!(new_cred.exists(), "new account must be snapshotted");
+        assert!(
+            std::fs::read_to_string(env.profs.join("anhtct@test.vn").join("credentials.json"))
+                .unwrap()
+                .contains("old-token"),
+            "old account backup must not be overwritten"
+        );
+        assert_eq!(
+            config::read_meta(&env.data).active_profile_name.as_deref(),
+            Some("chuongdt@test.vn")
+        );
+    }
+
+    /// No drift, but the active account's backup must still be kept fresh: Claude Code
+    /// rotates tokens over time, and this snapshot is all that survives the next
+    /// external login.
+    #[test]
+    fn matching_email_refreshes_stale_backup_without_drift() {
+        let env = setup("anhtct@test.vn", "anhtct@test.vn");
+
+        let prof_dir = env.profs.join("anhtct@test.vn");
+        std::fs::create_dir_all(&prof_dir).unwrap();
+        std::fs::write(prof_dir.join("credentials.json"), r#"{"claudeAiOauth":{"accessToken":"rotated-out-token"}}"#).unwrap();
+
+        let (actual, drift) =
+            reconcile_active_profile(&env.home, &env.claude, &env.profs, &env.data).unwrap();
+
+        assert_eq!(actual.as_deref(), Some("anhtct@test.vn"));
+        assert!(!drift);
+        assert!(
+            std::fs::read_to_string(prof_dir.join("credentials.json"))
+                .unwrap()
+                .contains("new-token"),
+            "backup must be synced with the live credentials"
+        );
+        assert!(prof_dir.join("oauth.json").exists(), "identity must be saved alongside");
+    }
 }
