@@ -4,7 +4,6 @@ import { IdeDashboardSection } from '@/components/ide-dashboard-section'
 import { ProfileCard } from '@/components/profile-card'
 import { ProfileTable } from '@/components/profile-table'
 import { IdeLogo } from '@/components/ide-logo'
-import { SwitchConfirmationDialog } from '@/components/switch-confirmation-dialog'
 import { UsageView } from '@/components/usage/usage-view'
 import { Button } from '@/components/ui/button'
 import { Separator } from '@/components/ui/separator'
@@ -15,7 +14,14 @@ import { useInstalledIdes } from '@/hooks/use-installed-ides'
 import { useCredentialProfiles } from '@/hooks/use-profiles'
 import type { AppUpdaterState, CredentialProfile, IdeType } from '@/lib/types'
 import { listen } from '@tauri-apps/api/event'
-import { BarChart3, Braces, RefreshCw, Save, Settings, Shield } from 'lucide-react'
+import {
+  BarChart3,
+  Braces,
+  RefreshCw,
+  Save,
+  Settings,
+  Shield,
+} from 'lucide-react'
 import { useCallback, useEffect, useMemo, useState } from 'react'
 
 /** Antigravity ships as three variants; we group them under one top-level tab. */
@@ -49,7 +55,6 @@ export function Dashboard({ onOpenSettings, updater }: DashboardProps) {
     saveCurrentAs,
     switchTo,
     remove,
-    checkClaudeRunning,
     refresh,
   } = useCredentialProfiles()
 
@@ -89,60 +94,50 @@ export function Dashboard({ onOpenSettings, updater }: DashboardProps) {
     }
   }, [installedAntigravity, antigravitySubTab])
 
-  const [pendingTrayProfile, setPendingTrayProfile] = useState<string | null>(
-    null,
-  )
-
-  // Listen for tray quick-switch events
-  const handleTraySwitchRef = useCallback(
-    async (profileName: string) => {
-      const running = await checkClaudeRunning()
-      const target = profiles.find((p) => p.name === profileName)
-      if (!target) {
-        // If profile not found yet (maybe loading), save for later
-        if (profiles.length === 0) {
-          setPendingTrayProfile(profileName)
-        } else {
-          toast.error(t('dashboard.errors.not_found', { name: profileName }))
+  // Switch immediately without confirmation; warn afterwards if Claude was running.
+  const performSwitch = useCallback(
+    async (target: CredentialProfile) => {
+      try {
+        const result = await switchTo(target.name)
+        await refreshCli()
+        toast.success(result.message)
+        if (result.claudeWasRunning) {
+          toast.warning(t('dashboard.messages.restart_claude_warning'), {
+            duration: 5000,
+          })
         }
-        return
+      } catch (e) {
+        toast.error(t('dashboard.errors.switch_failed', { error: e }))
       }
-      if (target.isActive) {
-        toast.info(
-          t('dashboard.messages.already_active', { name: profileName }),
-        )
-        return
-      }
-      setClaudeIsRunning(running)
-      setSwitchTarget(target)
-      setSwitchDialogOpen(true)
     },
-    [profiles, checkClaudeRunning, t],
+    [switchTo, refreshCli, t],
   )
 
-  // Watch for pending tray switch once profiles load
+  // Tray already performed the switch in the backend — just refresh and notify.
   useEffect(() => {
-    if (pendingTrayProfile && profiles.length > 0) {
-      handleTraySwitchRef(pendingTrayProfile)
-      setPendingTrayProfile(null)
-    }
-  }, [profiles, pendingTrayProfile, handleTraySwitchRef])
-
-  useEffect(() => {
-    const unlisten = listen<string>('tray-switch-profile', (event) => {
-      handleTraySwitchRef(event.payload)
+    const unlistenSwitched = listen<string>(
+      'tray-profile-switched',
+      async (event) => {
+        toast.success(t('dashboard.success.switched', { name: event.payload }))
+        await Promise.all([refresh(), refreshCli()])
+      },
+    )
+    const unlistenError = listen<string>('tray-switch-error', (event) => {
+      toast.error(t('dashboard.errors.switch_failed', { error: event.payload }))
     })
     return () => {
-      unlisten.then((fn) => fn())
+      unlistenSwitched.then((fn) => fn())
+      unlistenError.then((fn) => fn())
     }
-  }, [handleTraySwitchRef])
+  }, [refresh, refreshCli, t])
 
-  // Listen for tray IDE quick-switch events (format: "ideType:profileName")
+  // Tray IDE switch done in backend (format: "ideType:profileName") — open the matching tab.
   useEffect(() => {
-    const unlisten = listen<string>('tray-switch-ide-profile', (event) => {
+    const unlisten = listen<string>('tray-ide-profile-switched', (event) => {
       const colonIdx = event.payload.indexOf(':')
       if (colonIdx > 0) {
         const ideType = event.payload.substring(0, colonIdx) as IdeType
+        const name = event.payload.substring(colonIdx + 1)
         // Antigravity variants live under the grouped tab + a variant sub-tab.
         if (ANTIGRAVITY_VARIANTS.includes(ideType)) {
           setActiveTab(ANTIGRAVITY_GROUP)
@@ -150,22 +145,15 @@ export function Dashboard({ onOpenSettings, updater }: DashboardProps) {
         } else {
           setActiveTab(ideType)
         }
-        // The IdeDashboardSection will handle the actual switch via its own UI
-        toast.info(`Switched to ${ideType} tab. Select profile to switch.`)
+        toast.success(t('ide.messages.switch_success', { name, ide: ideType }))
       }
     })
     return () => {
       unlisten.then((fn) => fn())
     }
-  }, [])
+  }, [t])
 
   // Dialog states
-  const [switchDialogOpen, setSwitchDialogOpen] = useState(false)
-  const [switchTarget, setSwitchTarget] = useState<CredentialProfile | null>(
-    null,
-  )
-  const [claudeIsRunning, setClaudeIsRunning] = useState(false)
-  const [switching, setSwitching] = useState(false)
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
   const [deletingName, setDeletingName] = useState<string | null>(null)
   const [addAccountOpen, setAddAccountOpen] = useState(false)
@@ -183,35 +171,6 @@ export function Dashboard({ onOpenSettings, updater }: DashboardProps) {
       toast.error(t('dashboard.errors.save_failed', { error: e }))
     } finally {
       setSaving(false)
-    }
-  }
-
-  // Initiate switch: check Claude running → show confirmation dialog
-  const handleSwitchRequest = async (target: CredentialProfile) => {
-    const running = await checkClaudeRunning()
-    setClaudeIsRunning(running)
-    setSwitchTarget(target)
-    setSwitchDialogOpen(true)
-  }
-
-  // Confirm switch
-  const handleSwitchConfirm = async () => {
-    if (!switchTarget) return
-    setSwitching(true)
-    try {
-      const result = await switchTo(switchTarget.name)
-      await refreshCli()
-      setSwitchDialogOpen(false)
-      toast.success(result.message)
-      if (result.claudeWasRunning) {
-        toast.warning(t('dashboard.messages.restart_claude_warning'), {
-          duration: 5000,
-        })
-      }
-    } catch (e) {
-      toast.error(t('dashboard.errors.switch_failed', { error: e }))
-    } finally {
-      setSwitching(false)
     }
   }
 
@@ -405,7 +364,7 @@ export function Dashboard({ onOpenSettings, updater }: DashboardProps) {
                     <ProfileCard
                       key={profile.name}
                       profile={profile}
-                      onSwitch={handleSwitchRequest}
+                      onSwitch={performSwitch}
                       onDelete={handleDeleteRequest}
                       onProfilesChanged={refresh}
                     />
@@ -414,7 +373,7 @@ export function Dashboard({ onOpenSettings, updater }: DashboardProps) {
               ) : (
                 <ProfileTable
                   profiles={profiles}
-                  onSwitch={handleSwitchRequest}
+                  onSwitch={performSwitch}
                   onDelete={handleDeleteRequest}
                   onProfilesChanged={refresh}
                 />
@@ -486,15 +445,6 @@ export function Dashboard({ onOpenSettings, updater }: DashboardProps) {
       </main>
 
       {/* Dialogs */}
-      <SwitchConfirmationDialog
-        open={switchDialogOpen}
-        onOpenChange={setSwitchDialogOpen}
-        targetProfile={switchTarget}
-        claudeIsRunning={claudeIsRunning}
-        onConfirm={handleSwitchConfirm}
-        switching={switching}
-      />
-
       <DeleteConfirmDialog
         open={deleteDialogOpen}
         onOpenChange={setDeleteDialogOpen}

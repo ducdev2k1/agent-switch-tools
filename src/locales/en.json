@@ -20,8 +20,14 @@
       "unknown": "Unknown"
     },
     "labels": {
+      "actions": "Actions",
       "active": "Active",
       "active_account": "Active account",
+      "email": "Email",
+      "expires_at": "Expires at",
+      "membership": "Membership",
+      "model_quota": "Model quota",
+      "status": "Status",
       "expired": "Expired",
       "expired_ago": "{{time}} ago",
       "expires_in": "Expires in {{time}}",
@@ -98,6 +104,7 @@
     },
     "success": {
       "account_saved": "Account \"{{email}}\" saved",
+      "switched": "Switched to \"{{name}}\"",
       "deleted": "\"{{name}}\" deleted"
     }
   },

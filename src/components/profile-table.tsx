@@ -170,6 +170,7 @@ function ProfileRow({
               variant="ghost"
               size="icon"
               className="size-8 text-primary hover:text-primary-foreground hover:bg-primary"
+              title={t('common.actions.refresh_token')}
               onClick={async (e) => {
                 e.stopPropagation()
                 const result = await refreshToken(name, isActive)
@@ -197,6 +198,7 @@ function ProfileRow({
             variant="ghost"
             size="icon"
             className="size-8 text-muted-foreground/60 hover:text-foreground opacity-40 group-hover:opacity-100 transition-opacity"
+            title={t('common.actions.refresh')}
             onClick={(e) => {
               e.stopPropagation()
               refreshUsage()
@@ -213,6 +215,7 @@ function ProfileRow({
               variant="ghost"
               size="icon"
               className="size-8 text-muted-foreground/60 hover:text-primary opacity-40 group-hover:opacity-100 transition-opacity"
+              title={t('common.actions.switch')}
               onClick={() => onSwitch(profile)}
             >
               <ArrowRightLeft className="size-4" />
@@ -223,6 +226,7 @@ function ProfileRow({
             variant="ghost"
             size="icon"
             className="size-8 text-muted-foreground/60 hover:text-destructive opacity-40 group-hover:opacity-100 transition-opacity"
+            title={t('common.actions.delete')}
             onClick={() => onDelete(name)}
           >
             <Trash2 className="size-4" />

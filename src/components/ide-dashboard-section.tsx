@@ -1,6 +1,5 @@
 import { DeleteConfirmDialog } from '@/components/delete-confirm-dialog'
 import { IdeProfileCard } from '@/components/ide-profile-card'
-import { SwitchConfirmationDialog } from '@/components/switch-confirmation-dialog'
 import { Button } from '@/components/ui/button'
 import { useIdeProfiles } from '@/hooks/use-ide-profiles'
 import type { IdeProfile, IdeType } from '@/lib/types'
@@ -31,15 +30,10 @@ export function IdeDashboardSection({
     saveCurrentAs,
     switchTo,
     remove,
-    checkIdeRunning,
     restartIde,
     refresh,
   } = useIdeProfiles(ideType)
 
-  const [switchDialogOpen, setSwitchDialogOpen] = useState(false)
-  const [switchTarget, setSwitchTarget] = useState<IdeProfile | null>(null)
-  const [ideIsRunning, setIdeIsRunning] = useState(false)
-  const [switching, setSwitching] = useState(false)
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
   const [deletingName, setDeletingName] = useState<string | null>(null)
   const [saving, setSaving] = useState(false)
@@ -58,43 +52,32 @@ export function IdeDashboardSection({
     }
   }, [saveCurrentAs, ideName, t])
 
-  const handleSwitchRequest = useCallback(
+  // Switch immediately without confirmation; auto-restart the IDE if it was running.
+  const performSwitch = useCallback(
     async (target: IdeProfile) => {
-      const running = await checkIdeRunning()
-      setIdeIsRunning(running)
-      setSwitchTarget(target)
-      setSwitchDialogOpen(true)
-    },
-    [checkIdeRunning],
-  )
-
-  const handleSwitchConfirm = useCallback(async () => {
-    if (!switchTarget) return
-    setSwitching(true)
-    try {
-      const result = await switchTo(switchTarget.name)
-      setSwitchDialogOpen(false)
-      toast.success(result.message)
-      if (result.ideWasRunning) {
-        // Auto-restart IDE after switching
-        toast.info(t('ide.messages.restarting_ide', { ide: ideName }), {
-          duration: 3000,
-        })
-        try {
-          const msg = await restartIde()
-          toast.success(msg)
-        } catch (e) {
-          toast.warning(t('ide.messages.close_ide_warning', { ide: ideName }), {
-            duration: 5000,
+      try {
+        const result = await switchTo(target.name)
+        toast.success(result.message)
+        if (result.ideWasRunning) {
+          toast.info(t('ide.messages.restarting_ide', { ide: ideName }), {
+            duration: 3000,
           })
+          try {
+            const msg = await restartIde()
+            toast.success(msg)
+          } catch {
+            toast.warning(
+              t('ide.messages.close_ide_warning', { ide: ideName }),
+              { duration: 5000 },
+            )
+          }
         }
+      } catch (e) {
+        toast.error(t('ide.errors.switch_failed', { error: e }))
       }
-    } catch (e) {
-      toast.error(t('ide.errors.switch_failed', { error: e }))
-    } finally {
-      setSwitching(false)
-    }
-  }, [switchTarget, switchTo, restartIde, ideName, t])
+    },
+    [switchTo, restartIde, ideName, t],
+  )
 
   const handleDeleteRequest = (name: string) => {
     setDeletingName(name)
@@ -116,39 +99,18 @@ export function IdeDashboardSection({
     }
   }
 
-  // Listen for tray switch events for this specific IDE
+  // Tray already switched this IDE's profile in the backend — just reload the list.
   useEffect(() => {
-    const unlisten = listen<string>(
-      'tray-switch-ide-profile',
-      async (event) => {
-        const colonIdx = event.payload.indexOf(':')
-        if (colonIdx > 0) {
-          const type = event.payload.substring(0, colonIdx)
-          const name = event.payload.substring(colonIdx + 1)
-
-          if (type === ideType) {
-            const target = profiles.find((p: any) => p.name === name)
-            if (target) {
-              if (target.isActive) {
-                toast.info(
-                  t('ide.messages.already_active', { ide: ideName, name }),
-                )
-                return
-              }
-              const running = await checkIdeRunning()
-              setIdeIsRunning(running)
-              setSwitchTarget(target)
-              setSwitchDialogOpen(true)
-            }
-          }
-        }
-      },
-    )
+    const unlisten = listen<string>('tray-ide-profile-switched', (event) => {
+      if (event.payload.startsWith(`${ideType}:`)) {
+        refresh()
+      }
+    })
 
     return () => {
-      unlisten.then((fn: any) => fn())
+      unlisten.then((fn) => fn())
     }
-  }, [ideType, profiles, ideName, t, checkIdeRunning])
+  }, [ideType, refresh])
 
   return (
     <div className="space-y-6">
@@ -207,7 +169,7 @@ export function IdeDashboardSection({
               <IdeProfileCard
                 key={profile.name}
                 profile={profile}
-                onSwitch={handleSwitchRequest}
+                onSwitch={performSwitch}
                 onDelete={handleDeleteRequest}
               />
             ))}
@@ -215,50 +177,11 @@ export function IdeDashboardSection({
         ) : (
           <IdeProfileTable
             profiles={profiles}
-            onSwitch={handleSwitchRequest}
+            onSwitch={performSwitch}
             onDelete={handleDeleteRequest}
           />
         )}
       </div>
-
-      {/* Reuse existing dialogs — they work with any profile shape */}
-      {switchTarget && (
-        <SwitchConfirmationDialog
-          open={switchDialogOpen}
-          onOpenChange={setSwitchDialogOpen}
-          targetProfile={{
-            name: switchTarget.name,
-            isActive: false,
-            info: {
-              subscriptionType: switchTarget.membershipType,
-              rateLimitTier: null,
-              expiresAt: null,
-              isExpired: false,
-              expiresInHours: null,
-              scopes: [],
-              organizationUuid: null,
-            },
-            oauthAccount: switchTarget.email
-              ? {
-                  accountUuid: null,
-                  emailAddress: switchTarget.email,
-                  organizationUuid: null,
-                  hasExtraUsageEnabled: null,
-                  billingType: null,
-                  accountCreatedAt: null,
-                  subscriptionCreatedAt: null,
-                  displayName: switchTarget.displayName,
-                  organizationRole: null,
-                  workspaceRole: null,
-                  organizationName: null,
-                }
-              : null,
-          }}
-          claudeIsRunning={ideIsRunning}
-          onConfirm={handleSwitchConfirm}
-          switching={switching}
-        />
-      )}
 
       <DeleteConfirmDialog
         open={deleteDialogOpen}

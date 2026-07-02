@@ -139,6 +139,7 @@ function IdeProfileRow({
             variant="ghost"
             size="icon"
             className="size-8 text-muted-foreground/60 hover:text-foreground"
+            title={t('common.actions.refresh')}
             onClick={(e) => {
               e.stopPropagation()
               refreshUsage()
@@ -155,6 +156,7 @@ function IdeProfileRow({
               variant="ghost"
               size="icon"
               className="size-8 text-muted-foreground/60 hover:text-primary"
+              title={t('common.actions.switch')}
               onClick={() => onSwitch(profile)}
             >
               <ArrowRightLeft className="size-4" />
@@ -165,6 +167,7 @@ function IdeProfileRow({
             variant="ghost"
             size="icon"
             className="size-8 text-muted-foreground/60 hover:text-destructive"
+            title={t('common.actions.delete')}
             onClick={() => onDelete(name)}
           >
             <Trash2 className="size-4" />

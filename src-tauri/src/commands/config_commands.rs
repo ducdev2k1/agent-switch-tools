@@ -65,11 +65,7 @@ pub async fn list_credential_profiles(
         }
     }
 
-    profiles.sort_by(|a, b| {
-        if a.is_active { std::cmp::Ordering::Less }
-        else if b.is_active { std::cmp::Ordering::Greater }
-        else { a.name.cmp(&b.name) }
-    });
+    profiles.sort_by(|a, b| a.name.cmp(&b.name));
 
     Ok(profiles)
 }

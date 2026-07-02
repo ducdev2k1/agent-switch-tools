@@ -20,8 +20,14 @@
       "unknown": "Không rõ"
     },
     "labels": {
+      "actions": "Thao tác",
       "active": "Hoạt động",
       "active_account": "Tài khoản đang hoạt động",
+      "email": "Email",
+      "expires_at": "Hết hạn lúc",
+      "membership": "Gói thành viên",
+      "model_quota": "Quota mô hình",
+      "status": "Trạng thái",
       "expired": "Hết hạn",
       "expired_ago": "Hết hạn {{time}} trước",
       "expires_in": "Hết hạn sau {{time}}",
@@ -98,6 +104,7 @@
     },
     "success": {
       "account_saved": "Đã lưu tài khoản \"{{email}}\"",
+      "switched": "Đã chuyển sang \"{{name}}\"",
       "deleted": "Đã xóa \"{{name}}\""
     }
   },

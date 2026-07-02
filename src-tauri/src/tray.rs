@@ -65,25 +65,43 @@ pub fn setup_tray(app: &tauri::App) -> Result<(), Box<dyn std::error::Error>> {
                     app_handle.exit(0);
                 }
                 _ if id.starts_with("ide-switch:") => {
-                    // Format: ide-switch:{ideType}:{profileName}
+                    // Format: ide-switch:{ideType}:{profileName} — switch directly, no confirmation
                     let rest = id.strip_prefix("ide-switch:").unwrap_or("");
                     if let Some((ide_type, profile_name)) = rest.split_once(':') {
-                        if let Some(window) = app_handle.get_webview_window("main") {
-                            let _ = window.show();
-                            let _ = window.set_focus();
-                        }
-                        let payload = format!("{}:{}", ide_type, profile_name);
-                        let _ = app_handle.emit("tray-switch-ide-profile", payload);
+                        let app = app_handle.clone();
+                        let ide_type = ide_type.to_string();
+                        let profile_name = profile_name.to_string();
+                        tauri::async_runtime::spawn(async move {
+                            match crate::modules::core::ide_manager::switch_profile(&app, &ide_type, &profile_name).await {
+                                Ok(result) => {
+                                    if result.ide_was_running {
+                                        let _ = crate::modules::core::ide_manager::restart_ide(&ide_type).await;
+                                    }
+                                    refresh_tray_menu(&app);
+                                    let _ = app.emit("tray-ide-profile-switched", format!("{}:{}", ide_type, profile_name));
+                                }
+                                Err(e) => {
+                                    let _ = app.emit("tray-switch-error", e);
+                                }
+                            }
+                        });
                     }
                 }
                 _ if id.starts_with("switch:") => {
-                    let profile_name = id.strip_prefix("switch:").unwrap_or("");
+                    // Switch Claude Code credentials directly, no confirmation
+                    let profile_name = id.strip_prefix("switch:").unwrap_or("").to_string();
                     if !profile_name.is_empty() {
-                        if let Some(window) = app_handle.get_webview_window("main") {
-                            let _ = window.show();
-                            let _ = window.set_focus();
-                        }
-                        let _ = app_handle.emit("tray-switch-profile", profile_name);
+                        let app = app_handle.clone();
+                        tauri::async_runtime::spawn(async move {
+                            match crate::commands::config_commands::switch_credential_profile(app.clone(), profile_name.clone()).await {
+                                Ok(_) => {
+                                    let _ = app.emit("tray-profile-switched", profile_name);
+                                }
+                                Err(e) => {
+                                    let _ = app.emit("tray-switch-error", e);
+                                }
+                            }
+                        });
                     }
                 }
                 _ => {}

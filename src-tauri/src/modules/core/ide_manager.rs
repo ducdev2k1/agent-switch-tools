@@ -133,7 +133,7 @@ pub async fn list_profiles(app: &tauri::AppHandle, ide_type_str: &str) -> Result
             }
         }
     }
-    profiles.sort_by(|a, b| if a.is_active { std::cmp::Ordering::Less } else if b.is_active { std::cmp::Ordering::Greater } else { a.name.cmp(&b.name) });
+    profiles.sort_by(|a, b| a.name.cmp(&b.name));
     Ok(profiles)
 }
 
