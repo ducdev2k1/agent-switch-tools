@@ -169,7 +169,8 @@ Agent Switch Tools đặt một icon ở System Tray. Khi nhấp chuột phải,
 ```
 
 - Chỉ IDE **đã cài** mới xuất hiện trong menu
-- Nhấp vào profile bất kỳ → hiển thị dialog xác nhận → switch ngay lập tức
+- Nhấp vào profile bất kỳ → **switch ngay trong nền** — không hộp thoại xác nhận, không bật cửa sổ app, hoạt động kể cả khi dashboard đang đóng
+- Với IDE: chuyển xong tự khởi động lại IDE nếu nó đang chạy
 
 ---
 

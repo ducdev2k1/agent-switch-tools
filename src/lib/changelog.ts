@@ -15,11 +15,31 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: '1.0.16',
+    date: '2026-07-02',
+    en: [
+      'One-click account switching: the confirmation dialog is gone — clicking an account switches immediately, both in the app and from the system tray.',
+      'Tray quick-switch now runs entirely in the background: no window pops up, and it works even when the dashboard is closed. IDE accounts are switched and the IDE is auto-restarted if it was running.',
+      'The account list keeps a stable alphabetical order — switching no longer moves the active account to the top.',
+      'List view is fully localized: column headers (Email, Membership, Model quota, Expires at, Status, Actions) and action-button tooltips now follow the app language.',
+      'Removed the bright green edge stripe on the active account card — the subtle green tint and ACTIVE badge remain.',
+      'The default window is wider (1200×720) so the grid shows 3 account cards per row out of the box.',
+    ],
+    vi: [
+      'Chuyển tài khoản một chạm: bỏ hộp thoại xác nhận — bấm vào tài khoản là chuyển ngay, cả trong app lẫn từ system tray.',
+      'Chuyển nhanh từ tray giờ chạy hoàn toàn ngầm: không bật cửa sổ, hoạt động kể cả khi dashboard đang đóng. Tài khoản IDE được chuyển xong sẽ tự khởi động lại IDE nếu nó đang chạy.',
+      'Danh sách tài khoản giữ thứ tự alphabet ổn định — chuyển tài khoản không còn đẩy tài khoản active lên đầu.',
+      'Chế độ xem danh sách được Việt hóa đầy đủ: tiêu đề cột (Email, Gói thành viên, Quota mô hình, Hết hạn lúc, Trạng thái, Thao tác) và tooltip các nút thao tác theo đúng ngôn ngữ app.',
+      'Bỏ dải viền xanh đậm bên trái thẻ tài khoản active — vẫn giữ nền xanh nhạt và badge HOẠT ĐỘNG.',
+      'Cửa sổ mặc định rộng hơn (1200×720) — lưới tài khoản hiện đủ 3 thẻ mỗi hàng ngay khi mở.',
+    ],
+  },
+  {
     version: '1.0.15',
     date: '2026-07-02',
     en: [
       'Fixed external logins not being detected: logging into a different Claude account via `claude /login` now auto-saves the new account and keeps the previous one intact. This also stops "Save Current" from overwriting the old account with the new one\'s tokens.',
-      'The active account\'s backup is now kept fresh on every app open/focus, so the snapshot preserved when you switch accounts is always the latest one.',
+      "The active account's backup is now kept fresh on every app open/focus, so the snapshot preserved when you switch accounts is always the latest one.",
       'Account cards show the display name and organization again.',
       'The Auto Session activity log is now a table with dd/mm/yyyy hh:mm timestamps (including reset times, converted to your local timezone).',
       'No more UI flash when re-focusing the window — account and quota info stay on screen and refresh silently, throttled to once per 2 minutes to protect against API rate limits.',

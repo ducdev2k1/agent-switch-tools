@@ -163,7 +163,6 @@ invoke("list_profiles")  ────►    fn list_credential_profiles()
 | `components/profile-card.tsx`                | Card hiển thị 1 profile: email, subscription, quota bars, actions |
 | `components/profile-form-dialog.tsx`         | Dialog thêm/chỉnh sửa profile                                     |
 | `components/add-account-dialog.tsx`          | Dialog hướng dẫn thêm tài khoản mới                               |
-| `components/switch-confirmation-dialog.tsx`  | Dialog xác nhận trước khi switch                                  |
 | `components/delete-confirm-dialog.tsx`       | Dialog xác nhận xóa profile                                       |
 | `components/usage-limits-display.tsx`        | Hiển thị thanh progress quota (5h, 7d, Sonnet)                    |
 | `components/cli-status-bar.tsx`              | Thanh trạng thái Claude CLI (model, sessions)                     |
