@@ -45,7 +45,28 @@ pub async fn build_report(claude_dir: &Path, cache_dir: &Path, range_days: u32) 
         } else {
             cal_date.clone()
         };
-        let cost = prices.lookup(&s.model).map(|p| cost_of(&tokens, &p));
+
+        // Attribute tokens and cost per model actually used in the session —
+        // a session can span the main model, subagents and /model switches.
+        let mut session_cost = 0.0;
+        let mut priced_any = false;
+        for (name, mt) in &s.by_model {
+            let model_tokens = TokenBreakdown {
+                input: mt.input,
+                output: mt.output,
+                cache_read: mt.cache_read,
+                cache_creation: mt.cache_write,
+            };
+            let model_cost = prices.lookup(name).map(|p| cost_of(&model_tokens, &p));
+            if let Some(c) = model_cost {
+                session_cost += c;
+                priced_any = true;
+            }
+            let entry = by_model.entry(name.clone()).or_default();
+            entry.0.add(&model_tokens);
+            entry.1 += model_cost.unwrap_or(0.0);
+        }
+        let cost = priced_any.then_some(session_cost);
 
         total.add(&tokens);
         total_cost += cost.unwrap_or(0.0);
@@ -53,10 +74,6 @@ pub async fn build_report(claude_dir: &Path, cache_dir: &Path, range_days: u32) 
         let day = daily.entry(bucket.clone()).or_default();
         day.0.add(&tokens);
         day.1 += cost.unwrap_or(0.0);
-
-        let model = by_model.entry(s.model.clone()).or_default();
-        model.0.add(&tokens);
-        model.1 += cost.unwrap_or(0.0);
 
         if cal_date == today {
             today_tokens.add(&tokens);

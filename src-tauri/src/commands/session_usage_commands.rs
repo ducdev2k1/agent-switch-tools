@@ -1,7 +1,18 @@
 use serde::Serialize;
+use std::collections::{HashMap, HashSet};
 use std::path::PathBuf;
 
 use super::path_helpers;
+
+/// Token usage attributed to one model within a session.
+#[derive(Debug, Clone, Serialize, Default)]
+#[serde(rename_all = "camelCase")]
+pub struct ModelTokenUsage {
+    pub input: u64,
+    pub output: u64,
+    pub cache_read: u64,
+    pub cache_write: u64,
+}
 
 /// Aggregated usage for a single Claude Code session
 #[derive(Debug, Clone, Serialize)]
@@ -10,6 +21,7 @@ pub struct SessionUsageSummary {
     pub session_id: String,
     pub project: String,
     pub branch: String,
+    /// Dominant model of the session (most tokens, `<synthetic>` excluded).
     pub model: String,
     pub started_at: String,
     pub ended_at: String,
@@ -18,6 +30,9 @@ pub struct SessionUsageSummary {
     pub total_cache_read: u64,
     pub total_cache_write: u64,
     pub message_count: u64,
+    /// Per-model breakdown — a session can span several models (main model,
+    /// subagents, mid-session /model switches).
+    pub by_model: HashMap<String, ModelTokenUsage>,
 }
 
 /// High-level aggregate across all sessions
@@ -131,7 +146,11 @@ fn parse_single_session(
     let mut first_ts = String::new();
     let mut last_ts = String::new();
     let mut branch = String::new();
-    let mut model = String::new();
+    let mut first_model = String::new();
+    let mut by_model: HashMap<String, ModelTokenUsage> = HashMap::new();
+    // Streaming rewrites the same assistant message on several lines, each
+    // carrying the identical usage object — count each message.id once.
+    let mut seen_message_ids: HashSet<String> = HashSet::new();
     let mut has_usage = false;
 
     for line in content.lines() {
@@ -167,41 +186,57 @@ fn parse_single_session(
             }
         }
 
-        // Extract usage from assistant messages
-        if let Some(usage) = parsed
-            .get("message")
-            .and_then(|m| m.get("usage"))
-        {
-            if let Some(input) = usage.get("input_tokens").and_then(|v| v.as_u64()) {
-                total_input += input;
-                has_usage = true;
-            }
-            if let Some(output) = usage.get("output_tokens").and_then(|v| v.as_u64()) {
-                total_output += output;
-            }
-            if let Some(cr) = usage
-                .get("cache_read_input_tokens")
-                .and_then(|v| v.as_u64())
-            {
-                total_cache_read += cr;
-            }
-            if let Some(cw) = usage
-                .get("cache_creation_input_tokens")
-                .and_then(|v| v.as_u64())
-            {
-                total_cache_write += cw;
-            }
-            message_count += 1;
+        let message = parsed.get("message");
+        let line_model = message
+            .and_then(|msg| msg.get("model"))
+            .and_then(|v| v.as_str())
+            .unwrap_or("");
+        if first_model.is_empty() && !line_model.is_empty() {
+            first_model = line_model.to_string();
         }
 
-        // Extract model
-        if model.is_empty() {
-            if let Some(m) = parsed
-                .get("message")
-                .and_then(|msg| msg.get("model"))
+        // Extract usage from assistant messages, once per unique message id
+        if let Some(usage) = message.and_then(|m| m.get("usage")) {
+            if let Some(id) = message
+                .and_then(|m| m.get("id"))
                 .and_then(|v| v.as_str())
             {
-                model = m.to_string();
+                if !seen_message_ids.insert(id.to_string()) {
+                    continue;
+                }
+            }
+
+            let input = usage.get("input_tokens").and_then(|v| v.as_u64());
+            let output = usage
+                .get("output_tokens")
+                .and_then(|v| v.as_u64())
+                .unwrap_or(0);
+            let cache_read = usage
+                .get("cache_read_input_tokens")
+                .and_then(|v| v.as_u64())
+                .unwrap_or(0);
+            let cache_write = usage
+                .get("cache_creation_input_tokens")
+                .and_then(|v| v.as_u64())
+                .unwrap_or(0);
+
+            if input.is_some() {
+                has_usage = true;
+            }
+            let input = input.unwrap_or(0);
+
+            total_input += input;
+            total_output += output;
+            total_cache_read += cache_read;
+            total_cache_write += cache_write;
+            message_count += 1;
+
+            if !line_model.is_empty() {
+                let entry = by_model.entry(line_model.to_string()).or_default();
+                entry.input += input;
+                entry.output += output;
+                entry.cache_read += cache_read;
+                entry.cache_write += cache_write;
             }
         }
     }
@@ -214,7 +249,7 @@ fn parse_single_session(
         session_id,
         project: project_name.to_string(),
         branch,
-        model,
+        model: dominant_model(&by_model, &first_model),
         started_at: first_ts,
         ended_at: last_ts,
         total_input_tokens: total_input,
@@ -222,7 +257,21 @@ fn parse_single_session(
         total_cache_read,
         total_cache_write,
         message_count,
+        by_model,
     })
+}
+
+/// Model with the most tokens, ignoring `<synthetic>` placeholder entries
+/// unless nothing else carries usage. Falls back to the first model seen.
+fn dominant_model(by_model: &HashMap<String, ModelTokenUsage>, first_model: &str) -> String {
+    let weight = |m: &ModelTokenUsage| m.input + m.output + m.cache_read + m.cache_write;
+    by_model
+        .iter()
+        .filter(|(name, _)| *name != "<synthetic>")
+        .max_by_key(|(_, m)| weight(m))
+        .or_else(|| by_model.iter().max_by_key(|(_, m)| weight(m)))
+        .map(|(name, _)| name.clone())
+        .unwrap_or_else(|| first_model.to_string())
 }
 
 /// Get session usage summaries for a given period (hours back from now)
@@ -235,4 +284,74 @@ pub async fn get_session_usage(
     let hours = hours_back.unwrap_or(24);
     let since = chrono::Utc::now() - chrono::Duration::hours(hours as i64);
     Ok(parse_session_logs(&claude_dir, since))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn line(id: &str, model: &str, input: u64, output: u64) -> String {
+        format!(
+            r#"{{"timestamp":"2026-07-02T01:00:00Z","message":{{"id":"{}","model":"{}","usage":{{"input_tokens":{},"output_tokens":{},"cache_read_input_tokens":0,"cache_creation_input_tokens":0}}}}}}"#,
+            id, model, input, output
+        )
+    }
+
+    fn parse_fixture(content: &str) -> SessionUsageSummary {
+        let tmp = tempfile::tempdir().unwrap();
+        let path = tmp.path().join("session.jsonl");
+        std::fs::write(&path, content).unwrap();
+        let since = chrono::DateTime::from_timestamp(0, 0).unwrap();
+        parse_single_session(&path, "proj", since).expect("summary")
+    }
+
+    /// Streaming rewrites the same message on several lines with identical
+    /// usage — it must be counted exactly once.
+    #[test]
+    fn duplicate_message_ids_are_counted_once() {
+        let content = [
+            line("msg_1", "claude-opus-4-8", 100, 50),
+            line("msg_1", "claude-opus-4-8", 100, 50),
+            line("msg_1", "claude-opus-4-8", 100, 50),
+            line("msg_2", "claude-opus-4-8", 10, 5),
+        ]
+        .join("\n");
+
+        let s = parse_fixture(&content);
+        assert_eq!(s.total_input_tokens, 110);
+        assert_eq!(s.total_output_tokens, 55);
+        assert_eq!(s.message_count, 2);
+    }
+
+    /// Tokens must be attributed to the model that produced them, and the
+    /// session label must be the dominant model — not the first line's model.
+    #[test]
+    fn tokens_split_per_model_and_dominant_wins() {
+        let content = [
+            line("msg_1", "claude-haiku-4-5-20251001", 10, 5),
+            line("msg_2", "claude-opus-4-8", 1000, 500),
+            line("msg_3", "claude-opus-4-8", 1000, 500),
+        ]
+        .join("\n");
+
+        let s = parse_fixture(&content);
+        assert_eq!(s.model, "claude-opus-4-8");
+        assert_eq!(s.by_model.len(), 2);
+        assert_eq!(s.by_model["claude-haiku-4-5-20251001"].input, 10);
+        assert_eq!(s.by_model["claude-opus-4-8"].input, 2000);
+    }
+
+    /// `<synthetic>` placeholder messages must never name the session.
+    #[test]
+    fn synthetic_never_labels_the_session() {
+        let content = [
+            line("msg_1", "<synthetic>", 5000, 100),
+            line("msg_2", "claude-sonnet-4-6", 10, 5),
+        ]
+        .join("\n");
+
+        let s = parse_fixture(&content);
+        assert_eq!(s.model, "claude-sonnet-4-6");
+        assert!(s.by_model.contains_key("<synthetic>"));
+    }
 }

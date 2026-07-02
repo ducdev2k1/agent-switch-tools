@@ -245,10 +245,18 @@ export interface IdeSwitchResult {
 
 // ========== Session Usage ==========
 
+export interface ModelTokenUsage {
+  input: number
+  output: number
+  cacheRead: number
+  cacheWrite: number
+}
+
 export interface SessionUsageSummary {
   sessionId: string
   project: string
   branch: string
+  /** Dominant model of the session (most tokens, `<synthetic>` excluded). */
   model: string
   startedAt: string
   endedAt: string
@@ -257,4 +265,6 @@ export interface SessionUsageSummary {
   totalCacheRead: number
   totalCacheWrite: number
   messageCount: number
+  /** Per-model token breakdown — a session can span several models. */
+  byModel: Record<string, ModelTokenUsage>
 }
