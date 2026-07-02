@@ -69,18 +69,26 @@ export function useProfileUsage(profileName: string | null, isActive = false) {
   const [limits, setLimits] = useState<UsageLimits | null>(null)
   const [loading, setLoading] = useState(false)
   const prevIsActive = useRef(isActive)
+  const hasDataRef = useRef(false)
+  const lastFetchedAt = useRef(0)
 
   const fetchUsage = useCallback(
     (forceRefresh = false) => {
       if (!profileName) return
-      setLoading(true)
+      // Show the loader only for the first load or an explicit refresh —
+      // silent background updates must not blank the quota display.
+      if (forceRefresh || !hasDataRef.current) setLoading(true)
+      lastFetchedAt.current = Date.now()
       invoke<UsageLimits | null>('get_profile_usage', {
         profileName,
         forceRefresh,
         isActive,
       })
         .then((data) => {
-          if (data) setLimits(data)
+          if (data) {
+            hasDataRef.current = true
+            setLimits(data)
+          }
         })
         .catch((e) => console.error('Failed to load profile usage:', e))
         .finally(() => setLoading(false))
@@ -92,12 +100,25 @@ export function useProfileUsage(profileName: string | null, isActive = false) {
   useEffect(() => {
     if (prevIsActive.current !== isActive) {
       prevIsActive.current = isActive
+      hasDataRef.current = false
       setLimits(null)
       fetchUsage(true)
     } else {
       fetchUsage()
     }
   }, [fetchUsage, isActive])
+
+  // Refresh on window focus, silently. Throttled to the backend cache TTL so
+  // rapid focus switches never reach the Anthropic API (the backend also
+  // guards with its own 120s cache — force_refresh is the only bypass).
+  useEffect(() => {
+    const onFocus = () => {
+      if (Date.now() - lastFetchedAt.current < THROTTLE_MS) return
+      fetchUsage()
+    }
+    window.addEventListener('focus', onFocus)
+    return () => window.removeEventListener('focus', onFocus)
+  }, [fetchUsage])
 
   // Auto-update from background worker (every 5 min for all profiles)
   useEffect(() => {
@@ -106,6 +127,8 @@ export function useProfileUsage(profileName: string | null, isActive = false) {
       'all-profiles-usage-updated',
       (event) => {
         if (mounted && profileName && event.payload[profileName]) {
+          hasDataRef.current = true
+          lastFetchedAt.current = Date.now()
           setLimits(event.payload[profileName])
         }
       },

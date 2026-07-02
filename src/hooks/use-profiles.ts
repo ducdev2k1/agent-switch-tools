@@ -5,16 +5,27 @@ import { useTranslation } from 'react-i18next'
 import { toast } from 'sonner'
 import type { CredentialProfile, SwitchResult } from '@/lib/types'
 
+/**
+ * Module-level cache of the last-known profile list, so remounts and focus
+ * refreshes render data instantly and update in the background — no skeleton
+ * flash, no card remount (which would also re-trigger per-card quota loads).
+ */
+let profilesCache: CredentialProfile[] | null = null
+
 export function useCredentialProfiles() {
   const { t } = useTranslation()
-  const [profiles, setProfiles] = useState<CredentialProfile[]>([])
-  const [loading, setLoading] = useState(false)
+  const [profiles, setProfiles] = useState<CredentialProfile[]>(
+    () => profilesCache ?? [],
+  )
+  // Only show the loading skeleton on the very first load (no cached data yet).
+  const [loading, setLoading] = useState(() => profilesCache === null)
   const lastFocusRefreshRef = useRef(0)
 
   const load = useCallback(async () => {
-    setLoading(true)
+    if (profilesCache === null) setLoading(true)
     try {
       const data = await invoke<CredentialProfile[]>('list_credential_profiles')
+      profilesCache = data
       setProfiles(data)
     } catch (e) {
       console.error('Failed to load credential profiles:', e)
