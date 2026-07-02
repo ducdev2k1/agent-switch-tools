@@ -122,7 +122,7 @@ Tự động "mở" cửa sổ hạn mức 5 giờ của Claude vào đúng gi�
 
 - Bấm **"Prime ngay"** trên một tài khoản để mở cửa sổ thủ công ngay lập tức.
 - Nếu cửa sổ 5 giờ đang chạy, thao tác sẽ hiển thị *Hold* (bỏ qua) — đây là hành vi đúng, tránh phá cửa sổ hiện tại.
-- Xem **thống kê theo ngày** và **nhật ký hoạt động** ngay trong tab để kiểm tra lịch sử.
+- Xem **thống kê theo ngày** và **bảng nhật ký hoạt động** (ngày giờ dd/mm/yyyy hh:mm, mới nhất trước) ngay trong tab để kiểm tra lịch sử.
 
 > Lưu ý: bộ lập lịch chỉ chạy khi app đang mở. Chỉ tốn 1 token mỗi lần prime.
 

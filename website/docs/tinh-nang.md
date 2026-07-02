@@ -333,7 +333,7 @@ Bộ lập lịch **chỉ chạy khi app đang mở**. Để prime đúng giờ 
 
 ### Theo dõi
 
-Tab **Phiên tự động** còn hiển thị **thống kê theo ngày** (thành công / hold / lỗi / bỏ qua) và **nhật ký hoạt động** để bạn kiểm tra lịch sử prime.
+Tab **Phiên tự động** còn hiển thị **thống kê theo ngày** (thành công / hold / lỗi / bỏ qua) và **bảng nhật ký hoạt động** (Thời gian / Tài khoản / Trạng thái / Chi tiết, ngày giờ dd/mm/yyyy hh:mm) để bạn kiểm tra lịch sử prime.
 
 > Xem hướng dẫn thao tác từng bước tại [Hướng dẫn sử dụng → Phiên tự động](huong-dan-su-dung.md#phiên-tự-động-auto-session).
 

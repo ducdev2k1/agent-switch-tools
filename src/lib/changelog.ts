@@ -15,6 +15,24 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: '1.0.15',
+    date: '2026-07-02',
+    en: [
+      'Fixed external logins not being detected: logging into a different Claude account via `claude /login` now auto-saves the new account and keeps the previous one intact. This also stops "Save Current" from overwriting the old account with the new one\'s tokens.',
+      'The active account\'s backup is now kept fresh on every app open/focus, so the snapshot preserved when you switch accounts is always the latest one.',
+      'Account cards show the display name and organization again.',
+      'The Auto Session activity log is now a table with dd/mm/yyyy hh:mm timestamps (including reset times, converted to your local timezone).',
+      'No more UI flash when re-focusing the window — account and quota info stay on screen and refresh silently, throttled to once per 2 minutes to protect against API rate limits.',
+    ],
+    vi: [
+      'Sửa lỗi không phát hiện đăng nhập ngoài app: login tài khoản Claude khác bằng `claude /login` giờ tự lưu tài khoản mới và giữ nguyên tài khoản cũ. Đồng thời "Lưu Hiện tại" không còn ghi đè tài khoản cũ bằng token của tài khoản mới.',
+      'Bản sao lưu của tài khoản đang active giờ được làm mới mỗi lần mở/focus app — snapshot giữ lại khi chuyển tài khoản luôn là bản mới nhất.',
+      'Thẻ tài khoản hiển thị lại tên hiển thị và tên tổ chức.',
+      'Nhật ký hoạt động của Phiên tự động chuyển sang dạng bảng, ngày giờ định dạng dd/mm/yyyy hh:mm (kể cả giờ reset, quy về múi giờ máy bạn).',
+      'Hết nháy giao diện khi focus lại cửa sổ — thông tin tài khoản và quota giữ nguyên trên màn hình, tự làm mới êm phía sau, giới hạn 2 phút/lần để tránh limit API.',
+    ],
+  },
+  {
     version: '1.0.14',
     date: '2026-06-30',
     en: [

@@ -1,6 +1,6 @@
 {
   "name": "agent-switch-tools",
-  "version": "1.0.14",
+  "version": "1.0.15",
   "description": "A powerful, lightning-fast, and 100% offline desktop application to manage multiple AI coding agent accounts (Claude Code, Cursor, Windsurf, Antigravity) — effortlessly switch profiles, monitor quota usage, and stay organized.",
   "author": "ducdev2k1",
   "license": "MIT",
