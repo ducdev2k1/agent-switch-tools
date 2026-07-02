@@ -21,12 +21,40 @@ pub async fn build_report(claude_dir: &Path, cache_dir: &Path, range_days: u32) 
     let summaries = parse_session_logs(&claude_dir.to_path_buf(), since);
     let prices = load_price_table(cache_dir).await;
     let have_prices = prices.status != PriceStatus::Hidden;
-    let today = chrono::Local::now().format("%Y-%m-%d").to_string();
+
+    // "Today" card: line-accurate pass from local midnight. Sessions started
+    // before midnight but still active today contribute their post-midnight
+    // lines — bucketing whole sessions by start date would drop them entirely.
+    // Cheap: the mtime filter skips every file not touched today.
+    let today_summaries = if hourly {
+        summaries.clone()
+    } else {
+        parse_session_logs(&claude_dir.to_path_buf(), start_of_today_utc())
+    };
+    let mut today_tokens = TokenBreakdown::default();
+    let mut today_cost = 0.0;
+    for s in &today_summaries {
+        today_tokens.add(&TokenBreakdown {
+            input: s.total_input_tokens,
+            output: s.total_output_tokens,
+            cache_read: s.total_cache_read,
+            cache_creation: s.total_cache_write,
+        });
+        for (name, mt) in &s.by_model {
+            let t = TokenBreakdown {
+                input: mt.input,
+                output: mt.output,
+                cache_read: mt.cache_read,
+                cache_creation: mt.cache_write,
+            };
+            if let Some(p) = prices.lookup(name) {
+                today_cost += cost_of(&t, &p);
+            }
+        }
+    }
 
     let mut total = TokenBreakdown::default();
     let mut total_cost = 0.0;
-    let mut today_tokens = TokenBreakdown::default();
-    let mut today_cost = 0.0;
     let mut daily: BTreeMap<String, (TokenBreakdown, f64)> = BTreeMap::new();
     let mut by_model: HashMap<String, (TokenBreakdown, f64)> = HashMap::new();
     let mut sessions: Vec<SessionUsage> = Vec::new();
@@ -74,11 +102,6 @@ pub async fn build_report(claude_dir: &Path, cache_dir: &Path, range_days: u32) 
         let day = daily.entry(bucket.clone()).or_default();
         day.0.add(&tokens);
         day.1 += cost.unwrap_or(0.0);
-
-        if cal_date == today {
-            today_tokens.add(&tokens);
-            today_cost += cost.unwrap_or(0.0);
-        }
 
         sessions.push(SessionUsage {
             id: s.session_id.clone(),
