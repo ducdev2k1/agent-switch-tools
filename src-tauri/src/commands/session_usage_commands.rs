@@ -33,6 +33,10 @@ pub struct SessionUsageSummary {
     /// Per-model breakdown — a session can span several models (main model,
     /// subagents, mid-session /model switches).
     pub by_model: HashMap<String, ModelTokenUsage>,
+    /// Per local-hour breakdown keyed `"YYYY-MM-DD HH:00"` → model → tokens.
+    /// Bucketed by each usage line's own timestamp, so a long session spreads
+    /// across the hours it actually ran instead of its start hour.
+    pub by_hour: HashMap<String, HashMap<String, ModelTokenUsage>>,
 }
 
 /// High-level aggregate across all sessions
@@ -148,6 +152,7 @@ fn parse_single_session(
     let mut branch = String::new();
     let mut first_model = String::new();
     let mut by_model: HashMap<String, ModelTokenUsage> = HashMap::new();
+    let mut by_hour: HashMap<String, HashMap<String, ModelTokenUsage>> = HashMap::new();
     // Streaming rewrites the same assistant message on several lines, each
     // carrying the identical usage object — count each message.id once.
     let mut seen_message_ids: HashSet<String> = HashSet::new();
@@ -237,6 +242,18 @@ fn parse_single_session(
                 entry.output += output;
                 entry.cache_read += cache_read;
                 entry.cache_write += cache_write;
+
+                if let Some(hour_key) = local_hour_key(&last_ts) {
+                    let slot = by_hour
+                        .entry(hour_key)
+                        .or_default()
+                        .entry(line_model.to_string())
+                        .or_default();
+                    slot.input += input;
+                    slot.output += output;
+                    slot.cache_read += cache_read;
+                    slot.cache_write += cache_write;
+                }
             }
         }
     }
@@ -258,7 +275,20 @@ fn parse_single_session(
         total_cache_write,
         message_count,
         by_model,
+        by_hour,
     })
+}
+
+/// Local-time hour bucket for one log line, e.g. `"2026-07-02 07:00"`.
+/// `None` when the line carries no parseable timestamp.
+fn local_hour_key(rfc3339: &str) -> Option<String> {
+    chrono::DateTime::parse_from_rfc3339(rfc3339)
+        .ok()
+        .map(|ts| {
+            ts.with_timezone(&chrono::Local)
+                .format("%Y-%m-%d %H:00")
+                .to_string()
+        })
 }
 
 /// Model with the most tokens, ignoring `<synthetic>` placeholder entries
@@ -290,11 +320,15 @@ pub async fn get_session_usage(
 mod tests {
     use super::*;
 
-    fn line(id: &str, model: &str, input: u64, output: u64) -> String {
+    fn line_at(ts: &str, id: &str, model: &str, input: u64, output: u64) -> String {
         format!(
-            r#"{{"timestamp":"2026-07-02T01:00:00Z","message":{{"id":"{}","model":"{}","usage":{{"input_tokens":{},"output_tokens":{},"cache_read_input_tokens":0,"cache_creation_input_tokens":0}}}}}}"#,
-            id, model, input, output
+            r#"{{"timestamp":"{}","message":{{"id":"{}","model":"{}","usage":{{"input_tokens":{},"output_tokens":{},"cache_read_input_tokens":0,"cache_creation_input_tokens":0}}}}}}"#,
+            ts, id, model, input, output
         )
+    }
+
+    fn line(id: &str, model: &str, input: u64, output: u64) -> String {
+        line_at("2026-07-02T01:00:00Z", id, model, input, output)
     }
 
     fn parse_fixture(content: &str) -> SessionUsageSummary {
@@ -339,6 +373,27 @@ mod tests {
         assert_eq!(s.by_model.len(), 2);
         assert_eq!(s.by_model["claude-haiku-4-5-20251001"].input, 10);
         assert_eq!(s.by_model["claude-opus-4-8"].input, 2000);
+    }
+
+    /// Usage must land in the hour bucket of its own line timestamp — a
+    /// session spanning several hours spreads across them instead of piling
+    /// onto its start hour.
+    #[test]
+    fn usage_buckets_by_line_hour() {
+        let ts_early = "2026-07-02T00:30:00Z";
+        let ts_late = "2026-07-02T03:45:00Z";
+        let content = [
+            line_at(ts_early, "msg_1", "claude-opus-4-8", 100, 50),
+            line_at(ts_late, "msg_2", "claude-opus-4-8", 10, 5),
+        ]
+        .join("\n");
+
+        let s = parse_fixture(&content);
+        let key_early = local_hour_key(ts_early).expect("hour key");
+        let key_late = local_hour_key(ts_late).expect("hour key");
+        assert_ne!(key_early, key_late);
+        assert_eq!(s.by_hour[&key_early]["claude-opus-4-8"].output, 50);
+        assert_eq!(s.by_hour[&key_late]["claude-opus-4-8"].output, 5);
     }
 
     /// `<synthetic>` placeholder messages must never name the session.

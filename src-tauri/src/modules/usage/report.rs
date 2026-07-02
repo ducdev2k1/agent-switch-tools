@@ -22,39 +22,12 @@ pub async fn build_report(claude_dir: &Path, cache_dir: &Path, range_days: u32) 
     let prices = load_price_table(cache_dir).await;
     let have_prices = prices.status != PriceStatus::Hidden;
 
-    // "Today" card: line-accurate pass from local midnight. Sessions started
-    // before midnight but still active today contribute their post-midnight
-    // lines — bucketing whole sessions by start date would drop them entirely.
-    // Cheap: the mtime filter skips every file not touched today.
-    let today_summaries = if hourly {
-        summaries.clone()
-    } else {
-        parse_session_logs(&claude_dir.to_path_buf(), start_of_today_utc())
-    };
-    let mut today_tokens = TokenBreakdown::default();
-    let mut today_cost = 0.0;
-    for s in &today_summaries {
-        today_tokens.add(&TokenBreakdown {
-            input: s.total_input_tokens,
-            output: s.total_output_tokens,
-            cache_read: s.total_cache_read,
-            cache_creation: s.total_cache_write,
-        });
-        for (name, mt) in &s.by_model {
-            let t = TokenBreakdown {
-                input: mt.input,
-                output: mt.output,
-                cache_read: mt.cache_read,
-                cache_creation: mt.cache_write,
-            };
-            if let Some(p) = prices.lookup(name) {
-                today_cost += cost_of(&t, &p);
-            }
-        }
-    }
+    let today_prefix = chrono::Local::now().format("%Y-%m-%d").to_string();
 
     let mut total = TokenBreakdown::default();
     let mut total_cost = 0.0;
+    let mut today_tokens = TokenBreakdown::default();
+    let mut today_cost = 0.0;
     let mut daily: BTreeMap<String, (TokenBreakdown, f64)> = BTreeMap::new();
     let mut by_model: HashMap<String, (TokenBreakdown, f64)> = HashMap::new();
     let mut sessions: Vec<SessionUsage> = Vec::new();
@@ -66,13 +39,35 @@ pub async fn build_report(claude_dir: &Path, cache_dir: &Path, range_days: u32) 
             cache_read: s.total_cache_read,
             cache_creation: s.total_cache_write,
         };
-        let cal_date = local_date(&s.started_at);
-        // Chart bucket: hour-of-day in "today" mode, otherwise the calendar date.
-        let bucket = if hourly {
-            local_hour(&s.started_at)
-        } else {
-            cal_date.clone()
-        };
+
+        // Chart + "today" card: per-line hour buckets. A session that runs
+        // 07:30 → 10:00 spreads over 07:00–10:00 instead of piling onto its
+        // start hour, and post-midnight lines of an overnight session land on
+        // the correct calendar day.
+        for (hour_key, models) in &s.by_hour {
+            let bucket = if hourly {
+                hour_key.get(11..).unwrap_or(hour_key).to_string()
+            } else {
+                hour_key.get(..10).unwrap_or(hour_key).to_string()
+            };
+            let is_today = hour_key.starts_with(&today_prefix);
+            for (name, mt) in models {
+                let t = TokenBreakdown {
+                    input: mt.input,
+                    output: mt.output,
+                    cache_read: mt.cache_read,
+                    cache_creation: mt.cache_write,
+                };
+                let cost = prices.lookup(name).map_or(0.0, |p| cost_of(&t, &p));
+                let day = daily.entry(bucket.clone()).or_default();
+                day.0.add(&t);
+                day.1 += cost;
+                if is_today {
+                    today_tokens.add(&t);
+                    today_cost += cost;
+                }
+            }
+        }
 
         // Attribute tokens and cost per model actually used in the session —
         // a session can span the main model, subagents and /model switches.
@@ -99,13 +94,15 @@ pub async fn build_report(claude_dir: &Path, cache_dir: &Path, range_days: u32) 
         total.add(&tokens);
         total_cost += cost.unwrap_or(0.0);
 
-        let day = daily.entry(bucket.clone()).or_default();
-        day.0.add(&tokens);
-        day.1 += cost.unwrap_or(0.0);
-
+        // Session rows keep the start time — that's what a session list shows.
+        let session_date = if hourly {
+            local_hour(&s.started_at)
+        } else {
+            local_date(&s.started_at)
+        };
         sessions.push(SessionUsage {
             id: s.session_id.clone(),
-            date: bucket,
+            date: session_date,
             model: s.model.clone(),
             project: s.project.clone(),
             tokens,
