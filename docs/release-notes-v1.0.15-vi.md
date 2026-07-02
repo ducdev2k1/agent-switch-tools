@@ -44,7 +44,12 @@ Tab **Usage** trước đây có hai lỗi làm sai số liệu:
 - **Token bị đếm trùng gần gấp đôi**: khi streaming, Claude Code ghi cùng một message ra nhiều dòng log, mỗi dòng đều mang nguyên thông tin usage — parser cũ cộng tất cả (đo thực tế: ~53% dòng usage là trùng lặp). Giờ mỗi message chỉ được đếm đúng một lần.
 - **Model gán sai**: cả session bị gán cho model xuất hiện đầu tiên trong log, trong khi một session có thể dùng nhiều model (model chính, subagent Haiku, đổi `/model` giữa chừng); session bắt đầu bằng thông điệp `<synthetic>` còn bị mất luôn chi phí. Giờ token và chi phí được **tách đúng theo từng model thực tế**, và session được dán nhãn theo model chiếm nhiều token nhất.
 
-Sau khi cập nhật, tổng token/chi phí trên tab Usage sẽ **giảm rõ rệt so với trước** — đó là con số đúng.
+Ngoài ra, phần thống kê giờ **sát thời gian thực hơn**:
+
+- **Thẻ "Hôm nay" đếm mọi dòng log từ 0h** (theo giờ máy bạn) thay vì chỉ các session *bắt đầu* hôm nay — session chạy xuyên đêm không còn bị bỏ sót (đo thực tế: cách cũ thiếu tới 75% token của ngày).
+- Tab Usage **tự làm mới êm khi bạn focus lại cửa sổ** (không dim màn hình, chỉ parse log cục bộ — không gọi API), cộng với chu kỳ 5 phút của worker nền như trước.
+
+Sau khi cập nhật, tổng token/chi phí trên tab Usage sẽ **giảm rõ rệt so với trước** (hết đếm trùng) trong khi thẻ "Hôm nay" có thể **tăng lên** (hết bỏ sót) — đó là các con số đúng.
 
 ---
 

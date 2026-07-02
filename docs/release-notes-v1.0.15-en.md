@@ -44,7 +44,12 @@ The **Usage** tab had two bugs skewing its numbers:
 - **Tokens were double-counted (~2x)**: streaming rewrites the same message on several log lines, each carrying the identical usage object — the old parser summed them all (measured ~53% duplicate usage lines on real data). Each message is now counted exactly once.
 - **Wrong model attribution**: a whole session was labeled with the first model seen in the log, while sessions can span several models (main model, Haiku subagents, mid-session `/model` switches); sessions starting with a `<synthetic>` placeholder even lost their cost entirely. Tokens and costs are now **broken down per actual model**, and sessions are labeled by the model with the most tokens.
 
-After updating, the totals on the Usage tab will **drop noticeably** — those are the correct numbers.
+The statistics are also **closer to real time** now:
+
+- **The "Today" card counts every log line since local midnight** instead of only sessions *started* today — sessions spanning midnight are no longer dropped (measured: the old method missed up to 75% of the day's tokens).
+- The Usage tab **silently refreshes when the window regains focus** (no dimming, local log parsing only — no API calls), on top of the background worker's 5-minute cadence.
+
+After updating, the Usage tab totals will **drop noticeably** (no more double counting) while the "Today" card may **go up** (no more dropped sessions) — those are the correct numbers.
 
 ---
 
