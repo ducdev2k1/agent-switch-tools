@@ -41,11 +41,11 @@ fn setup() -> TestEnv {
 }
 
 fn write_claude_json(home: &PathBuf, email: &str) {
+    // Claude Code writes the account identity into `oauthAccount` — the only
+    // key reconcile reads (the legacy `claudeAiOauth` cache is ignored).
     let json = serde_json::json!({
-        "claudeAiOauth": {
+        "oauthAccount": {
             "emailAddress": email,
-            "loginType": "oauth",
-            "expiresAt": 9_999_999_999_000_i64,
         }
     });
     fs::write(home.join(".claude.json"), json.to_string()).unwrap();
@@ -82,9 +82,18 @@ fn synced_meta_no_drift() {
     let result =
         reconcile_active_profile(&env.home, &env.claude, &env.profs_dir, &env.claude_data).unwrap();
     assert_eq!(result, (Some("alice@example.com".into()), false));
+
+    // Even without drift the active account's backup is refreshed on every
+    // reconcile, so the snapshot kept for it is always the freshest one.
+    let backup = fs::read_to_string(
+        env.profs_dir
+            .join("alice@example.com")
+            .join("credentials.json"),
+    )
+    .unwrap();
     assert!(
-        !env.profs_dir.join("alice@example.com").exists(),
-        "no folder should be created when no drift"
+        backup.contains(r#""accessToken":"a""#),
+        "backup must mirror the live credentials"
     );
 }
 
@@ -148,7 +157,7 @@ fn missing_email_returns_none() {
     write_active_credentials(&env.claude, "{}");
     fs::write(
         env.home.join(".claude.json"),
-        r#"{"claudeAiOauth":{}}"#,
+        r#"{"oauthAccount":{}}"#,
     )
     .unwrap();
 
