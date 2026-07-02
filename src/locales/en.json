@@ -292,6 +292,12 @@
     "reset_hint": "{{time}} → reset ~{{reset}}",
     "daily_stats": "Daily stats",
     "activity_log": "Activity log",
+    "log_table": {
+      "time": "Time",
+      "account": "Account",
+      "status": "Status",
+      "detail": "Detail"
+    },
     "no_activity": "No activity yet",
     "stats": {
       "date": "Date",

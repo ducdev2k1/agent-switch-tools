@@ -5,6 +5,7 @@ import { Switch } from '@/components/ui/switch'
 import type { AutoPrimeSetting, PrimeResult } from '@/lib/types'
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
+import { RESULT_VARIANT } from './prime-result-variant'
 
 const TIME_RE = /^([01]\d|2[0-3]):[0-5]\d$/
 
@@ -14,16 +15,6 @@ function resetHint(time: string): string {
   if (!m) return ''
   const h = (Number(time.slice(0, 2)) + 5) % 24
   return `${String(h).padStart(2, '0')}:${time.slice(3)}`
-}
-
-const RESULT_VARIANT: Record<
-  string,
-  'success' | 'destructive' | 'secondary' | 'warning'
-> = {
-  success: 'success',
-  failed: 'destructive',
-  hold: 'warning',
-  skip: 'secondary',
 }
 
 export function AutoPrimeRow({

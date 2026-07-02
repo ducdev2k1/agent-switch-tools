@@ -292,6 +292,12 @@
     "reset_hint": "{{time}} → đặt lại ~{{reset}}",
     "daily_stats": "Thống kê theo ngày",
     "activity_log": "Nhật ký hoạt động",
+    "log_table": {
+      "time": "Thời gian",
+      "account": "Tài khoản",
+      "status": "Trạng thái",
+      "detail": "Chi tiết"
+    },
     "no_activity": "Chưa có hoạt động",
     "stats": {
       "date": "Ngày",

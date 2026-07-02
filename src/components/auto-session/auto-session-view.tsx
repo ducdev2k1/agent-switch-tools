@@ -7,6 +7,7 @@ import type { PrimeResult } from '@/lib/types'
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { toast } from 'sonner'
+import { AutoPrimeLogTable } from './auto-prime-log-table'
 import { AutoPrimeRow } from './auto-prime-row'
 import { AutoPrimeStats } from './auto-prime-stats'
 import { AutoSessionHelp } from './auto-session-help'
@@ -127,9 +128,7 @@ export function AutoSessionView() {
         </CardHeader>
         <CardContent>
           {log ? (
-            <pre className="max-h-48 overflow-auto whitespace-pre-wrap rounded bg-muted/40 p-3 text-xs">
-              {log}
-            </pre>
+            <AutoPrimeLogTable log={log} />
           ) : (
             <p className="text-sm text-muted-foreground">
               {t('auto_session.no_activity')}
