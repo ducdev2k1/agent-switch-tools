@@ -37,6 +37,15 @@ Tab **Phiên tự động**: nhật ký hoạt động chuyển từ text thô s
 - Trước đây mỗi lần focus lại cửa sổ, danh sách tài khoản bị thay bằng skeleton một nhịp rồi vẽ lại — phần thông tin tài khoản và quota "nháy" một phát. Giờ dữ liệu cũ giữ nguyên trên màn hình và chỉ cập nhật êm phía sau.
 - Quota tự làm mới khi focus, **giới hạn 2 phút/lần** (khớp cache 2 phút phía backend) — chuyển qua lại giữa các cửa sổ trong 2 phút không phát sinh request nào tới API Anthropic, không lo rate limit.
 
+### 5. Thống kê usage chính xác trở lại
+
+Tab **Usage** trước đây có hai lỗi làm sai số liệu:
+
+- **Token bị đếm trùng gần gấp đôi**: khi streaming, Claude Code ghi cùng một message ra nhiều dòng log, mỗi dòng đều mang nguyên thông tin usage — parser cũ cộng tất cả (đo thực tế: ~53% dòng usage là trùng lặp). Giờ mỗi message chỉ được đếm đúng một lần.
+- **Model gán sai**: cả session bị gán cho model xuất hiện đầu tiên trong log, trong khi một session có thể dùng nhiều model (model chính, subagent Haiku, đổi `/model` giữa chừng); session bắt đầu bằng thông điệp `<synthetic>` còn bị mất luôn chi phí. Giờ token và chi phí được **tách đúng theo từng model thực tế**, và session được dán nhãn theo model chiếm nhiều token nhất.
+
+Sau khi cập nhật, tổng token/chi phí trên tab Usage sẽ **giảm rõ rệt so với trước** — đó là con số đúng.
+
 ---
 
 ## Lưu ý

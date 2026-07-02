@@ -37,6 +37,15 @@ The **Auto Session** tab's activity log moved from raw text to a **4-column tabl
 - Previously, re-focusing the window swapped the account list for skeletons for a beat before re-rendering — the account info and quota "blinked". Data now stays on screen and refreshes silently in the background.
 - Quota auto-refreshes on focus, **throttled to once per 2 minutes** (matching the backend's 2-minute cache) — switching between windows within 2 minutes sends zero requests to the Anthropic API.
 
+### 5. Usage statistics are accurate again
+
+The **Usage** tab had two bugs skewing its numbers:
+
+- **Tokens were double-counted (~2x)**: streaming rewrites the same message on several log lines, each carrying the identical usage object — the old parser summed them all (measured ~53% duplicate usage lines on real data). Each message is now counted exactly once.
+- **Wrong model attribution**: a whole session was labeled with the first model seen in the log, while sessions can span several models (main model, Haiku subagents, mid-session `/model` switches); sessions starting with a `<synthetic>` placeholder even lost their cost entirely. Tokens and costs are now **broken down per actual model**, and sessions are labeled by the model with the most tokens.
+
+After updating, the totals on the Usage tab will **drop noticeably** — those are the correct numbers.
+
 ---
 
 ## Notes

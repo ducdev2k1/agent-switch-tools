@@ -23,6 +23,7 @@ export const CHANGELOG: ChangelogEntry[] = [
       'Account cards show the display name and organization again.',
       'The Auto Session activity log is now a table with dd/mm/yyyy hh:mm timestamps (including reset times, converted to your local timezone).',
       'No more UI flash when re-focusing the window — account and quota info stay on screen and refresh silently, throttled to once per 2 minutes to protect against API rate limits.',
+      'Usage statistics are accurate now: streamed messages were double-counted (~2x inflated totals and costs) and whole sessions were attributed to the first model seen. Tokens and costs are deduplicated and broken down per actual model.',
     ],
     vi: [
       'Sửa lỗi không phát hiện đăng nhập ngoài app: login tài khoản Claude khác bằng `claude /login` giờ tự lưu tài khoản mới và giữ nguyên tài khoản cũ. Đồng thời "Lưu Hiện tại" không còn ghi đè tài khoản cũ bằng token của tài khoản mới.',
@@ -30,6 +31,7 @@ export const CHANGELOG: ChangelogEntry[] = [
       'Thẻ tài khoản hiển thị lại tên hiển thị và tên tổ chức.',
       'Nhật ký hoạt động của Phiên tự động chuyển sang dạng bảng, ngày giờ định dạng dd/mm/yyyy hh:mm (kể cả giờ reset, quy về múi giờ máy bạn).',
       'Hết nháy giao diện khi focus lại cửa sổ — thông tin tài khoản và quota giữ nguyên trên màn hình, tự làm mới êm phía sau, giới hạn 2 phút/lần để tránh limit API.',
+      'Thống kê usage chính xác trở lại: message streaming bị đếm trùng (~2 lần tổng token và chi phí) và cả session bị gán cho model xuất hiện đầu tiên. Token và chi phí giờ được khử trùng lặp và tách đúng theo từng model.',
     ],
   },
   {
