@@ -62,11 +62,6 @@ export function ProfileCard({
           : 'bg-card/50 hover:bg-card hover:border-primary/30'
       }`}
     >
-      {/* Active side indicator */}
-      {isActive && (
-        <div className="absolute left-0 top-0 bottom-0 w-1 bg-success shadow-[0_0_10px_rgba(34,197,94,1)]" />
-      )}
-
       <CardContent className="p-4 flex flex-col h-full">
         {/* Top Section: Identity */}
         <div className="flex items-start justify-between gap-2 mb-3">
