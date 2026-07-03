@@ -7,19 +7,25 @@ Tài liệu này chỉ ra **chính xác** những chỗ trong code mà Agent Swi
 
 ## Tổng quan các điểm tương tác
 
-### Claude Code (file-based)
+### Claude Code (credentials: macOS Keychain / Linux · Windows: file)
 
 ```
-1. ĐỌC file credentials          ~/.claude/.credentials.json
-2. ĐỌC file OAuth                ~/.claude.json
-3. ĐỌC settings                  ~/.claude/settings.json
-4. ĐỌC lịch sử phiên            ~/.claude/history.jsonl
-5. ĐỌC session logs              ~/.claude/projects/**/*.jsonl
-6. GHI file credentials          ~/.claude/.credentials.json (khi switch)
-7. GHI file OAuth                ~/.claude.json (khi switch)
-8. GỌI Anthropic OAuth API       api.anthropic.com/api/oauth/usage
-9. GỌI Anthropic OAuth API       claude.ai/v1/oauth/token (khi refresh token)
+1. ĐỌC credentials active         macOS: login Keychain · Linux/Windows: ~/.claude/.credentials.json
+2. ĐỌC file OAuth                 ~/.claude.json
+3. ĐỌC settings                   ~/.claude/settings.json
+4. ĐỌC lịch sử phiên             ~/.claude/history.jsonl
+5. ĐỌC session logs               ~/.claude/projects/**/*.jsonl
+6. GHI credentials active         macOS: login Keychain · Linux/Windows: ~/.claude/.credentials.json (khi switch)
+7. GHI file OAuth                 ~/.claude.json (khi switch)
+8. GỌI Anthropic OAuth API        api.anthropic.com/api/oauth/usage
+9. GỌI Anthropic OAuth API        claude.ai/v1/oauth/token (khi refresh token)
 ```
+
+> **macOS Keychain.** Từ Claude Code 2.x, credentials của tài khoản **active** được lưu trong login
+> Keychain (service `Claude Code-credentials-<sha256(thư-mục-cấu-hình)[:8]>`, fallback tên cũ
+> `Claude Code-credentials`, rồi tới file). App đọc/ghi qua lớp trừu tượng `ActiveStore`
+> (`src-tauri/src/modules/shared/active_store.rs`): trên macOS đi qua Keychain, trên Linux/Windows
+> dùng file. Các **profile đã lưu** trong `~/.agent-switch-tools/` luôn là file thường trên mọi HĐH.
 
 ### IDE (SQLite-based)
 
@@ -108,7 +114,12 @@ fn restore_credentials(profile_name: &str) -> Result<()> {
 }
 ```
 
-**Đây là điểm tương tác QUAN TRỌNG NHẤT** — app trực tiếp **ghi đè** file `.credentials.json` của Claude Code. Nhờ vậy, Claude Code sẽ tự động dùng credentials mới mà không cần đăng nhập lại.
+**Đây là điểm tương tác QUAN TRỌNG NHẤT** — app **ghi đè credentials active** của Claude Code. Nhờ vậy, Claude Code sẽ tự động dùng credentials mới mà không cần đăng nhập lại.
+
+Trên **Linux/Windows** là thao tác copy file như trên. Trên **macOS**, cùng luồng đó ghi vào login
+Keychain qua `ActiveStore::write_active` — dùng `security add-generic-password -U -A`, **đọc lại để
+xác nhận** ghi đúng slot, **thử lại tối đa 3 lần** nếu Keychain tạm khóa, và đồng bộ thêm ra file nếu
+file đang tồn tại. Backup credentials hiện tại vào profile vẫn luôn là file (`profiles/{name}/credentials.json`).
 
 ---
 
@@ -258,8 +269,10 @@ async fn perform_refresh(creds_path: &Path, refresh_token: &str) -> Result<Strin
 
 **Hai biến thể:**
 
-- `refresh_active_token` → file active `~/.claude/.credentials.json`.
+- `refresh_active_token` → credentials active. Đọc blob từ `ActiveStore` (Keychain trên macOS, file trên Linux/Windows), refresh, rồi ghi lại đúng store đó.
 - `refresh_profile_token` → file của profile đã lưu `profiles/{name}/credentials.json` (ghi tại chỗ, không swap vào slot active).
+
+Phần logic refresh dùng lõi **blob-in/blob-out** trong `oauth.rs`, tách khỏi thao tác file, nên chạy được cho cả credentials nằm trong Keychain lẫn file.
 
 **Tại sao gọi thẳng OAuth thay vì `claude -p "hi"`?**
 Cách cũ phải hoán đổi credentials vào slot active rồi chạy CLI — dễ tranh chấp với worker nền và có rủi ro hỏng tài khoản active nếu lỗi. Gọi thẳng endpoint OAuth an toàn hơn, nhanh hơn, không tốn quota và refresh được cả profile chưa active mà không cần swap.
@@ -405,12 +418,13 @@ pub fn ide_is_installed(app: &AppHandle, ide_type: &IdeType) -> bool {
 │ Agent Switch Tools │              │ Claude Code          │
 │                    │              │                      │
 │  Frontend ─────────┼── invoke ─►  │                      │
-│  (React)           │              │                      │
+│  (React)           │              │ Keychain (macOS) /   │
 │                    │  ĐỌC ───────►│ .credentials.json    │
 │  Backend           │              │ .claude.json         │
 │  (Rust)            │              │ settings.json        │
-│                    │  GHI ───────►│ .credentials.json    │
-│                    │              │ .claude.json         │
+│  ActiveStore ──────┼── ĐỌC/GHI ──►│ Keychain (macOS) /   │
+│                    │              │ .credentials.json    │
+│                    │  GHI ───────►│ .claude.json         │
 │                    │  HTTP GET ─► │ api.anthropic.com    │
 │                    │  HTTP POST ─►│ claude.ai/oauth/token│
 │                    │              └──────────────────────┘
@@ -426,13 +440,14 @@ pub fn ide_is_installed(app: &AppHandle, ide_type: &IdeType) -> bool {
 
 ### Bảo mật tại mỗi điểm tương tác
 
-| Điểm             | Rủi ro             | Biện pháp                           |
-| ---------------- | ------------------ | ----------------------------------- |
-| Đọc credentials  | Token lộ ngoài app | Quyền file 0600, không log token    |
-| Ghi credentials  | Ghi nhầm/mất data  | Luôn backup trước khi swap          |
-| Gọi API          | Token bị chặn      | Chỉ gọi domain Anthropic chính thức |
-| Chạy CLI         | Quá trình treo     | Timeout, non-blocking async         |
-| Đọc session logs | Chỉ đọc, không sửa | Read-only, không ghi vào .jsonl     |
+| Điểm              | Rủi ro             | Biện pháp                                          |
+| ----------------- | ------------------ | -------------------------------------------------- |
+| Đọc credentials   | Token lộ ngoài app | Quyền file 0600, không log token                   |
+| Ghi credentials   | Ghi nhầm/mất data  | Luôn backup trước khi swap                         |
+| Ghi Keychain (mac)| Ghi sai slot       | Đọc lại xác nhận sau khi ghi, thử lại tối đa 3 lần |
+| Gọi API           | Token bị chặn      | Chỉ gọi domain Anthropic chính thức                |
+| Chạy CLI          | Quá trình treo     | Timeout, non-blocking async                        |
+| Đọc session logs  | Chỉ đọc, không sửa | Read-only, không ghi vào .jsonl                    |
 
 ---
 

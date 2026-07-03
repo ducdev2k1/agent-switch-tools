@@ -9,7 +9,7 @@ Có ít nhất 1 trong các agent sau đã được cài và đăng nhập:
 
 | Agent               | Cách cài                                   | File cần có                               |
 | ------------------- | ------------------------------------------ | ----------------------------------------- |
-| **Claude Code CLI** | `npm install -g @anthropic-ai/claude-code` | `~/.claude/.credentials.json`             |
+| **Claude Code CLI** | `npm install -g @anthropic-ai/claude-code` | macOS: login Keychain · Linux/Windows: `~/.claude/.credentials.json` |
 | **Cursor**          | Tải từ cursor.sh                           | `state.vscdb` đã có cursorAuth keys       |
 | **Windsurf**        | Tải từ codeium.com                         | `state.vscdb` đã có windsurfAuthStatus    |
 | **Antigravity**     | Tải từ trang chính thức                    | `state.vscdb` đã có antigravityAuthStatus |

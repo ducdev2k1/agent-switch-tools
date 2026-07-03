@@ -62,16 +62,18 @@ App tự chuyển dữ liệu từ các vị trí cũ khi khởi động (chỉ 
 
 ### Cơ chế chuyển đổi (Switch)
 
-**Với Claude Code** (file-based):
+**Với Claude Code** (credentials active: macOS Keychain · Linux/Windows: file):
 
 ```
 Trước khi switch:
-  ~/.claude/.credentials.json       ← tài khoản A (đang active)
-  ~/.agent-switch-tools/claude/profiles/B/credentials.json  ← B (đã lưu)
+  Tài khoản A (đang active)   macOS: login Keychain · Linux/Windows: ~/.claude/.credentials.json
+  ~/.agent-switch-tools/claude/profiles/B/credentials.json  ← B (đã lưu, luôn là file)
 
 Khi nhấn "Switch to B":
-  1. Backup A: copy .credentials.json → profiles/A/credentials.json
-  2. Restore B: copy profiles/B/credentials.json → .credentials.json
+  1. Backup A: đọc credentials active → ghi ra profiles/A/credentials.json (file)
+  2. Restore B: đọc profiles/B/credentials.json → ghi vào credentials active
+       · macOS: ghi vào login Keychain (ActiveStore) + đồng bộ file nếu file đang tồn tại
+       · Linux/Windows: ghi đè ~/.claude/.credentials.json
   3. Cập nhật meta.json: active = B
 ```
 
