@@ -4,12 +4,12 @@
 
 Có ít nhất 1 trong các agent sau đã được cài và đăng nhập:
 
-| Agent | Cách cài | File cần có |
+| Agent | Cách cài | Nơi lưu credentials |
 |---|---|---|
-| **Claude Code CLI** | `npm install -g @anthropic-ai/claude-code` | `~/.claude/.credentials.json` |
-| **Cursor** | Tải từ cursor.sh | `state.vscdb` đã có cursorAuth keys |
-| **Windsurf** | Tải từ codeium.com | `state.vscdb` đã có windsurfAuthStatus |
-| **Antigravity** | Tải từ trang chính thức | `state.vscdb` đã có antigravityAuthStatus |
+| **Claude Code CLI** | `npm install -g @anthropic-ai/claude-code` | macOS: Keychain; Linux/Windows: `~/.claude/.credentials.json` |
+| **Cursor** | Tải từ cursor.sh | `state.vscdb` (SQLite, cursorAuth keys) |
+| **Windsurf** | Tải từ codeium.com | `state.vscdb` (SQLite, windsurfAuthStatus) |
+| **Antigravity** | Tải từ trang chính thức | `state.vscdb` (SQLite, antigravityAuthStatus) |
 
 App tự động phát hiện agent nào đã cài và chỉ hiển thị những cái đang có.
 

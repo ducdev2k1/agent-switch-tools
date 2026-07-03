@@ -4,15 +4,22 @@ Tài liệu này chỉ ra **chính xác** những chỗ trong code mà Agent Swi
 
 ## Tổng quan các điểm tương tác
 
-### Claude Code (file-based)
+### Claude Code (macOS: Keychain + file fallback; Linux/Windows: file-based)
 
 ```
-1. ĐỌC file credentials          ~/.claude/.credentials.json
-2. ĐỌC file OAuth                ~/.claude.json
-3. ĐỌC settings                  ~/.claude/settings.json
-4. ĐỌC lịch sử phiên            ~/.claude/history.jsonl
-5. ĐỌC session logs              ~/.claude/projects/**/*.jsonl
-6. GHI file credentials          ~/.claude/.credentials.json (khi switch)
+macOS:
+1. ĐỌC credentials          Keychain (hashed slot) → Keychain (global) → file
+2. GHI credentials          Keychain → verify + mirror vào file (nếu tồn tại)
+
+Linux/Windows:
+1. ĐỌC credentials          ~/.claude/.credentials.json
+2. GHI credentials          ~/.claude/.credentials.json
+
+Chung cả 3 OS:
+3. ĐỌC file OAuth                ~/.claude.json
+4. ĐỌC settings                  ~/.claude/settings.json
+5. ĐỌC lịch sử phiên            ~/.claude/history.jsonl
+6. ĐỌC session logs              ~/.claude/projects/**/*.jsonl
 7. GHI file OAuth                ~/.claude.json (khi switch)
 8. GỌI Anthropic OAuth API       api.anthropic.com/api/oauth/usage
 9. CHẠY Claude CLI               claude -p "hi" (khi refresh token)
@@ -36,11 +43,21 @@ AppName: Cursor | Windsurf | Antigravity
 
 ---
 
-## 1. Đọc Credentials — `config_commands.rs`
+## 1. Đọc Credentials — `config_commands.rs` & `active_store.rs`
 
-### File: `~/.claude/.credentials.json`
+### Cơ chế lưu trữ
 
-Đây là file **quan trọng nhất** — chứa token xác thực để Claude Code hoạt động.
+Credentials được lưu ở các vị trí khác nhau tùy theo hệ điều hành:
+
+**macOS (Claude Code 2.x)**:
+- **Slot chính**: `Keychain` → service name = `Claude Code-credentials-<sha256(config_dir)[:8]>`
+- **Fallback slot**: `Keychain` → service name = `Claude Code-credentials` (CLI phiên bản cũ)
+- **File fallback**: `~/.claude/.credentials.json` (chỉ mirror khi file đã tồn tại, không tự tạo)
+
+**Linux/Windows**:
+- **Slot chính**: `~/.claude/.credentials.json`
+
+### Nội dung credentials
 
 ```json
 {
@@ -53,24 +70,30 @@ AppName: Cursor | Windsurf | Antigravity
 
 ### Code tương tác
 
-**File**: `src-tauri/src/commands/config_commands.rs`
+**File**: `src-tauri/src/modules/shared/active_store.rs`
 
 ```rust
-// Đường dẫn file credentials
-fn credentials_path() -> PathBuf {
-    dirs::home_dir()
-        .unwrap()
-        .join(".claude")
-        .join(".credentials.json")
-}
-
-// Đọc credentials hiện tại
-fn read_current_credentials() -> Result<Value> {
-    let path = credentials_path();
-    let content = fs::read_to_string(&path)?;
-    Ok(serde_json::from_str(&content)?)
+// Đọc credentials từ bất kỳ backend nào (Keychain → global → file)
+pub fn read_active(&self) -> Option<String> {
+    if Self::use_keychain() {
+        // macOS: thử hashed slot trước
+        if let Some(blob) = read_keychain_blob(&self.hashed_service()) {
+            return Some(blob);
+        }
+        // Fallback tới global slot (CLI cũ)
+        if let Some(blob) = read_keychain_blob(GLOBAL_SERVICE) {
+            return Some(blob);
+        }
+    }
+    // Linux/Windows: file. macOS: file fallback nếu Keychain không có
+    read_file_blob(&self.creds_file)
 }
 ```
+
+**Hashed service name** (macOS):
+- Format: `Claude Code-credentials-<sha256(config_dir)[:8]>` (8 ký tự hex đầu tiên)
+- Ví dụ: `Claude Code-credentials-a1b2c3d4`
+- Bảo đảm mỗi config dir (`~/.claude`) có slot Keychain riêng
 
 **Khi nào đọc?**
 - Khi app khởi động → hiển thị tài khoản active
@@ -83,28 +106,76 @@ fn read_current_credentials() -> Result<Value> {
 
 ### Cơ chế swap
 
-**File**: `src-tauri/src/commands/config_commands.rs`
+**Saved profiles** (lưu trong `~/.agent-switch-tools/claude/profiles/{email}/credentials.json`) luôn là **file thường** (không thay đổi).
+
+**Active credential** (đang dùng bây giờ) được ghi vào:
+- **macOS**: Keychain + mirror vào file (nếu file đã tồn tại)
+- **Linux/Windows**: File
+
+**File**: `src-tauri/src/modules/shared/active_store.rs`
 
 ```rust
-// Lưu credentials hiện tại vào profile
+// Ghi credentials vào active backend (Keychain trên macOS, file trên Linux/Windows)
+pub fn write_active(&self, blob: &str) -> Result<(), String> {
+    if Self::use_keychain() {
+        // macOS: chọn service slot (hashed → global → mặc định hashed)
+        let service = if keychain_service_exists(&self.hashed_service()) {
+            self.hashed_service()
+        } else if keychain_service_exists(GLOBAL_SERVICE) {
+            GLOBAL_SERVICE.to_string()
+        } else {
+            self.hashed_service()
+        };
+        
+        // Ghi vào Keychain + confirm + retry nếu cần
+        let account = read_keychain_account(&service).unwrap_or_else(current_user);
+        let wrote = write_keychain_blob(&service, &account, blob);
+        
+        // Mirror vào file nếu file đã tồn tại (cho khi Keychain bị lock)
+        if self.creds_file.exists() {
+            let _ = write_file_blob(&self.creds_file, blob);
+        }
+        
+        if wrote {
+            return Ok(());
+        }
+        // Fallback: nếu Keychain fail, ghi vào file nếu tồn tại
+        if self.creds_file.exists() {
+            return write_file_blob(&self.creds_file, blob);
+        }
+        return Err("Failed to write credential to macOS Keychain".to_string());
+    }
+    // Linux/Windows: ghi file
+    write_file_blob(&self.creds_file, blob)
+}
+
+// Lưu credentials hiện tại vào saved profile (luôn là file)
 fn backup_current_credentials(profile_name: &str) -> Result<()> {
-    let src = credentials_path();           // ~/.claude/.credentials.json
-    let dst = profile_dir(profile_name)     // ~/.agent-switch-tools/claude/profiles/{name}/
-        .join("credentials.json");
-    fs::copy(&src, &dst)?;                  // Copy file
+    let active_blob = active_store.read_active()?;    // Đọc từ Keychain/file
+    let profile_path = profile_dir(profile_name).join("credentials.json");
+    write_file_blob(&profile_path, &active_blob)?;    // Ghi vào profile
     Ok(())
 }
 
-// Khôi phục credentials từ profile
+// Khôi phục credentials từ saved profile vào active
 fn restore_credentials(profile_name: &str) -> Result<()> {
-    let src = profile_dir(profile_name).join("credentials.json");
-    let dst = credentials_path();
-    fs::copy(&src, &dst)?;                  // Ghi đè file active
+    let profile_path = profile_dir(profile_name).join("credentials.json");
+    let blob = read_file_blob(&profile_path)?;        // Đọc từ profile file
+    active_store.write_active(&blob)?;                // Ghi vào active (Keychain/file)
     Ok(())
 }
 ```
 
-**Đây là điểm tương tác QUAN TRỌNG NHẤT** — app trực tiếp **ghi đè** file `.credentials.json` của Claude Code. Nhờ vậy, Claude Code sẽ tự động dùng credentials mới mà không cần đăng nhập lại.
+**Ghi vào Keychain (macOS)** — quy trình:
+1. Chạy `security add-generic-password -U -A -s <service> -a <account> -w <blob>`
+   - `-U`: upsert (update nếu tồn tại)
+   - `-A`: allow any app to read (không cần prompt)
+   - Blob được truyền qua `-w` (briefly visible trong process list)
+2. **Confirm write**: đọc lại từ Keychain để verify dữ liệu đúng
+3. **Retry 3 lần** nếu fail (handle transient lock issues)
+4. **Mirror tới file**: nếu file đã tồn tại (keep a readable copy khi Keychain locked)
+
+**Đây là điểm tương tác QUAN TRỌNG NHẤT** — app ghi credentials vào Keychain (macOS) hoặc file (Linux/Windows). Nhờ vậy, Claude Code sẽ tự động dùng credentials mới mà không cần đăng nhập lại.
 
 ---
 
@@ -233,33 +304,56 @@ Worker (Rust) ─── emit("usage-updated") ──→ Frontend (React)
 
 **File**: `src-tauri/src/commands/token_refresh.rs`
 
+Quy trình refresh token hoạt động với cả **Keychain (macOS)** và **file (Linux/Windows)**:
+
 ```rust
 // Refresh token bằng cách chạy Claude CLI
 async fn refresh_token_for_profile(profile_name: &str) -> Result<()> {
-    // 1. Backup credentials hiện tại
+    // 1. Backup active credentials (đọc từ Keychain hoặc file)
     backup_current_credentials("__temp__")?;
 
-    // 2. Swap credentials sang profile cần refresh
+    // 2. Swap credentials sang profile cần refresh (ghi vào Keychain/file)
     restore_credentials(profile_name)?;
 
-    // 3. Chạy Claude CLI (nó sẽ tự refresh token)
+    // 3. Chạy Claude CLI (nó sẽ tự refresh token từ Keychain/file)
     Command::new("claude")
         .args(["-p", "hi", "--max-turns", "1"])
         .output()
         .await?;
 
-    // 4. Lưu credentials đã refresh
+    // 4. Lưu credentials đã refresh (đọc lại từ Keychain/file)
     backup_current_credentials(profile_name)?;
 
-    // 5. Khôi phục credentials gốc
+    // 5. Khôi phục credentials gốc (ghi lại vào Keychain/file)
     restore_credentials("__temp__")?;
 
     Ok(())
 }
 ```
 
+**Flow chi tiết**:
+```
+App ──┐
+      ├─► (backup active) ──► đọc Keychain/file ──► lưu vào profile
+      │
+      ├─► (restore profile) ──► ghi vào Keychain/file (với confirm + retry)
+      │
+      ├─► (run claude CLI) ──► Claude đọc từ Keychain/file
+      │                         └─► refresh token
+      │                         └─► ghi lại vào Keychain/file
+      │
+      ├─► (backup profile) ──► đọc Keychain/file ──► update profile
+      │
+      └─► (restore original) ──► ghi lại vào Keychain/file
+```
+
 **Tại sao dùng `claude -p "hi"`?**
-Claude Code CLI có cơ chế tự động refresh token trước khi chạy. Bằng cách chạy 1 lệnh đơn giản, CLI sẽ refresh token và ghi lại vào file credentials. App chỉ cần copy file đã refresh.
+Claude Code CLI có cơ chế tự động refresh token trước khi chạy. Bằng cách chạy 1 lệnh đơn giản, CLI sẽ:
+1. Đọc credentials từ Keychain (macOS) hoặc file (Linux/Windows)
+2. Refresh token nếu hết hạn
+3. Ghi lại vào Keychain/file
+
+App chỉ cần đọc lại credentials đã refresh từ Keychain/file.
 
 ---
 
@@ -396,39 +490,69 @@ pub fn ide_is_installed(app: &AppHandle, ide_type: &IdeType) -> bool {
 
 ## Tóm tắt: Bản đồ tương tác
 
+**macOS**:
 ```
-┌────────────────────┐              ┌──────────────────────┐
-│ Agent Switch Tools │              │ Claude Code          │
-│                    │              │                      │
-│  Frontend ─────────┼── invoke ─►  │                      │
-│  (React)           │              │                      │
-│                    │  ĐỌC ───────►│ .credentials.json    │
-│  Backend           │              │ .claude.json         │
-│  (Rust)            │              │ settings.json        │
-│                    │  GHI ───────►│ .credentials.json    │
-│                    │              │ .claude.json         │
-│                    │  HTTP GET ─► │ api.anthropic.com    │
-│                    │  EXEC ─────► │ claude -p "hi"       │
-│                    │              └──────────────────────┘
-│                    │              ┌──────────────────────┐
-│                    │              │ Cursor / Windsurf /  │
-│                    │              │ Antigravity          │
-│                    │  ĐỌC ───────►│ state.vscdb (SQLite) │
-│                    │              │ ItemTable            │
-│                    │  GHI ───────►│ state.vscdb          │
-│                    │              │ (UPDATE ItemTable)   │
-└────────────────────┘              └──────────────────────┘
+┌────────────────────┐         ┌──────────────────────┐
+│ Agent Switch Tools │         │ macOS Keychain       │
+│                    │         │                      │
+│  Backend (Rust)    │ GHI ───►│ Claude Code-         │
+│                    │ ĐỌC ◄───│ credentials-<hash>   │
+│                    │         │ (or -credentials)    │
+└────────────────────┘         └──────────────────────┘
+                                        │
+                                mirror (nếu file tồn tại)
+                                        │
+                                        ▼
+                               ~/.claude/.credentials.json
+```
+
+**Linux / Windows**:
+```
+┌────────────────────┐         ┌──────────────────────┐
+│ Agent Switch Tools │ GHI     │ ~/.claude/           │
+│                    │ ──────►│ .credentials.json    │
+│  Backend (Rust)    │ ĐỌC     │                      │
+│                    │ ◄──────│                      │
+└────────────────────┘         └──────────────────────┘
+```
+
+**Claude Code (chung cả 3 OS)**:
+```
+┌──────────────────────┐
+│ Claude Code          │
+│                      │
+│ ĐỌC ───────────────►│ .claude.json (OAuth info)
+│ ĐỌC ───────────────►│ settings.json
+│ ĐỌC ───────────────►│ history.jsonl
+│ ĐỌC ───────────────►│ projects/**/*.jsonl
+│ GHI ───────────────►│ .claude.json
+│                      │
+│ HTTP GET ──────────►│ api.anthropic.com (quota)
+│ EXEC ──────────────►│ claude -p "hi" (refresh token)
+└──────────────────────┘
+```
+
+**IDE (Cursor / Windsurf / Antigravity)**:
+```
+┌────────────────────┐         ┌──────────────────────┐
+│ Agent Switch Tools │         │ IDE state.vscdb      │
+│                    │         │ (SQLite ItemTable)   │
+│  Backend (Rust)    │ GHI ───►│ auth keys            │
+│                    │ ĐỌC ◄───│                      │
+└────────────────────┘         └──────────────────────┘
 ```
 
 ### Bảo mật tại mỗi điểm tương tác
 
 | Điểm | Rủi ro | Biện pháp |
 |---|---|---|
-| Đọc credentials | Token lộ ngoài app | Quyền file 0600, không log token |
-| Ghi credentials | Ghi nhầm/mất data | Luôn backup trước khi swap |
-| Gọi API | Token bị chặn | Chỉ gọi domain Anthropic chính thức |
-| Chạy CLI | Quá trình treo | Timeout, non-blocking async |
-| Đọc session logs | Chỉ đọc, không sửa | Read-only, không ghi vào .jsonl |
+| **Đọc credentials** | Token lộ ngoài app | macOS: Keychain (encrypted by OS) + file fallback (0600). Linux/Windows: file 0600 |
+| **Ghi credentials** | Ghi nhầm/mất data | macOS: Keychain + confirm verify + retry 3x. Luôn backup trước khi swap |
+| **Keychain write** (macOS) | Transient lock | Retry 3 lần, 200ms delay giữa các lần |
+| **Keychain mirror** (macOS) | Token plaintext tạm | Chỉ mirror nếu file đã tồn tại (không tự tạo). File được set 0600 |
+| **Gọi API** | Token bị chặn | Chỉ gọi domain Anthropic chính thức (api.anthropic.com) |
+| **Chạy CLI** | Quá trình treo | Timeout, non-blocking async |
+| **Đọc session logs** | Chỉ đọc, không sửa | Read-only, không ghi vào .jsonl |
 
 ---
 

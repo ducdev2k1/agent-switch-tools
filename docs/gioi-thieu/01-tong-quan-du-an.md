@@ -8,7 +8,7 @@
 
 | Agent | Loại | Cơ chế lưu credentials |
 |---|---|---|
-| **Claude Code** | CLI (Anthropic) | File `.credentials.json` |
+| **Claude Code** | CLI (Anthropic) | macOS: Keychain + file fallback; Linux/Windows: file `.credentials.json` |
 | **Cursor** | IDE | SQLite `state.vscdb` |
 | **Windsurf** | IDE | SQLite `state.vscdb` (protobuf email) |
 | **Antigravity** | Desktop | `~/.config/Antigravity` → `state.vscdb` (JSON email) |

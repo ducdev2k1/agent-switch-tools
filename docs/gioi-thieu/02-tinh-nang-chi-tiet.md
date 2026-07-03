@@ -48,18 +48,33 @@ Khi lần đầu chạy v1.0.10, app tự chuyển dữ liệu từ các vị tr
 | Thao tác | Mô tả |
 |---|---|
 | **Thêm profile** | Lưu credentials hiện tại thành 1 profile mới |
-| **Chuyển đổi** | Hoán đổi (swap) file credentials giữa profile active và profile đích |
+| **Chuyển đổi** | Hoán đổi (swap) credentials từ profile active sang profile đích |
 | **Đổi tên** | Đổi tên thư mục profile |
 | **Xóa** | Xóa thư mục profile (có hộp thoại xác nhận) |
 | **Sao lưu tự động** | Khi chuyển profile, credentials hiện tại tự động được backup trước |
 
 ### Cơ chế chuyển đổi (Switch)
 
-**Với Claude Code** (file-based):
+**Với Claude Code**:
+
+*macOS*:
 ```
 Trước khi switch:
-  ~/.claude/.credentials.json       ← tài khoản A (đang active)
-  ~/.agent-switch-tools/claude/profiles/B/credentials.json  ← B (đã lưu)
+  Keychain: Claude Code-credentials-{hash}  ← tài khoản A (đang active)
+  profiles/B/credentials.json                ← B (đã lưu, file)
+
+Khi nhấn "Switch to B":
+  1. Backup A: đọc từ Keychain → lưu vào profiles/A/credentials.json (file)
+  2. Restore B: đọc profiles/B/credentials.json → ghi vào Keychain + confirm + retry
+  3. Mirror: nếu file ~/.claude/.credentials.json tồn tại, cập nhật nó
+  4. Cập nhật meta.json: active = B
+```
+
+*Linux/Windows*:
+```
+Trước khi switch:
+  ~/.claude/.credentials.json                ← tài khoản A (đang active)
+  profiles/B/credentials.json                ← B (đã lưu)
 
 Khi nhấn "Switch to B":
   1. Backup A: copy .credentials.json → profiles/A/credentials.json
@@ -178,15 +193,19 @@ Agent Switch Tools đặt một icon ở System Tray. Khi nhấp chuột phải,
 
 ### Vấn đề
 
-Token (mã xác thực) trong credentials.json có thời hạn. Khi hết hạn, Claude Code CLI sẽ tự động refresh token khi chạy. Nhưng các profile **không active** thì không được refresh → token có thể hết hạn.
+Token (mã xác thực) có thời hạn. Khi hết hạn, Claude Code CLI sẽ tự động refresh token khi chạy. Nhưng các profile **không active** thì không được refresh → token có thể hết hạn.
+
+Nơi lưu token:
+- **macOS**: Keychain slot `Claude Code-credentials-{hash}` (hoặc global fallback)
+- **Linux/Windows**: File `~/.claude/.credentials.json`
 
 ### Giải pháp
 
 Khi phát hiện token sắp hết hạn, app sẽ:
 
-1. Tạm hoán đổi credentials sang profile cần refresh
-2. Chạy lệnh: `claude -p "hi" --max-turns 1` (Claude CLI sẽ tự refresh token)
-3. Copy file credentials đã refresh ngược về profile
+1. Tạm hoán đổi credentials sang profile cần refresh (đọc từ Keychain/file, ghi vào Keychain/file)
+2. Chạy lệnh: `claude -p "hi" --max-turns 1` (Claude CLI sẽ tự refresh token từ Keychain/file)
+3. Đọc credentials đã refresh ngược về profile file
 4. Hoán đổi lại credentials gốc
 
 Quá trình này diễn ra ngầm, không ảnh hưởng tới công việc hiện tại.
