@@ -4,8 +4,9 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog'
-import { CHANGELOG } from '@/lib/changelog'
+import { CHANGELOG, loadChangelog, type ChangelogEntry } from '@/lib/changelog'
 import { Sparkles } from 'lucide-react'
+import { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 
 interface ChangelogDialogProps {
@@ -13,10 +14,25 @@ interface ChangelogDialogProps {
   onOpenChange: (open: boolean) => void
 }
 
-/** Scrollable history of release highlights, bundled for offline use. */
+/**
+ * Scrollable history of release highlights. Shows the bundled snapshot instantly,
+ * then refreshes from GitHub (via the Rust `fetch_changelog` command) when opened.
+ */
 export function ChangelogDialog({ open, onOpenChange }: ChangelogDialogProps) {
   const { t, i18n } = useTranslation()
   const isVi = i18n.language.startsWith('vi')
+  const [entries, setEntries] = useState<ChangelogEntry[]>(CHANGELOG)
+
+  useEffect(() => {
+    if (!open) return
+    let active = true
+    loadChangelog().then((list) => {
+      if (active) setEntries(list)
+    })
+    return () => {
+      active = false
+    }
+  }, [open])
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -35,7 +51,7 @@ export function ChangelogDialog({ open, onOpenChange }: ChangelogDialogProps) {
         </DialogHeader>
 
         <div className="max-h-[60vh] space-y-5 overflow-y-auto pr-1">
-          {CHANGELOG.map((entry, idx) => {
+          {entries.map((entry, idx) => {
             const items = isVi ? entry.vi : entry.en
             return (
               <div key={entry.version}>

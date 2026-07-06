@@ -1,3 +1,4 @@
+pub mod changelog_commands;
 pub mod config_commands;
 pub mod device_commands;
 pub mod metadata_commands;

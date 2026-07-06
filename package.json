@@ -30,7 +30,8 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "tsc && vite build",
+    "build": "node scripts/check-changelog.mjs && tsc && vite build",
+    "check:changelog": "node scripts/check-changelog.mjs",
     "preview": "vite preview",
     "tauri:dev": "tauri dev",
     "tauri:build": "tauri build",

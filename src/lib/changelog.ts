@@ -1,10 +1,19 @@
 /**
- * In-app changelog — bundled so it works fully offline.
+ * In-app changelog.
+ *
+ * Single source of truth is `changelog.json` (repo root). It is fetched from
+ * GitHub at runtime so release highlights can be updated by editing that file
+ * and pushing — no rebuild required. The same JSON is bundled at build time as
+ * an offline fallback, and the last successful fetch is cached to disk by the
+ * Rust `fetch_changelog` command.
  *
  * Newest version first. Each entry carries both locales; the viewer picks the
  * active language at render time. Keep entries concise (user-facing highlights,
  * not commit-level detail) — full release notes live in docs/release-notes-*.
  */
+
+import { invoke } from '@tauri-apps/api/core'
+import bundled from '../../changelog.json'
 
 export interface ChangelogEntry {
   version: string
@@ -13,91 +22,20 @@ export interface ChangelogEntry {
   vi: string[]
 }
 
-export const CHANGELOG: ChangelogEntry[] = [
-  {
-    version: '1.0.16',
-    date: '2026-07-02',
-    en: [
-      'One-click account switching: the confirmation dialog is gone — clicking an account switches immediately, both in the app and from the system tray.',
-      'Tray quick-switch now runs entirely in the background: no window pops up, and it works even when the dashboard is closed. IDE accounts are switched and the IDE is auto-restarted if it was running.',
-      'The account list keeps a stable alphabetical order — switching no longer moves the active account to the top.',
-      'List view is fully localized: column headers (Email, Membership, Model quota, Expires at, Status, Actions) and action-button tooltips now follow the app language.',
-      'Removed the bright green edge stripe on the active account card — the subtle green tint and ACTIVE badge remain.',
-      'The default window is wider (1200×720) so the grid shows 3 account cards per row out of the box.',
-    ],
-    vi: [
-      'Chuyển tài khoản một chạm: bỏ hộp thoại xác nhận — bấm vào tài khoản là chuyển ngay, cả trong app lẫn từ system tray.',
-      'Chuyển nhanh từ tray giờ chạy hoàn toàn ngầm: không bật cửa sổ, hoạt động kể cả khi dashboard đang đóng. Tài khoản IDE được chuyển xong sẽ tự khởi động lại IDE nếu nó đang chạy.',
-      'Danh sách tài khoản giữ thứ tự alphabet ổn định — chuyển tài khoản không còn đẩy tài khoản active lên đầu.',
-      'Chế độ xem danh sách được Việt hóa đầy đủ: tiêu đề cột (Email, Gói thành viên, Quota mô hình, Hết hạn lúc, Trạng thái, Thao tác) và tooltip các nút thao tác theo đúng ngôn ngữ app.',
-      'Bỏ dải viền xanh đậm bên trái thẻ tài khoản active — vẫn giữ nền xanh nhạt và badge HOẠT ĐỘNG.',
-      'Cửa sổ mặc định rộng hơn (1200×720) — lưới tài khoản hiện đủ 3 thẻ mỗi hàng ngay khi mở.',
-    ],
-  },
-  {
-    version: '1.0.15',
-    date: '2026-07-02',
-    en: [
-      'Fixed external logins not being detected: logging into a different Claude account via `claude /login` now auto-saves the new account and keeps the previous one intact. This also stops "Save Current" from overwriting the old account with the new one\'s tokens.',
-      "The active account's backup is now kept fresh on every app open/focus, so the snapshot preserved when you switch accounts is always the latest one.",
-      'Account cards show the display name and organization again.',
-      'The Auto Session activity log is now a table with dd/mm/yyyy hh:mm timestamps (including reset times, converted to your local timezone).',
-      'No more UI flash when re-focusing the window — account and quota info stay on screen and refresh silently, throttled to once per 2 minutes to protect against API rate limits.',
-      'Usage statistics are accurate now: streamed messages were double-counted (~2x inflated totals and costs) and whole sessions were attributed to the first model seen. Tokens and costs are deduplicated and broken down per actual model.',
-      'The Today card counts every log line since local midnight — sessions spanning midnight are no longer dropped — and the Usage tab silently refreshes on window focus.',
-    ],
-    vi: [
-      'Sửa lỗi không phát hiện đăng nhập ngoài app: login tài khoản Claude khác bằng `claude /login` giờ tự lưu tài khoản mới và giữ nguyên tài khoản cũ. Đồng thời "Lưu Hiện tại" không còn ghi đè tài khoản cũ bằng token của tài khoản mới.',
-      'Bản sao lưu của tài khoản đang active giờ được làm mới mỗi lần mở/focus app — snapshot giữ lại khi chuyển tài khoản luôn là bản mới nhất.',
-      'Thẻ tài khoản hiển thị lại tên hiển thị và tên tổ chức.',
-      'Nhật ký hoạt động của Phiên tự động chuyển sang dạng bảng, ngày giờ định dạng dd/mm/yyyy hh:mm (kể cả giờ reset, quy về múi giờ máy bạn).',
-      'Hết nháy giao diện khi focus lại cửa sổ — thông tin tài khoản và quota giữ nguyên trên màn hình, tự làm mới êm phía sau, giới hạn 2 phút/lần để tránh limit API.',
-      'Thống kê usage chính xác trở lại: message streaming bị đếm trùng (~2 lần tổng token và chi phí) và cả session bị gán cho model xuất hiện đầu tiên. Token và chi phí giờ được khử trùng lặp và tách đúng theo từng model.',
-      'Thẻ Today đếm mọi dòng log từ 0h hôm nay — session chạy xuyên đêm không còn bị bỏ sót — và tab Usage tự làm mới êm khi focus lại cửa sổ.',
-    ],
-  },
-  {
-    version: '1.0.14',
-    date: '2026-06-30',
-    en: [
-      'Fixed token refresh failing with HTTP 404 — the Anthropic OAuth endpoint had moved. This also restores automatic token refresh used by quota updates.',
-      'The manual token-refresh button now shows a clear error message when a refresh fails, instead of silently doing nothing.',
-      'The token-refresh button is now always visible on expired accounts — no need to hover over the card.',
-      'Added this in-app changelog viewer, and new-version release notes now appear in the update dialog.',
-    ],
-    vi: [
-      'Sửa lỗi làm mới token thất bại (HTTP 404) — endpoint OAuth của Anthropic đã đổi. Đồng thời khôi phục cơ chế tự động làm mới token khi cập nhật quota.',
-      'Nút làm mới token thủ công giờ hiện thông báo lỗi rõ ràng khi thất bại, thay vì im lặng không phản hồi.',
-      'Nút làm mới token luôn hiển thị trên tài khoản đã hết hạn — không cần rê chuột vào thẻ.',
-      'Bổ sung trình xem changelog ngay trong app, và release notes của bản mới giờ hiện trong hộp thoại cập nhật.',
-    ],
-  },
-  {
-    version: '1.0.13',
-    date: '2026-06-29',
-    en: [
-      'Auto-migrate data across the app rename (claude-tools → agent-switch-tools): profiles, switch history and device identity are restored on first launch.',
-      'The old build is now auto-removed when installing the new one, so two versions no longer run side by side.',
-      'Temporarily hid Antigravity (Desktop / IDE / CLI) while remaining issues are fixed.',
-    ],
-    vi: [
-      'Tự động chuyển dữ liệu qua lần đổi tên app (claude-tools → agent-switch-tools): profiles, lịch sử chuyển tài khoản và device identity được khôi phục ngay lần mở đầu.',
-      'Tự gỡ bản cũ khi cài bản mới, không còn hai bản chạy song song.',
-      'Tạm ẩn Antigravity (Desktop / IDE / CLI) trong lúc khắc phục các lỗi còn tồn đọng.',
-    ],
-  },
-  {
-    version: '1.0.12',
-    date: '2026-06-29',
-    en: [
-      'Antigravity now supports multi-variant accounts (Desktop, IDE, CLI) under a new quota model.',
-      'Cursor and Windsurf are hidden from the dashboard and tray menu.',
-      'Session webhook preview shows project, model, branch and message count.',
-    ],
-    vi: [
-      'Antigravity hỗ trợ tài khoản đa biến thể (Desktop, IDE, CLI) theo mô hình quota mới.',
-      'Ẩn Cursor và Windsurf khỏi dashboard và tray menu.',
-      'Bản xem trước webhook phiên hiển thị project, model, nhánh và số lượng tin nhắn.',
-    ],
-  },
-]
+/** Bundled snapshot — the offline fallback shipped with this build. */
+export const CHANGELOG: ChangelogEntry[] = bundled as ChangelogEntry[]
+
+/**
+ * Load the changelog, preferring the latest copy fetched from GitHub.
+ * Falls back to the disk cache (handled in Rust) and finally to the bundled
+ * snapshot when offline or running outside Tauri.
+ */
+export async function loadChangelog(): Promise<ChangelogEntry[]> {
+  try {
+    const remote = await invoke<ChangelogEntry[]>('fetch_changelog')
+    if (Array.isArray(remote) && remote.length > 0) return remote
+  } catch {
+    // offline, fetch failed, or not running in Tauri — use the bundled snapshot
+  }
+  return CHANGELOG
+}
