@@ -9,8 +9,9 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { Switch } from '@/components/ui/switch'
-import { useAutoStartConfig } from '@/hooks/use-autostart-config'
 import { useAutoUpdateConfig } from '@/hooks/use-auto-update-config'
+import { useAutoStartConfig } from '@/hooks/use-autostart-config'
+import { useStartMinimizedConfig } from '@/hooks/use-start-minimized-config'
 import type { AppUpdaterState } from '@/lib/types'
 import { Download, RefreshCw } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
@@ -23,8 +24,16 @@ interface GeneralSettingsPanelProps {
 export function GeneralSettingsPanel({ updater }: GeneralSettingsPanelProps) {
   const { t, i18n } = useTranslation()
   const { theme, setTheme } = useTheme()
-  const { enabled: autoStartEnabled, loading: autoStartLoading, toggle: toggleAutoStart } =
-    useAutoStartConfig()
+  const {
+    enabled: autoStartEnabled,
+    loading: autoStartLoading,
+    toggle: toggleAutoStart,
+  } = useAutoStartConfig()
+  const {
+    enabled: startMinimizedEnabled,
+    loading: startMinimizedLoading,
+    toggle: toggleStartMinimized,
+  } = useStartMinimizedConfig()
   const { enabled: autoUpdateEnabled, setEnabled: setAutoUpdate } =
     useAutoUpdateConfig()
 
@@ -98,7 +107,9 @@ export function GeneralSettingsPanel({ updater }: GeneralSettingsPanelProps) {
         <div className="rounded-lg border bg-card">
           <div className="flex items-center justify-between px-4 py-3">
             <div>
-              <Label className="text-sm">{t('settings.general.autostart')}</Label>
+              <Label className="text-sm">
+                {t('settings.general.autostart')}
+              </Label>
               <p className="text-xs text-muted-foreground mt-0.5">
                 {t('settings.general.autostart_desc')}
               </p>
@@ -107,6 +118,24 @@ export function GeneralSettingsPanel({ updater }: GeneralSettingsPanelProps) {
               checked={autoStartEnabled}
               onCheckedChange={toggleAutoStart}
               disabled={autoStartLoading}
+            />
+          </div>
+
+          <div className="border-t" />
+
+          <div className="flex items-center justify-between px-4 py-3">
+            <div>
+              <Label className="text-sm">
+                {t('settings.general.start_minimized')}
+              </Label>
+              <p className="text-xs text-muted-foreground mt-0.5">
+                {t('settings.general.start_minimized_desc')}
+              </p>
+            </div>
+            <Switch
+              checked={startMinimizedEnabled}
+              onCheckedChange={toggleStartMinimized}
+              disabled={startMinimizedLoading}
             />
           </div>
         </div>
@@ -139,7 +168,9 @@ export function GeneralSettingsPanel({ updater }: GeneralSettingsPanelProps) {
               </Label>
               {updater.updateVersion && (
                 <p className="text-xs text-blue-600 dark:text-blue-400 mt-0.5">
-                  {t('settings.general.update_available', { version: updater.updateVersion })}
+                  {t('settings.general.update_available', {
+                    version: updater.updateVersion,
+                  })}
                 </p>
               )}
             </div>
@@ -165,7 +196,9 @@ export function GeneralSettingsPanel({ updater }: GeneralSettingsPanelProps) {
                 disabled={updater.checking}
                 className="h-7 text-xs"
               >
-                <RefreshCw className={`size-3.5 ${updater.checking ? 'animate-spin' : ''}`} />
+                <RefreshCw
+                  className={`size-3.5 ${updater.checking ? 'animate-spin' : ''}`}
+                />
                 {t('settings.general.check_now')}
               </Button>
             </div>

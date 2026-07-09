@@ -1,11 +1,20 @@
 use tauri::Manager;
 use tauri_plugin_autostart::MacosLauncher;
+use tauri_plugin_store::StoreExt;
 
 mod commands;
 pub mod modules;
 mod priming;
 mod quota_refresh_worker;
 mod tray;
+
+/// Restore the main window after it was hidden (close-to-tray) or reopened via
+/// the tray menu / single-instance relaunch.
+pub(crate) fn present_main_window(window: &tauri::WebviewWindow) {
+    let _ = window.show();
+    let _ = window.unminimize();
+    let _ = window.set_focus();
+}
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
@@ -21,9 +30,7 @@ pub fn run() {
         ))
         .plugin(tauri_plugin_single_instance::init(|app, _args, _cwd| {
             if let Some(window) = app.get_webview_window("main") {
-                let _ = window.show();
-                let _ = window.unminimize();
-                let _ = window.set_focus();
+                present_main_window(&window);
             }
         }))
         .setup(|app| {
@@ -41,15 +48,40 @@ pub fn run() {
                     eprintln!("Warning: Could not initialize device identity: {e}");
                 }
             }
+            // Window starts hidden (see tauri.conf.json) so we can decide whether to
+            // show it before it ever paints, avoiding a flash when "start minimized" is on.
+            if let Some(window) = app.get_webview_window("main") {
+                let start_minimized = app
+                    .store("settings.json")
+                    .ok()
+                    .and_then(|store| store.get("start_minimized"))
+                    .and_then(|value| value.as_bool())
+                    .unwrap_or(false);
+                if !start_minimized {
+                    let _ = window.show();
+                    let _ = window.set_focus();
+                }
+            }
             quota_refresh_worker::spawn_quota_worker(app.handle().clone());
             priming::scheduler::spawn_prime_scheduler(app.handle().clone());
             Ok(())
         })
-        .on_window_event(|window, event| {
-            if let tauri::WindowEvent::CloseRequested { api, .. } = event {
-                window.hide().unwrap();
+        .on_window_event(|window, event| match event {
+            tauri::WindowEvent::CloseRequested { api, .. } => {
+                let _ = window.hide();
                 api.prevent_close();
             }
+            // Wayland/GTK bug: after a window is hidden and shown again, its native
+            // title bar buttons (close/minimize/maximize) stop responding to clicks
+            // until the window is resized. Toggling `resizable` on refocus forces
+            // GTK to re-register the button handlers without a visible resize.
+            // https://github.com/tauri-apps/tauri/issues/11856
+            #[cfg(target_os = "linux")]
+            tauri::WindowEvent::Focused(true) => {
+                let _ = window.set_resizable(false);
+                let _ = window.set_resizable(true);
+            }
+            _ => {}
         })
         .invoke_handler(tauri::generate_handler![
             // Claude Credential profile management

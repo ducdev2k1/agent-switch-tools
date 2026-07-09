@@ -127,6 +127,8 @@
       "startup": "Startup",
       "autostart": "Launch at login",
       "autostart_desc": "Automatically start when you log in",
+      "start_minimized": "Start minimized to tray",
+      "start_minimized_desc": "Don't open the dashboard window on startup — only the tray icon appears",
       "updates": "Updates",
       "auto_update": "Auto-check for updates",
       "check_updates": "Software Update",

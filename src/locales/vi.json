@@ -127,6 +127,8 @@
       "startup": "Khởi động",
       "autostart": "Khởi động cùng hệ thống",
       "autostart_desc": "Tự động khởi động khi đăng nhập",
+      "start_minimized": "Khởi động ẩn xuống tray",
+      "start_minimized_desc": "Không mở sẵn cửa sổ dashboard khi khởi động — chỉ hiện icon trên tray",
       "updates": "Cập nhật",
       "auto_update": "Tự động kiểm tra bản cập nhật",
       "check_updates": "Cập nhật phần mềm",

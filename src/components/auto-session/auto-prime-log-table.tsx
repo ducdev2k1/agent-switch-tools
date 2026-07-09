@@ -42,7 +42,8 @@ function parseLog(log: string): LogRow[] {
     .filter(Boolean)
     .map((line) => {
       const parts = line.split(' | ')
-      if (parts.length < 3) return { time: '', account: '', status: '', detail: line }
+      if (parts.length < 3)
+        return { time: '', account: '', status: '', detail: line }
       return {
         time: formatStamp(parts[0]),
         account: parts[1],
@@ -68,7 +69,7 @@ export function AutoPrimeLogTable({ log }: { log: string }) {
             <th className="px-3 py-2 font-medium">
               {t('auto_session.log_table.account')}
             </th>
-            <th className="px-3 py-2 font-medium">
+            <th className="px-3 py-2 font-medium whitespace-nowrap">
               {t('auto_session.log_table.status')}
             </th>
             <th className="px-3 py-2 font-medium">
@@ -86,17 +87,19 @@ export function AutoPrimeLogTable({ log }: { log: string }) {
                 {row.time}
               </td>
               <td className="px-3 py-1.5 whitespace-nowrap">{row.account}</td>
-              <td className="px-3 py-1.5">
+              <td className="px-3 py-1.5 whitespace-nowrap">
                 {row.status && (
                   <Badge
                     variant={RESULT_VARIANT[row.status] ?? 'secondary'}
-                    className="h-4 px-1.5 text-[9px]"
+                    className="h-4 px-1.5 text-[9px] whitespace-nowrap"
                   >
                     {t(`auto_session.result_badge.${row.status}`, row.status)}
                   </Badge>
                 )}
               </td>
-              <td className="px-3 py-1.5 text-muted-foreground">{row.detail}</td>
+              <td className="px-3 py-1.5 text-muted-foreground">
+                {row.detail}
+              </td>
             </tr>
           ))}
         </tbody>

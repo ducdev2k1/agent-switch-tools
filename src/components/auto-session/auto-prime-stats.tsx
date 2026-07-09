@@ -12,23 +12,23 @@ export function AutoPrimeStats({ stats }: { stats: PrimeDayStat[] }) {
   }
 
   return (
-    <div className="overflow-x-auto">
-      <table className="w-full text-sm">
-        <thead>
-          <tr className="border-b text-left text-xs text-muted-foreground">
-            <th className="py-2 pr-4 font-medium">
+    <div className="max-h-64 overflow-auto rounded border border-border/40">
+      <table className="w-full text-xs">
+        <thead className="sticky top-0 bg-muted/60 backdrop-blur-sm">
+          <tr className="text-left text-muted-foreground">
+            <th className="px-3 py-2 font-medium whitespace-nowrap">
               {t('auto_session.stats.date')}
             </th>
-            <th className="py-2 pr-4 font-medium">
+            <th className="px-3 py-2 font-medium">
               {t('auto_session.stats.success')}
             </th>
-            <th className="py-2 pr-4 font-medium">
+            <th className="px-3 py-2 font-medium">
               {t('auto_session.stats.hold')}
             </th>
-            <th className="py-2 pr-4 font-medium">
+            <th className="px-3 py-2 font-medium">
               {t('auto_session.stats.failed')}
             </th>
-            <th className="py-2 font-medium">
+            <th className="px-3 py-2 font-medium">
               {t('auto_session.stats.skip')}
             </th>
           </tr>
@@ -37,13 +37,15 @@ export function AutoPrimeStats({ stats }: { stats: PrimeDayStat[] }) {
           {stats.map((s) => (
             <tr
               key={s.date}
-              className="border-b border-border/50"
+              className="border-t border-border/30 hover:bg-muted/30"
             >
-              <td className="py-2 pr-4">{s.date}</td>
-              <td className="py-2 pr-4 text-muted-foreground">{s.success}</td>
-              <td className="py-2 pr-4 text-muted-foreground">{s.hold}</td>
-              <td className="py-2 pr-4 text-muted-foreground">{s.failed}</td>
-              <td className="py-2 text-muted-foreground">{s.skip}</td>
+              <td className="px-3 py-1.5 whitespace-nowrap tabular-nums text-muted-foreground">
+                {s.date}
+              </td>
+              <td className="px-3 py-1.5">{s.success}</td>
+              <td className="px-3 py-1.5 text-muted-foreground">{s.hold}</td>
+              <td className="px-3 py-1.5 text-muted-foreground">{s.failed}</td>
+              <td className="px-3 py-1.5 text-muted-foreground">{s.skip}</td>
             </tr>
           ))}
         </tbody>

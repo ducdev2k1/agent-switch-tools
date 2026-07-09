@@ -1,5 +1,17 @@
 [
   {
+    "version": "1.0.18",
+    "date": "2026-07-09",
+    "en": [
+      "Fixed the native window buttons (minimize / maximize / close) sometimes not responding to clicks after the app was hidden to the tray and reopened — a known Linux/Wayland GTK issue. The app now automatically nudges the window controls on refocus so they stay responsive, no manual resize needed.",
+      "New \"Start minimized to tray\" option (Settings → General → Startup): keep the dashboard closed on launch and only show the tray icon, open it anytime from the tray menu. Off by default — the dashboard still opens automatically as before."
+    ],
+    "vi": [
+      "Sửa lỗi các nút cửa sổ (thu nhỏ / phóng to / đóng) đôi khi không phản hồi khi bấm, sau khi app bị ẩn xuống tray rồi mở lại — lỗi đã biết của GTK trên Linux/Wayland. App giờ tự \"đánh thức\" lại các nút điều khiển mỗi khi cửa sổ được focus lại, không cần resize thủ công.",
+      "Thêm tùy chọn \"Khởi động ẩn xuống tray\" (Cài đặt → Chung → Khởi động): không tự mở dashboard khi khởi động, chỉ hiện icon tray, mở lại bất kỳ lúc nào từ menu tray. Mặc định tắt — dashboard vẫn tự mở như trước."
+    ]
+  },
+  {
     "version": "1.0.17",
     "date": "2026-07-03",
     "en": [

@@ -299,7 +299,18 @@ Chuyển đổi trong Settings. Ngôn ngữ được lưu vào `localStorage`.
 
 ---
 
-## 8. CLI Status Bar
+## 8. Khởi động cùng hệ thống (Autostart)
+
+Cấu hình trong **Settings → General → Startup**:
+
+- **Khởi động cùng hệ thống** — app tự chạy khi đăng nhập vào máy. Bật mặc định ở lần chạy đầu tiên.
+- **Khởi động ẩn xuống tray** — khi bật, app chạy chỉ hiện icon tray, không tự mở cửa sổ dashboard. Mở dashboard bất kỳ lúc nào từ menu tray ("Open Dashboard"). **Mặc định tắt** — dashboard vẫn tự mở như bình thường trừ khi bật tùy chọn này.
+
+Icon tray luôn xuất hiện khi app đang chạy, bất kể tùy chọn "Khởi động ẩn xuống tray" có bật hay không — tùy chọn này chỉ quyết định cửa sổ dashboard có tự mở hay không.
+
+---
+
+## 9. CLI Status Bar
 
 Hiển thị trạng thái Claude Code CLI hiện tại:
 
@@ -311,7 +322,7 @@ Thông tin này đọc từ `~/.claude/settings.json` và `~/.claude/history.jso
 
 ---
 
-## 9. Device Tracking
+## 10. Device Tracking
 
 Mỗi máy tính được gán:
 - **Device ID**: UUID duy nhất, tạo 1 lần, không bao giờ đổi

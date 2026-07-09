@@ -57,8 +57,7 @@ pub fn setup_tray(app: &tauri::App) -> Result<(), Box<dyn std::error::Error>> {
             match id {
                 "open" => {
                     if let Some(window) = app_handle.get_webview_window("main") {
-                        let _ = window.show();
-                        let _ = window.set_focus();
+                        crate::present_main_window(&window);
                     }
                 }
                 "quit" => {
