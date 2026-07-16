@@ -1,5 +1,23 @@
 [
   {
+    "version": "1.0.19",
+    "date": "2026-07-16",
+    "en": [
+      "Fixed \"Failed to write credential to macOS Keychain\" when switching to a profile imported from another machine (e.g. a profile folder zipped and copied into the profiles directory). A trailing newline in the copied credentials file made the Keychain write verification fail even though the write had landed — the credential is now stored trimmed so the round trip always matches.",
+      "If the Keychain entry was created by another app (like the Claude Code CLI) and blocks a silent in-place update, the app now deletes and recreates the entry with its own access settings — no more macOS password prompt on every switch.",
+      "Keychain operations can no longer hang the app: every `security` call is capped at 15 seconds, and a blocked call returns a clear error naming the exact cause instead of freezing.",
+      "Keychain error messages now surface the real reason from macOS (locked keychain, denied access, timeout) instead of a generic failure line.",
+      "CI now runs real macOS Keychain integration tests on both Intel and Apple Silicon runners to keep account switching regression-free."
+    ],
+    "vi": [
+      "Sửa lỗi \"Failed to write credential to macOS Keychain\" khi chuyển sang profile được copy từ máy khác (ví dụ zip folder tài khoản rồi thả vào thư mục profiles). Ký tự xuống dòng ở cuối file credentials copy tay làm bước xác nhận ghi Keychain thất bại dù đã ghi thành công — giờ credential được lưu sau khi loại bỏ khoảng trắng thừa nên luôn khớp.",
+      "Nếu mục Keychain do app khác tạo (như Claude Code CLI) và chặn việc cập nhật im lặng, app giờ tự xóa và tạo lại mục đó với quyền truy cập của chính app — không còn popup hỏi mật khẩu macOS mỗi lần chuyển tài khoản.",
+      "Thao tác Keychain không thể làm treo app nữa: mọi lệnh `security` được giới hạn 15 giây, lệnh bị kẹt sẽ trả lỗi rõ ràng nêu đúng nguyên nhân thay vì đứng im.",
+      "Thông báo lỗi Keychain giờ hiển thị nguyên nhân thật từ macOS (keychain bị khóa, bị từ chối truy cập, hết thời gian chờ) thay vì một dòng lỗi chung chung.",
+      "CI giờ chạy test tích hợp Keychain thật trên cả runner Intel lẫn Apple Silicon để việc chuyển tài khoản không tái phát lỗi."
+    ]
+  },
+  {
     "version": "1.0.18",
     "date": "2026-07-09",
     "en": [

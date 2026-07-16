@@ -127,23 +127,35 @@ pub fn write_active(&self, blob: &str) -> Result<(), String> {
             self.hashed_service()
         };
         
+        // Trim blob trước khi ghi: newline cuối file (credentials copy từ máy khác)
+        // làm `find-generic-password -w` trả về hex → verify fail oan
+        let blob = blob.trim();
+
         // Ghi vào Keychain + confirm + retry nếu cần
         let account = read_keychain_account(&service).unwrap_or_else(current_user);
-        let wrote = write_keychain_blob(&service, &account, blob);
-        
+        let mut wrote = write_keychain_blob(&service, &account, blob);
+
+        // Nếu update tại chỗ bị ACL của app khác chặn (vd: slot do Claude Code CLI tạo):
+        // xóa slot và tạo lại với ACL của chính app → các lần sau không còn popup
+        if wrote.is_err() {
+            let _ = delete_keychain(&service);
+            wrote = write_keychain_blob(&service, &account, blob);
+        }
+
         // Mirror vào file nếu file đã tồn tại (cho khi Keychain bị lock)
         if self.creds_file.exists() {
             let _ = write_file_blob(&self.creds_file, blob);
         }
-        
-        if wrote {
-            return Ok(());
+
+        if let Err(detail) = &wrote {
+            // Fallback: nếu Keychain fail, ghi vào file nếu tồn tại
+            if self.creds_file.exists() {
+                return write_file_blob(&self.creds_file, blob);
+            }
+            // Lỗi mang nguyên nhân thật từ `security` (stderr / timeout)
+            return Err(format!("Failed to write credential to macOS Keychain: {detail}"));
         }
-        // Fallback: nếu Keychain fail, ghi vào file nếu tồn tại
-        if self.creds_file.exists() {
-            return write_file_blob(&self.creds_file, blob);
-        }
-        return Err("Failed to write credential to macOS Keychain".to_string());
+        return Ok(());
     }
     // Linux/Windows: ghi file
     write_file_blob(&self.creds_file, blob)
@@ -167,13 +179,17 @@ fn restore_credentials(profile_name: &str) -> Result<()> {
 ```
 
 **Ghi vào Keychain (macOS)** — quy trình:
-1. Chạy `security add-generic-password -U -A -s <service> -a <account> -w <blob>`
+1. **Trim blob** trước khi ghi — newline cuối (thường gặp ở `credentials.json` copy từ máy khác) làm `find-generic-password -w` trả về dạng hex, khiến bước verify fail dù đã ghi thành công
+2. Chạy `security add-generic-password -U -A -s <service> -a <account> -w <blob>`
    - `-U`: upsert (update nếu tồn tại)
    - `-A`: allow any app to read (không cần prompt)
    - Blob được truyền qua `-w` (briefly visible trong process list)
-2. **Confirm write**: đọc lại từ Keychain để verify dữ liệu đúng
-3. **Retry 3 lần** nếu fail (handle transient lock issues)
-4. **Mirror tới file**: nếu file đã tồn tại (keep a readable copy khi Keychain locked)
+3. **Confirm write**: đọc lại từ Keychain để verify dữ liệu đúng (so sánh sau trim)
+4. **Retry 3 lần** nếu fail (handle transient lock issues)
+5. **Delete + recreate** nếu update tại chỗ vẫn fail — slot do app khác tạo (vd Claude Code CLI) có ACL chặn ghi im lặng; tạo lại slot với ACL của app để các lần sau không còn popup mật khẩu
+6. **Mirror tới file**: nếu file đã tồn tại (keep a readable copy khi Keychain locked)
+
+**Chống treo**: mọi lệnh `security` có timeout **15 giây** (`run_security`) — nếu macOS giữ lệnh sau một dialog bảo mật, app trả lỗi rõ ràng (kèm stderr thật hoặc lý do timeout) thay vì đứng im vô hạn.
 
 **Đây là điểm tương tác QUAN TRỌNG NHẤT** — app ghi credentials vào Keychain (macOS) hoặc file (Linux/Windows). Nhờ vậy, Claude Code sẽ tự động dùng credentials mới mà không cần đăng nhập lại.
 
