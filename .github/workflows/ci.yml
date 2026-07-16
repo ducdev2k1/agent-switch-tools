@@ -82,16 +82,24 @@ jobs:
       - name: Probe keychain from a bare shell (macOS)
         if: startsWith(matrix.platform, 'macos')
         run: |
-          # Isolates environment problems from app-invocation problems: each call is
-          # capped at 10s via perl alarm; a timeout here means the runner itself
-          # pops a SecurityAgent dialog and no in-process fix can help.
-          t() { perl -e 'alarm shift @ARGV; exec @ARGV' 10 "$@"; }
-          echo "--- add ---";    t security add-generic-password -U -A -s ci-probe -a runner -w hello
-          echo "--- read ---";   t security find-generic-password -s ci-probe -w
-          echo "--- update ---"; t security add-generic-password -U -A -s ci-probe -a runner -w hello2
-          echo "--- read2 ---";  t security find-generic-password -s ci-probe -w
-          echo "--- delete ---"; t security delete-generic-password -s ci-probe > /dev/null
-          echo "probe OK"
+          # Experiment matrix: exit 142 (SIGALRM) = hung on a SecurityAgent dialog,
+          # other non-zero = immediate CLI error, OK = silent write works.
+          t() { if perl -e 'alarm shift @ARGV; exec @ARGV' 10 "$@" ; then echo "OK   : $*"; else echo "FAIL($?): $*"; fi; }
+          echo "== environment =="
+          security default-keychain || true
+          security list-keychains || true
+          security show-keychain-info ci-tests.keychain || true
+          echo "== add variants =="
+          t security add-generic-password -s p1 -a runner -w v1
+          t security add-generic-password -U -s p2 -a runner -w v2
+          t security add-generic-password -A -s p3 -a runner -w v3
+          t security add-generic-password -U -A -s p4 -a runner -w v4
+          t security add-generic-password -U -A -s p5 -a runner -w v5 ci-tests.keychain
+          t security add-generic-password -T /usr/bin/security -s p6 -a runner -w v6
+          echo "== reads =="
+          t security find-generic-password -s p1 -w
+          t security find-generic-password -s p5 -w
+          echo "probe done (informational only)"
 
       - name: Run Rust tests
         if: ${{ !startsWith(matrix.platform, 'windows') }}
