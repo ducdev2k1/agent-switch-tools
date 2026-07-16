@@ -72,6 +72,10 @@ impl ActiveStore {
     /// exists (keeps a copy readable while the login keychain is locked). Otherwise: file only.
     pub fn write_active(&self, blob: &str) -> Result<(), String> {
         if Self::use_keychain() {
+            // Store the exact JSON with no surrounding whitespace: a trailing newline (typical in
+            // a credentials.json copied off another machine) makes `find-generic-password -w`
+            // print the value hex-encoded, which breaks the write verification and any reader.
+            let blob = blob.trim();
             let service = if keychain_service_exists(&self.hashed_service()) {
                 self.hashed_service()
             } else if keychain_service_exists(GLOBAL_SERVICE) {
