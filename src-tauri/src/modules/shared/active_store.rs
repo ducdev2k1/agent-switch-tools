@@ -126,6 +126,40 @@ impl ActiveStore {
 
 // ========== Keychain helpers (macOS `security` CLI; compile everywhere, run only via cfg!) ==========
 
+const SECURITY_TIMEOUT_SECS: u64 = 15;
+
+/// Run `security` with a hard timeout. macOS can park a keychain call behind a SecurityAgent
+/// dialog (locked keychain, ACL confirmation) — in an app or CI context nobody may ever dismiss
+/// it, so a bounded wait turns an indefinite hang into a diagnosable error.
+fn run_security(args: &[&str]) -> Result<std::process::Output, String> {
+    let mut child = Command::new("security")
+        .args(args)
+        .stdin(std::process::Stdio::null())
+        .stdout(std::process::Stdio::piped())
+        .stderr(std::process::Stdio::piped())
+        .spawn()
+        .map_err(|e| format!("could not run `security`: {e}"))?;
+    let deadline =
+        std::time::Instant::now() + std::time::Duration::from_secs(SECURITY_TIMEOUT_SECS);
+    loop {
+        match child.try_wait() {
+            Ok(Some(_)) => return child.wait_with_output().map_err(|e| e.to_string()),
+            Ok(None) => {
+                if std::time::Instant::now() >= deadline {
+                    let _ = child.kill();
+                    let _ = child.wait();
+                    return Err(format!(
+                        "`security {}` timed out after {SECURITY_TIMEOUT_SECS}s — likely blocked on a keychain dialog",
+                        args.first().unwrap_or(&"")
+                    ));
+                }
+                std::thread::sleep(std::time::Duration::from_millis(50));
+            }
+            Err(e) => return Err(e.to_string()),
+        }
+    }
+}
+
 /// Claude's keychain suffix for a config dir = `sha256(path)[:8]` (hex, first 4 bytes).
 fn keychain_suffix(config_dir: &PathBuf) -> String {
     let mut hasher = Sha256::new();
@@ -139,9 +173,7 @@ fn keychain_suffix(config_dir: &PathBuf) -> String {
 }
 
 fn read_keychain_blob(service: &str) -> Option<String> {
-    Command::new("security")
-        .args(["find-generic-password", "-s", service, "-w"])
-        .output()
+    run_security(&["find-generic-password", "-s", service, "-w"])
         .ok()
         .filter(|out| out.status.success())
         .map(|out| String::from_utf8_lossy(&out.stdout).trim().to_string())
@@ -149,9 +181,7 @@ fn read_keychain_blob(service: &str) -> Option<String> {
 }
 
 fn keychain_service_exists(service: &str) -> bool {
-    Command::new("security")
-        .args(["find-generic-password", "-s", service, "-w"])
-        .output()
+    run_security(&["find-generic-password", "-s", service, "-w"])
         .map(|out| out.status.success() && !out.stdout.is_empty())
         .unwrap_or(false)
 }
@@ -159,9 +189,7 @@ fn keychain_service_exists(service: &str) -> bool {
 /// Read the account name of a keychain entry so a write targets the same (service, account).
 /// The attribute dump (no `-w`) prints a line like `"acct"<...>="<name>"`.
 fn read_keychain_account(service: &str) -> Option<String> {
-    let out = Command::new("security")
-        .args(["find-generic-password", "-s", service])
-        .output()
+    let out = run_security(&["find-generic-password", "-s", service])
         .ok()
         .filter(|out| out.status.success())?;
     let dump = String::from_utf8_lossy(&out.stdout);
@@ -188,20 +216,17 @@ fn write_keychain_blob(service: &str, account: &str, blob: &str) -> Result<(), S
     }
     let mut last_error = String::new();
     for attempt in 0..KEYCHAIN_WRITE_RETRIES {
-        match Command::new("security")
-            .args([
-                "add-generic-password",
-                "-U",
-                "-A",
-                "-s",
-                service,
-                "-a",
-                account,
-                "-w",
-                blob,
-            ])
-            .output()
-        {
+        match run_security(&[
+            "add-generic-password",
+            "-U",
+            "-A",
+            "-s",
+            service,
+            "-a",
+            account,
+            "-w",
+            blob,
+        ]) {
             Ok(out) if out.status.success() => {
                 // `read_keychain_blob` already trims, and `security -w` appends its own newline,
                 // so compare against the trimmed blob — a trailing '\n' in the source file must
@@ -219,7 +244,7 @@ fn write_keychain_blob(service: &str, account: &str, blob: &str) -> Result<(), S
                     stderr
                 };
             }
-            Err(e) => last_error = format!("could not run `security`: {e}"),
+            Err(e) => last_error = e,
         }
         if attempt + 1 < KEYCHAIN_WRITE_RETRIES {
             std::thread::sleep(std::time::Duration::from_millis(200));
@@ -229,9 +254,7 @@ fn write_keychain_blob(service: &str, account: &str, blob: &str) -> Result<(), S
 }
 
 fn delete_keychain(service: &str) -> bool {
-    Command::new("security")
-        .args(["delete-generic-password", "-s", service])
-        .output()
+    run_security(&["delete-generic-password", "-s", service])
         .map(|out| out.status.success())
         .unwrap_or(false)
 }
@@ -371,8 +394,7 @@ mod tests {
     /// created and made default. Never set it on a personal Mac.
     #[cfg(target_os = "macos")]
     mod keychain_tests {
-        use super::super::ActiveStore;
-        use std::process::Command;
+        use super::super::{run_security, ActiveStore};
 
         fn enabled() -> bool {
             std::env::var("KEYCHAIN_TESTS").map(|v| v == "1").unwrap_or(false)
@@ -422,11 +444,11 @@ mod tests {
             // Seed the slot out-of-band under a DIFFERENT account name, the way another
             // machine's app or CLI would have — the write must still land and be readable.
             let service = store.hashed_service();
-            let seeded = Command::new("security")
-                .args(["add-generic-password", "-U", "-s", &service, "-a", "someone-else", "-w", "old"])
-                .output()
-                .map(|out| out.status.success())
-                .unwrap_or(false);
+            let seeded = run_security(&[
+                "add-generic-password", "-U", "-s", &service, "-a", "someone-else", "-w", "old",
+            ])
+            .map(|out| out.status.success())
+            .unwrap_or(false);
             assert!(seeded, "failed to seed keychain entry");
 
             let blob = r#"{"claudeAiOauth":{"accessToken":"tok-new"}}"#;

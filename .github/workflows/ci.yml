@@ -79,6 +79,20 @@ jobs:
           security default-keychain -s ci-tests.keychain
           security list-keychains -d user -s ci-tests.keychain
 
+      - name: Probe keychain from a bare shell (macOS)
+        if: startsWith(matrix.platform, 'macos')
+        run: |
+          # Isolates environment problems from app-invocation problems: each call is
+          # capped at 10s via perl alarm; a timeout here means the runner itself
+          # pops a SecurityAgent dialog and no in-process fix can help.
+          t() { perl -e 'alarm shift @ARGV; exec @ARGV' 10 "$@"; }
+          echo "--- add ---";    t security add-generic-password -U -A -s ci-probe -a runner -w hello
+          echo "--- read ---";   t security find-generic-password -s ci-probe -w
+          echo "--- update ---"; t security add-generic-password -U -A -s ci-probe -a runner -w hello2
+          echo "--- read2 ---";  t security find-generic-password -s ci-probe -w
+          echo "--- delete ---"; t security delete-generic-password -s ci-probe > /dev/null
+          echo "probe OK"
+
       - name: Run Rust tests
         if: ${{ !startsWith(matrix.platform, 'windows') }}
         timeout-minutes: 20
