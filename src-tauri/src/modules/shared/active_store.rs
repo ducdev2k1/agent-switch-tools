@@ -214,19 +214,18 @@ fn write_keychain_blob(service: &str, account: &str, blob: &str) -> Result<(), S
     if account.trim().is_empty() {
         return Err("could not determine the login account name (USER/LOGNAME unset and `id -un` failed)".to_string());
     }
+    let mut args = vec!["add-generic-password", "-U"];
+    // `-A` works silently on real Macs, but CI's SecurityAgent cannot confirm the open-access
+    // grant headlessly and parks the call behind a dialog that never shows. Tests set this var
+    // so the rest of the write path still runs against a real keychain; it is never set for users.
+    if std::env::var_os("AGENT_SWITCH_TEST_NO_KEYCHAIN_ACL").is_none() {
+        args.push("-A");
+    }
+    args.extend(["-s", service, "-a", account, "-w", blob]);
+
     let mut last_error = String::new();
     for attempt in 0..KEYCHAIN_WRITE_RETRIES {
-        match run_security(&[
-            "add-generic-password",
-            "-U",
-            "-A",
-            "-s",
-            service,
-            "-a",
-            account,
-            "-w",
-            blob,
-        ]) {
+        match run_security(&args) {
             Ok(out) if out.status.success() => {
                 // `read_keychain_blob` already trims, and `security -w` appends its own newline,
                 // so compare against the trimmed blob — a trailing '\n' in the source file must

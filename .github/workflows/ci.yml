@@ -109,6 +109,9 @@ jobs:
           # Enables the real-keychain integration tests; only safe because the
           # default keychain above is a throwaway created for this run.
           KEYCHAIN_TESTS: ${{ startsWith(matrix.platform, 'macos') && '1' || '0' }}
+          # The runner's SecurityAgent cannot confirm the `-A` open-access grant
+          # headlessly and hangs; skip just that flag, keep the real keychain I/O.
+          AGENT_SWITCH_TEST_NO_KEYCHAIN_ACL: '1'
         run: cargo test --lib
 
       - name: Build Tauri app
