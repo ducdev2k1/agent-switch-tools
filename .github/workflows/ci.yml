@@ -66,5 +66,22 @@ jobs:
       - name: Install frontend dependencies
         run: pnpm install
 
+      - name: Set up throwaway keychain (macOS)
+        if: startsWith(matrix.platform, 'macos')
+        run: |
+          security create-keychain -p ci ci-tests.keychain
+          security default-keychain -s ci-tests.keychain
+          security unlock-keychain -p ci ci-tests.keychain
+          security set-keychain-settings -lut 7200 ci-tests.keychain
+
+      - name: Run Rust tests
+        if: ${{ !startsWith(matrix.platform, 'windows') }}
+        working-directory: src-tauri
+        env:
+          # Enables the real-keychain integration tests; only safe because the
+          # default keychain above is a throwaway created for this run.
+          KEYCHAIN_TESTS: ${{ startsWith(matrix.platform, 'macos') && '1' || '0' }}
+        run: cargo test --lib
+
       - name: Build Tauri app
         run: pnpm tauri build --target ${{ matrix.target }} --no-bundle
