@@ -70,12 +70,18 @@ jobs:
         if: startsWith(matrix.platform, 'macos')
         run: |
           security create-keychain -p ci ci-tests.keychain
-          security default-keychain -s ci-tests.keychain
-          security unlock-keychain -p ci ci-tests.keychain
           security set-keychain-settings -lut 7200 ci-tests.keychain
+          security unlock-keychain -p ci ci-tests.keychain
+          # Make it BOTH the default (writes) and the only entry in the user
+          # search list (find-generic-password) — otherwise reads fall through
+          # to the runner's locked login keychain and `security` blocks forever
+          # on a SecurityAgent unlock dialog.
+          security default-keychain -s ci-tests.keychain
+          security list-keychains -d user -s ci-tests.keychain
 
       - name: Run Rust tests
         if: ${{ !startsWith(matrix.platform, 'windows') }}
+        timeout-minutes: 20
         working-directory: src-tauri
         env:
           # Enables the real-keychain integration tests; only safe because the
