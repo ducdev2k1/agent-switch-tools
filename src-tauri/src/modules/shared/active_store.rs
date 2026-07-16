@@ -72,6 +72,10 @@ impl ActiveStore {
     /// exists (keeps a copy readable while the login keychain is locked). Otherwise: file only.
     pub fn write_active(&self, blob: &str) -> Result<(), String> {
         if Self::use_keychain() {
+            // Store the exact JSON with no surrounding whitespace: a trailing newline (typical in
+            // a credentials.json copied off another machine) makes `find-generic-password -w`
+            // print the value hex-encoded, which breaks the write verification and any reader.
+            let blob = blob.trim();
             let service = if keychain_service_exists(&self.hashed_service()) {
                 self.hashed_service()
             } else if keychain_service_exists(GLOBAL_SERVICE) {
@@ -80,20 +84,33 @@ impl ActiveStore {
                 self.hashed_service()
             };
             let account = read_keychain_account(&service).unwrap_or_else(current_user);
-            let wrote = write_keychain_blob(&service, &account, blob);
+            let mut wrote = write_keychain_blob(&service, &account, blob);
+
+            // An in-place `-U` update keeps the existing item's ACL. When that item was created by
+            // another app (e.g. the Claude Code CLI on first login, or restored from a profile
+            // shared off another machine), its ACL can block a silent rewrite and macOS pops the
+            // keychain-password dialog — leaving the write unverified. Recover by deleting the slot
+            // and recreating it with an app-owned `-A` ACL so future writes never prompt.
+            // Safe: the blob is in hand and the profile file still holds a copy.
+            if wrote.is_err() {
+                let _ = delete_keychain(&service);
+                wrote = write_keychain_blob(&service, &account, blob);
+            }
 
             // Mirror to the file only where one already exists — never create a plaintext copy.
             if self.creds_file.exists() {
                 let _ = write_file_blob(&self.creds_file, blob);
             }
-            if wrote {
-                return Ok(());
+            if let Err(detail) = &wrote {
+                // Keychain write failed: fall back to the file if we have one.
+                if self.creds_file.exists() {
+                    return write_file_blob(&self.creds_file, blob);
+                }
+                return Err(format!(
+                    "Failed to write credential to macOS Keychain: {detail}"
+                ));
             }
-            // Keychain write failed: fall back to the file if we have one.
-            if self.creds_file.exists() {
-                return write_file_blob(&self.creds_file, blob);
-            }
-            return Err("Failed to write credential to macOS Keychain".to_string());
+            return Ok(());
         }
         write_file_blob(&self.creds_file, blob)
     }
@@ -113,6 +130,40 @@ impl ActiveStore {
 
 // ========== Keychain helpers (macOS `security` CLI; compile everywhere, run only via cfg!) ==========
 
+const SECURITY_TIMEOUT_SECS: u64 = 15;
+
+/// Run `security` with a hard timeout. macOS can park a keychain call behind a SecurityAgent
+/// dialog (locked keychain, ACL confirmation) — in an app or CI context nobody may ever dismiss
+/// it, so a bounded wait turns an indefinite hang into a diagnosable error.
+fn run_security(args: &[&str]) -> Result<std::process::Output, String> {
+    let mut child = Command::new("security")
+        .args(args)
+        .stdin(std::process::Stdio::null())
+        .stdout(std::process::Stdio::piped())
+        .stderr(std::process::Stdio::piped())
+        .spawn()
+        .map_err(|e| format!("could not run `security`: {e}"))?;
+    let deadline =
+        std::time::Instant::now() + std::time::Duration::from_secs(SECURITY_TIMEOUT_SECS);
+    loop {
+        match child.try_wait() {
+            Ok(Some(_)) => return child.wait_with_output().map_err(|e| e.to_string()),
+            Ok(None) => {
+                if std::time::Instant::now() >= deadline {
+                    let _ = child.kill();
+                    let _ = child.wait();
+                    return Err(format!(
+                        "`security {}` timed out after {SECURITY_TIMEOUT_SECS}s — likely blocked on a keychain dialog",
+                        args.first().unwrap_or(&"")
+                    ));
+                }
+                std::thread::sleep(std::time::Duration::from_millis(50));
+            }
+            Err(e) => return Err(e.to_string()),
+        }
+    }
+}
+
 /// Claude's keychain suffix for a config dir = `sha256(path)[:8]` (hex, first 4 bytes).
 fn keychain_suffix(config_dir: &PathBuf) -> String {
     let mut hasher = Sha256::new();
@@ -126,9 +177,7 @@ fn keychain_suffix(config_dir: &PathBuf) -> String {
 }
 
 fn read_keychain_blob(service: &str) -> Option<String> {
-    Command::new("security")
-        .args(["find-generic-password", "-s", service, "-w"])
-        .output()
+    run_security(&["find-generic-password", "-s", service, "-w"])
         .ok()
         .filter(|out| out.status.success())
         .map(|out| String::from_utf8_lossy(&out.stdout).trim().to_string())
@@ -136,9 +185,7 @@ fn read_keychain_blob(service: &str) -> Option<String> {
 }
 
 fn keychain_service_exists(service: &str) -> bool {
-    Command::new("security")
-        .args(["find-generic-password", "-s", service, "-w"])
-        .output()
+    run_security(&["find-generic-password", "-s", service, "-w"])
         .map(|out| out.status.success() && !out.stdout.is_empty())
         .unwrap_or(false)
 }
@@ -146,9 +193,7 @@ fn keychain_service_exists(service: &str) -> bool {
 /// Read the account name of a keychain entry so a write targets the same (service, account).
 /// The attribute dump (no `-w`) prints a line like `"acct"<...>="<name>"`.
 fn read_keychain_account(service: &str) -> Option<String> {
-    let out = Command::new("security")
-        .args(["find-generic-password", "-s", service])
-        .output()
+    let out = run_security(&["find-generic-password", "-s", service])
         .ok()
         .filter(|out| out.status.success())?;
     let dump = String::from_utf8_lossy(&out.stdout);
@@ -166,37 +211,53 @@ fn read_keychain_account(service: &str) -> Option<String> {
 /// The blob is passed as the `-w` argument (not stdin): `add-generic-password` has no stdin path
 /// for the value, so it is briefly visible in this user's process list while `security` runs —
 /// acceptable on a personal machine and the same approach a production macOS switcher ships.
-fn write_keychain_blob(service: &str, account: &str, blob: &str) -> bool {
+///
+/// Returns `Ok(())` once a write is confirmed, or `Err(detail)` with the last failure reason
+/// (the `security` stderr, or why the read-back mismatched) so callers can surface a real cause.
+fn write_keychain_blob(service: &str, account: &str, blob: &str) -> Result<(), String> {
+    if account.trim().is_empty() {
+        return Err("could not determine the login account name (USER/LOGNAME unset and `id -un` failed)".to_string());
+    }
+    let mut args = vec!["add-generic-password", "-U"];
+    // `-A` works silently on real Macs, but CI's SecurityAgent cannot confirm the open-access
+    // grant headlessly and parks the call behind a dialog that never shows. Tests set this var
+    // so the rest of the write path still runs against a real keychain; it is never set for users.
+    if std::env::var_os("AGENT_SWITCH_TEST_NO_KEYCHAIN_ACL").is_none() {
+        args.push("-A");
+    }
+    args.extend(["-s", service, "-a", account, "-w", blob]);
+
+    let mut last_error = String::new();
     for attempt in 0..KEYCHAIN_WRITE_RETRIES {
-        let wrote = Command::new("security")
-            .args([
-                "add-generic-password",
-                "-U",
-                "-A",
-                "-s",
-                service,
-                "-a",
-                account,
-                "-w",
-                blob,
-            ])
-            .output()
-            .map(|out| out.status.success())
-            .unwrap_or(false);
-        if wrote && read_keychain_blob(service).as_deref() == Some(blob) {
-            return true;
+        match run_security(&args) {
+            Ok(out) if out.status.success() => {
+                // `read_keychain_blob` already trims, and `security -w` appends its own newline,
+                // so compare against the trimmed blob — a trailing '\n' in the source file must
+                // not make a landed write look like a mismatch.
+                if read_keychain_blob(service).as_deref() == Some(blob.trim()) {
+                    return Ok(());
+                }
+                last_error = "write reported success but read-back did not match (keychain may be locked or ACL denied read access)".to_string();
+            }
+            Ok(out) => {
+                let stderr = String::from_utf8_lossy(&out.stderr).trim().to_string();
+                last_error = if stderr.is_empty() {
+                    format!("`security` exited with {}", out.status)
+                } else {
+                    stderr
+                };
+            }
+            Err(e) => last_error = e,
         }
         if attempt + 1 < KEYCHAIN_WRITE_RETRIES {
             std::thread::sleep(std::time::Duration::from_millis(200));
         }
     }
-    false
+    Err(last_error)
 }
 
 fn delete_keychain(service: &str) -> bool {
-    Command::new("security")
-        .args(["delete-generic-password", "-s", service])
-        .output()
+    run_security(&["delete-generic-password", "-s", service])
         .map(|out| out.status.success())
         .unwrap_or(false)
 }
@@ -275,6 +336,8 @@ mod tests {
     use super::*;
 
     /// On non-macOS, ActiveStore is a pure file backend: round-trip read/write/exists/delete.
+    /// (On macOS these paths route through the keychain — covered by `keychain_tests` below.)
+    #[cfg(not(target_os = "macos"))]
     #[test]
     fn file_backend_round_trip() {
         let tmp = tempfile::tempdir().unwrap();
@@ -293,6 +356,7 @@ mod tests {
         assert!(!store.active_exists());
     }
 
+    #[cfg(not(target_os = "macos"))]
     #[test]
     fn empty_or_whitespace_file_reads_as_absent() {
         let tmp = tempfile::tempdir().unwrap();
@@ -302,6 +366,7 @@ mod tests {
         assert!(!store.active_exists());
     }
 
+    #[cfg(not(target_os = "macos"))]
     #[test]
     fn write_sets_owner_only_perms_on_fresh_file() {
         let tmp = tempfile::tempdir().unwrap();
@@ -324,5 +389,77 @@ mod tests {
         assert_eq!(a, b);
         assert_eq!(a.len(), 8);
         assert!(a.chars().all(|c| c.is_ascii_hexdigit()));
+    }
+
+    /// Real-keychain integration tests. They mutate the DEFAULT keychain (and `delete_active`
+    /// also clears the un-suffixed global "Claude Code-credentials" slot a real Claude login
+    /// uses), so they only run when KEYCHAIN_TESTS=1 — set in CI where a throwaway keychain is
+    /// created and made default. Never set it on a personal Mac.
+    #[cfg(target_os = "macos")]
+    mod keychain_tests {
+        use super::super::{run_security, ActiveStore};
+
+        fn enabled() -> bool {
+            std::env::var("KEYCHAIN_TESTS").map(|v| v == "1").unwrap_or(false)
+        }
+
+        /// The exact scenario a shared profile hits: no `.credentials.json` on disk, blob read
+        /// from a file with a trailing newline, keychain slot is the only write target.
+        #[test]
+        fn keychain_write_read_delete_round_trip() {
+            if !enabled() {
+                eprintln!("skipped: set KEYCHAIN_TESTS=1 (CI-only, mutates the default keychain)");
+                return;
+            }
+            let tmp = tempfile::tempdir().unwrap();
+            let store = ActiveStore::new(tmp.path().to_path_buf());
+            assert!(!store.creds_file().exists());
+
+            // Trailing newline like a credentials.json copied off another machine.
+            let blob = "{\"claudeAiOauth\":{\"accessToken\":\"tok-shared\"}}\n";
+            store.write_active(blob).unwrap();
+
+            assert!(store.active_exists());
+            assert_eq!(store.read_active().as_deref(), Some(blob.trim()));
+            // No plaintext copy may appear as a side effect of a keychain write.
+            assert!(!store.creds_file().exists());
+
+            // Second write exercises the in-place `-U` update on an existing item.
+            let blob2 = r#"{"claudeAiOauth":{"accessToken":"tok-2"}}"#;
+            store.write_active(blob2).unwrap();
+            assert_eq!(store.read_active().as_deref(), Some(blob2));
+
+            store.delete_active().unwrap();
+            assert!(!store.active_exists());
+        }
+
+        /// A stale/foreign slot that `-U` can't cleanly update must be recovered by the
+        /// delete-and-recreate fallback rather than surfacing an error.
+        #[test]
+        fn keychain_recreates_slot_and_succeeds_after_existing_entry() {
+            if !enabled() {
+                eprintln!("skipped: set KEYCHAIN_TESTS=1 (CI-only, mutates the default keychain)");
+                return;
+            }
+            let tmp = tempfile::tempdir().unwrap();
+            let store = ActiveStore::new(tmp.path().to_path_buf());
+
+            // Seed the slot out-of-band under a DIFFERENT account name, the way another
+            // machine's app or CLI would have — the write must still land and be readable.
+            let service = store.hashed_service();
+            let seeded = run_security(&[
+                "add-generic-password", "-U", "-s", &service, "-a", "someone-else", "-w", "old",
+            ])
+            .map(|out| out.status.success())
+            .unwrap_or(false);
+            assert!(seeded, "failed to seed keychain entry");
+
+            let blob = r#"{"claudeAiOauth":{"accessToken":"tok-new"}}"#;
+            store.write_active(blob).unwrap();
+            assert_eq!(store.read_active().as_deref(), Some(blob));
+
+            store.delete_active().unwrap();
+            assert!(!store.active_exists());
+        }
     }
 }

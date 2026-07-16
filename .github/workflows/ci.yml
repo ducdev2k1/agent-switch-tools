@@ -66,5 +66,53 @@ jobs:
       - name: Install frontend dependencies
         run: pnpm install
 
+      - name: Set up throwaway keychain (macOS)
+        if: startsWith(matrix.platform, 'macos')
+        run: |
+          security create-keychain -p ci ci-tests.keychain
+          security set-keychain-settings -lut 7200 ci-tests.keychain
+          security unlock-keychain -p ci ci-tests.keychain
+          # Make it BOTH the default (writes) and the only entry in the user
+          # search list (find-generic-password) — otherwise reads fall through
+          # to the runner's locked login keychain and `security` blocks forever
+          # on a SecurityAgent unlock dialog.
+          security default-keychain -s ci-tests.keychain
+          security list-keychains -d user -s ci-tests.keychain
+
+      - name: Probe keychain from a bare shell (macOS)
+        if: startsWith(matrix.platform, 'macos')
+        run: |
+          # Experiment matrix: exit 142 (SIGALRM) = hung on a SecurityAgent dialog,
+          # other non-zero = immediate CLI error, OK = silent write works.
+          t() { if perl -e 'alarm shift @ARGV; exec @ARGV' 10 "$@" ; then echo "OK   : $*"; else echo "FAIL($?): $*"; fi; }
+          echo "== environment =="
+          security default-keychain || true
+          security list-keychains || true
+          security show-keychain-info ci-tests.keychain || true
+          echo "== add variants =="
+          t security add-generic-password -s p1 -a runner -w v1
+          t security add-generic-password -U -s p2 -a runner -w v2
+          t security add-generic-password -A -s p3 -a runner -w v3
+          t security add-generic-password -U -A -s p4 -a runner -w v4
+          t security add-generic-password -U -A -s p5 -a runner -w v5 ci-tests.keychain
+          t security add-generic-password -T /usr/bin/security -s p6 -a runner -w v6
+          echo "== reads =="
+          t security find-generic-password -s p1 -w
+          t security find-generic-password -s p5 -w
+          echo "probe done (informational only)"
+
+      - name: Run Rust tests
+        if: ${{ !startsWith(matrix.platform, 'windows') }}
+        timeout-minutes: 20
+        working-directory: src-tauri
+        env:
+          # Enables the real-keychain integration tests; only safe because the
+          # default keychain above is a throwaway created for this run.
+          KEYCHAIN_TESTS: ${{ startsWith(matrix.platform, 'macos') && '1' || '0' }}
+          # The runner's SecurityAgent cannot confirm the `-A` open-access grant
+          # headlessly and hangs; skip just that flag, keep the real keychain I/O.
+          AGENT_SWITCH_TEST_NO_KEYCHAIN_ACL: '1'
+        run: cargo test --lib
+
       - name: Build Tauri app
         run: pnpm tauri build --target ${{ matrix.target }} --no-bundle
