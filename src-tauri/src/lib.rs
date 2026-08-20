@@ -45,6 +45,10 @@ pub fn run() {
             if let Err(e) = tray::setup_tray(app) {
                 eprintln!("Warning: Could not initialize system tray: {e}");
             }
+            // Heal logs that a previous version let grow without a cap, so the first
+            // read after updating is not the slow one.
+            priming::store::enforce_log_cap(app.handle());
+            auto_switch::store::enforce_log_cap(app.handle());
             if let Ok(dir) = commands::path_helpers::claude_tools_dir(app.handle()) {
                 if let Err(e) = commands::device_commands::ensure_device_info(&dir) {
                     eprintln!("Warning: Could not initialize device identity: {e}");
@@ -129,7 +133,7 @@ pub fn run() {
             commands::priming_commands::set_auto_prime_all,
             commands::priming_commands::prime_now,
             commands::priming_commands::get_auto_prime_settings,
-            commands::priming_commands::get_auto_prime_log,
+            commands::priming_commands::get_auto_prime_log_page,
             commands::priming_commands::get_auto_prime_stats,
             // Auto switch rule
             commands::auto_switch_commands::get_auto_switch_config,

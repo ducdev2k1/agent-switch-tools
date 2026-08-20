@@ -78,3 +78,11 @@ pub struct AutoSwitchLogEntry {
     /// Either "switched" or "exhausted".
     pub reason: String,
 }
+
+/// A page of the auto-switch activity log, newest first, plus the full line count.
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct AutoSwitchLogPage {
+    pub rows: Vec<AutoSwitchLogEntry>,
+    pub total: usize,
+}

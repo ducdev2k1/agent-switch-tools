@@ -2,7 +2,7 @@ use std::collections::BTreeMap;
 
 use tauri::AppHandle;
 
-use crate::priming::{scheduler::run_one, store, AutoPrimeSetting, DayStat, PrimeResult};
+use crate::priming::{scheduler::run_one, store, AutoPrimeSetting, DayStat, PrimeLogPage, PrimeResult};
 
 /// Enable/disable scheduled priming and set the daily time for one profile.
 #[tauri::command]
@@ -44,14 +44,15 @@ pub fn get_auto_prime_settings(app: AppHandle) -> BTreeMap<String, AutoPrimeSett
     store::load_all(&app)
 }
 
-/// Raw activity log text.
+/// One page of the activity log, newest first. Paged so the whole file never crosses
+/// the IPC boundary — it used to be shipped as a single string.
 #[tauri::command]
-pub fn get_auto_prime_log(app: AppHandle) -> String {
-    store::read_log(&app)
+pub async fn get_auto_prime_log_page(app: AppHandle, offset: usize, limit: usize) -> PrimeLogPage {
+    store::log_page(&app, offset, limit)
 }
 
 /// Per-day outcome counts for the stats table.
 #[tauri::command]
-pub fn get_auto_prime_stats(app: AppHandle) -> Vec<DayStat> {
+pub async fn get_auto_prime_stats(app: AppHandle) -> Vec<DayStat> {
     store::stats(&app)
 }

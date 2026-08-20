@@ -155,6 +155,21 @@ export interface AutoSwitchLogEntry {
   reason: 'switched' | 'exhausted'
 }
 
+/** One parsed line of the scheduled-priming activity log. */
+export interface PrimeLogEntry {
+  timestamp: string
+  profile: string
+  /** One of the prime result keywords: success | hold | failed | skip. */
+  result: string
+  detail: string
+}
+
+/** A page of an activity log, newest first, plus the full line count. */
+export interface LogPage<T> {
+  rows: T[]
+  total: number
+}
+
 export interface UsageReport {
   total: TokenBreakdown
   totalCostUsd: number | null

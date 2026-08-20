@@ -37,6 +37,20 @@ Không chuyển gì cả, và chỉ thông báo **một lần** thay vì nhắc 
 
 Tab Auto Switch lưu lại mọi lần chuyển: thời điểm, tài khoản rời đi, tài khoản được chuyển tới, và mức sử dụng đã kích hoạt việc chuyển. Dùng để truy lại khi bạn thấy tài khoản bị đổi mà không rõ vì sao.
 
+### 6. Tab Phiên tự động không còn lag
+
+Không thuộc tính năng tự động đổi, nhưng cùng gốc rễ nên sửa luôn.
+
+Activity log của Phiên tự động trước đây được gửi sang giao diện dưới dạng **một chuỗi duy nhất**, rồi render **toàn bộ** số dòng cùng lúc. Trên máy có log đã phình tới 25.000 dòng, mỗi lần bấm vào tab là chuyển 2,5 MB qua và dựng khoảng 125.000 ô bảng — mất vài giây mới hiện.
+
+Nguyên nhân log phình: một profile đã bị xóa thông tin đăng nhập vẫn bị scheduler ghi `skip | credentials not found` **mỗi phút, suốt nhiều tuần**. Gần như toàn bộ 25.000 dòng đó là rác.
+
+Đã sửa cả ba tầng:
+
+- Scheduler bỏ qua im lặng profile không còn thông tin đăng nhập, vẫn giữ lịch prime của nó.
+- Activity log tự giới hạn: vượt 5.000 dòng thì ghi lại còn 2.000 dòng mới nhất. Log đang quá cỡ được cắt ngay lần đầu mở bản này.
+- Bảng log được phân trang 100 dòng, dữ liệu được parse ở phía ứng dụng trước khi tới giao diện. Bảng lịch sử của Tự động đổi dùng cùng cách.
+
 ---
 
 ## Lưu ý

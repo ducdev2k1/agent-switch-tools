@@ -37,6 +37,20 @@ Nothing is switched, and you get a **single** notice instead of one every few mi
 
 The Auto Switch tab records every automatic switch: when it happened, which account it left, which it moved to, and the usage that triggered it. Useful when an account changed and you want to know why.
 
+### 6. The Auto Session tab no longer lags
+
+Not part of the auto-switch feature, but it shared a root cause, so it was fixed in the same pass.
+
+The Auto Session activity log used to be handed to the interface as **one single string**, which then rendered **every** line at once. On a machine whose log had grown to 25,000 lines, opening that tab meant shipping 2.5 MB across and building roughly 125,000 table cells — several seconds before anything appeared.
+
+Why the log grew: a profile whose credential had been removed was still recorded by the scheduler as `skip | credentials not found` **once a minute, for weeks**. Nearly all of those 25,000 lines were noise.
+
+All three layers are fixed:
+
+- The scheduler passes over profiles with no credential silently, keeping their schedule in case the account comes back.
+- Activity logs cap themselves: past 5,000 lines they are rewritten down to the newest 2,000. An existing oversized log is trimmed the first time you launch this version.
+- The log table is paged at 100 rows, and lines are parsed before they reach the interface. The Auto Switch history table uses the same approach.
+
 ---
 
 ## Notes

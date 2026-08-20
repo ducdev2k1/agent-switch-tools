@@ -1,13 +1,16 @@
-use std::io::Write;
 use std::path::PathBuf;
 
 use tauri::AppHandle;
 
 use crate::auto_switch::{
-    AutoSwitchConfig, AutoSwitchLogEntry, SwitchReason, COOLDOWN_MAX, COOLDOWN_MIN, THRESHOLD_MAX,
-    THRESHOLD_MIN,
+    AutoSwitchConfig, AutoSwitchLogEntry, AutoSwitchLogPage, SwitchReason, COOLDOWN_MAX,
+    COOLDOWN_MIN, THRESHOLD_MAX, THRESHOLD_MIN,
 };
+use crate::modules::shared::activity_log;
 use crate::modules::shared::paths::claude_data_dir;
+
+/// Fields per log line: timestamp | from | to | utilization | reason.
+const LOG_FIELDS: usize = 5;
 
 fn state_path(app: &AppHandle) -> Result<PathBuf, String> {
     Ok(claude_data_dir(app)?.join("auto-switch.json"))
@@ -78,41 +81,38 @@ fn append_log(app: &AppHandle, from: &str, to: &str, utilization: f64, reason: S
     let Ok(path) = log_path(app) else {
         return;
     };
-    let stamp = chrono::Local::now().format("%Y-%m-%d %H:%M:%S");
-    let line = format!(
-        "{stamp} | {from} | {to} | {utilization:.1} | {}\n",
-        reason.keyword()
-    );
-    if let Ok(mut f) = std::fs::OpenOptions::new()
-        .create(true)
-        .append(true)
-        .open(&path)
-    {
-        let _ = f.write_all(line.as_bytes());
+    let util = format!("{utilization:.1}");
+    activity_log::append(&path, &[from, to, &util, reason.keyword()]);
+}
+
+/// Truncate the log if a previous version let it grow past the cap.
+pub fn enforce_log_cap(app: &AppHandle) {
+    if let Ok(path) = log_path(app) {
+        activity_log::enforce_cap(&path);
     }
 }
 
-/// Parsed activity log, newest entry first. Malformed lines are skipped.
-pub fn read_history(app: &AppHandle) -> Vec<AutoSwitchLogEntry> {
-    let text = log_path(app)
-        .ok()
-        .and_then(|p| std::fs::read_to_string(p).ok())
-        .unwrap_or_default();
-    let mut entries: Vec<AutoSwitchLogEntry> = text.lines().filter_map(parse_log_line).collect();
-    entries.reverse();
-    entries
+/// One page of the activity log, newest first, with the total line count.
+/// Malformed lines are skipped.
+pub fn history_page(app: &AppHandle, offset: usize, limit: usize) -> AutoSwitchLogPage {
+    let Ok(path) = log_path(app) else {
+        return AutoSwitchLogPage { rows: vec![], total: 0 };
+    };
+    let (lines, total) = activity_log::page(&path, offset, limit);
+    let rows = lines.iter().filter_map(|l| parse_log_line(l)).collect();
+    AutoSwitchLogPage { rows, total }
 }
 
 fn parse_log_line(line: &str) -> Option<AutoSwitchLogEntry> {
-    let parts: Vec<&str> = line.split('|').map(|p| p.trim()).collect();
-    if parts.len() < 5 {
+    let parts = activity_log::split_line(line, LOG_FIELDS);
+    if parts.len() < LOG_FIELDS {
         return None;
     }
     Some(AutoSwitchLogEntry {
-        timestamp: parts[0].to_string(),
-        from: parts[1].to_string(),
-        to: parts[2].to_string(),
+        timestamp: parts[0].clone(),
+        from: parts[1].clone(),
+        to: parts[2].clone(),
         utilization: parts[3].parse::<f64>().ok(),
-        reason: parts[4].to_string(),
+        reason: parts[4].clone(),
     })
 }

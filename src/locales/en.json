@@ -61,6 +61,11 @@
     "messages": {
       "token_refreshed": "Token refreshed successfully",
       "token_refresh_failed": "Token refresh failed: {{message}}"
+    },
+    "pagination": {
+      "range": "{{from}}–{{to}} of {{total}}",
+      "prev": "Previous page",
+      "next": "Next page"
     }
   },
   "dashboard": {
@@ -90,7 +95,7 @@
         "step_4_label": "4. Return to app & Save"
       },
       "claude_running_title": "Claude Code is running",
-      "claude_running_warning": "Ongoing sessions will continue using the current account. New sessions will use the switched account.",
+      "claude_running_warning": "A running session is billed to the new account right away but still displays the old one. Open a new session to see it update.",
       "delete_confirm": "This action cannot be undone. Profile \"{{name}}\" will be permanently deleted from this device.",
       "no_credentials": "No credentials found. Please log in to Claude CLI first.",
       "no_saved_profiles": "No saved profiles",

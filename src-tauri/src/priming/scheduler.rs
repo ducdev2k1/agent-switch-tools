@@ -41,11 +41,34 @@ async fn run_due(app: &AppHandle) {
         if setting.last_primed_date.as_deref() == Some(today.as_str()) {
             continue; // already primed today
         }
+        if !has_credential(app, &name) {
+            // A profile whose credential was removed stays in the settings file so its
+            // schedule survives re-adding the account. Logging a skip for it every tick
+            // would bury the real history under thousands of identical lines.
+            continue;
+        }
 
         let result = run_one(app, &name).await;
         store::record_result(app, &name, &today, &result);
         let _ = app.emit("auto-prime-updated", &name);
     }
+}
+
+/// True when the profile still has a credential to prime — either it is the active
+/// account (whose credential may live in the OS keystore) or it has a saved file.
+fn has_credential(app: &AppHandle, name: &str) -> bool {
+    let is_active = claude_data_dir(app)
+        .ok()
+        .map(|dir| config::read_meta(&dir).active_profile_name.as_deref() == Some(name))
+        .unwrap_or(false);
+    if is_active {
+        return claude_dir(app)
+            .map(|dir| ActiveStore::new(dir).active_exists())
+            .unwrap_or(false);
+    }
+    profiles_dir(app)
+        .map(|d| d.join(name).join("credentials.json").exists())
+        .unwrap_or(false)
 }
 
 /// Prime a single profile by name (also used by the manual `prime_now` command).

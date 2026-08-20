@@ -8,7 +8,10 @@
       "A cooldown (5–120 minutes, default 5) caps how often an automatic switch can happen, and it survives an app restart — closing and reopening the app no longer resets it.",
       "You are always told when it happens: a desktop notification (visible even when the app sits in the tray), an in-app toast, and a refreshed tray menu. This matters because a running Claude Code session starts billing the new account immediately while still displaying the old one — the notification is the only thing that tells you.",
       "When every account is already above the threshold, nothing is switched and you get a single notice instead of one every few minutes. It resets as soon as an account drops back below the threshold.",
-      "The Auto Switch tab keeps a history of every automatic switch: when it happened, which account it left, which it moved to, and the usage that triggered it."
+      "The Auto Switch tab keeps a history of every automatic switch: when it happened, which account it left, which it moved to, and the usage that triggered it.",
+      "Fixed the Auto Session tab taking seconds to load. The activity log was sent to the interface as one big string and every line was rendered at once — on a log that had grown to 25,000 lines that meant shipping 2.5 MB and building 125,000 table cells on every visit. The log is now paged (100 rows at a time) and parsed before it reaches the interface.",
+      "Fixed the cause of that oversized log: a profile whose credential had been removed was recorded as \"skipped\" once every minute, forever. Such profiles are now passed over silently, and their schedule is kept in case you add the account back.",
+      "Activity logs now cap themselves — once a log passes 5,000 lines it is rewritten down to the newest 2,000. Existing oversized logs are trimmed the first time you launch this version."
     ],
     "vi": [
       "Thêm tab \"Auto Switch\" trong Cài đặt: khi tài khoản đang dùng chạm ngưỡng sử dụng bạn đặt, app tự chuyển sang tài khoản còn nhiều hạn mức nhất. Mặc định tắt — bật lên và chọn ngưỡng của bạn (50–99%, mặc định 90%).",
@@ -16,7 +19,10 @@
       "Khoảng chờ giữa hai lần chuyển tự động (5–120 phút, mặc định 5) giới hạn tần suất chuyển, và nó sống sót qua lần khởi động lại app — tắt rồi mở lại không còn làm nó về 0.",
       "Bạn luôn được thông báo khi việc này xảy ra: thông báo hệ thống (thấy được ngay cả khi app đang nằm ở tray), toast trong app, và menu tray được cập nhật. Điều này quan trọng vì phiên Claude Code đang chạy bị trừ quota sang tài khoản mới ngay lập tức nhưng vẫn hiển thị tài khoản cũ — thông báo là thứ duy nhất cho bạn biết.",
       "Khi mọi tài khoản đều đã vượt ngưỡng, app không chuyển gì cả và chỉ thông báo một lần thay vì nhắc lại mỗi vài phút. Nó tự đặt lại ngay khi có tài khoản tụt xuống dưới ngưỡng.",
-      "Tab Auto Switch lưu lịch sử mọi lần chuyển tự động: thời điểm, tài khoản rời đi, tài khoản được chuyển tới, và mức sử dụng đã kích hoạt việc chuyển."
+      "Tab Auto Switch lưu lịch sử mọi lần chuyển tự động: thời điểm, tài khoản rời đi, tài khoản được chuyển tới, và mức sử dụng đã kích hoạt việc chuyển.",
+      "Sửa lỗi tab Phiên tự động mất vài giây mới hiện dữ liệu. Toàn bộ activity log được gửi sang giao diện dưới dạng một chuỗi lớn rồi render hết mọi dòng — với log đã phình tới 25.000 dòng thì mỗi lần vào tab phải chuyển 2,5 MB và dựng 125.000 ô bảng. Giờ log được phân trang (100 dòng mỗi lần) và parse trước khi tới giao diện.",
+      "Sửa nguyên nhân làm log phình: profile đã bị xóa thông tin đăng nhập vẫn bị ghi \"đã bỏ qua\" mỗi phút, mãi mãi. Giờ những profile đó được bỏ qua im lặng, và lịch prime của chúng vẫn được giữ để bạn thêm lại tài khoản thì dùng luôn.",
+      "Activity log giờ tự giới hạn — vượt 5.000 dòng thì được ghi lại còn 2.000 dòng mới nhất. Log đang quá cỡ sẽ được cắt ngay lần đầu bạn mở bản này."
     ]
   },
   {

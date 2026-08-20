@@ -1,7 +1,10 @@
-import type { AutoSwitchConfig, AutoSwitchLogEntry } from '@/lib/types'
+import type { AutoSwitchConfig, AutoSwitchLogEntry, LogPage } from '@/lib/types'
 import { invoke } from '@tauri-apps/api/core'
 import { listen } from '@tauri-apps/api/event'
 import { useCallback, useEffect, useState } from 'react'
+
+/** Rows fetched per page, matching the scheduled-priming log. */
+export const SWITCH_HISTORY_PAGE_SIZE = 100
 
 const DEFAULTS: AutoSwitchConfig = {
   enabled: false,
@@ -19,6 +22,8 @@ const DEFAULTS: AutoSwitchConfig = {
 export function useAutoSwitchConfig() {
   const [config, setConfig] = useState<AutoSwitchConfig>(DEFAULTS)
   const [history, setHistory] = useState<AutoSwitchLogEntry[]>([])
+  const [historyTotal, setHistoryTotal] = useState(0)
+  const [historyOffset, setHistoryOffset] = useState(0)
   const [loading, setLoading] = useState(true)
 
   const reload = useCallback(() => {
@@ -26,23 +31,34 @@ export function useAutoSwitchConfig() {
       .then((loaded) => setConfig({ ...DEFAULTS, ...loaded }))
       .catch((e) => console.error('Failed to load auto-switch config:', e))
       .finally(() => setLoading(false))
-    invoke<AutoSwitchLogEntry[]>('get_auto_switch_history')
-      .then(setHistory)
+    invoke<LogPage<AutoSwitchLogEntry>>('get_auto_switch_history', {
+      offset: historyOffset,
+      limit: SWITCH_HISTORY_PAGE_SIZE,
+    })
+      .then((page) => {
+        setHistory(page.rows)
+        setHistoryTotal(page.total)
+      })
       .catch((e) => console.error('Failed to load auto-switch history:', e))
-  }, [])
+  }, [historyOffset])
 
   useEffect(() => {
     reload()
   }, [reload])
 
   useEffect(() => {
-    const performed = listen('auto-switch-performed', () => reload())
-    const exhausted = listen('auto-switch-exhausted', () => reload())
+    // Only refresh in place on the newest page, so paging back through history is
+    // not interrupted by a switch landing.
+    const refresh = () => {
+      if (historyOffset === 0) reload()
+    }
+    const performed = listen('auto-switch-performed', refresh)
+    const exhausted = listen('auto-switch-exhausted', refresh)
     return () => {
       performed.then((fn) => fn())
       exhausted.then((fn) => fn())
     }
-  }, [reload])
+  }, [reload, historyOffset])
 
   /** Optimistic save; reverts the local state when the backend rejects it. */
   const save = useCallback(
@@ -59,5 +75,13 @@ export function useAutoSwitchConfig() {
     [config],
   )
 
-  return { config, history, loading, save }
+  return {
+    config,
+    history,
+    historyTotal,
+    historyOffset,
+    setHistoryOffset,
+    loading,
+    save,
+  }
 }

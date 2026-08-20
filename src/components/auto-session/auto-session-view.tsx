@@ -1,7 +1,7 @@
 import { TimePicker } from '@/components/time-picker'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { useAutoPrime } from '@/hooks/use-auto-prime'
+import { PRIME_LOG_PAGE_SIZE, useAutoPrime } from '@/hooks/use-auto-prime'
 import { useCredentialProfiles } from '@/hooks/use-profiles'
 import type { PrimeResult } from '@/lib/types'
 import { useState } from 'react'
@@ -17,7 +17,17 @@ const TIME_RE = /^([01]\d|2[0-3]):[0-5]\d$/
 export function AutoSessionView() {
   const { t } = useTranslation()
   const { profiles } = useCredentialProfiles()
-  const { settings, log, stats, setAutoPrime, setAll, primeNow } = useAutoPrime()
+  const {
+    settings,
+    logRows,
+    logTotal,
+    logOffset,
+    setLogOffset,
+    stats,
+    setAutoPrime,
+    setAll,
+    primeNow,
+  } = useAutoPrime()
   const [allTime, setAllTime] = useState('09:00')
 
   const names = profiles.map((p) => p.name)
@@ -127,8 +137,14 @@ export function AutoSessionView() {
           </CardTitle>
         </CardHeader>
         <CardContent>
-          {log ? (
-            <AutoPrimeLogTable log={log} />
+          {logTotal > 0 ? (
+            <AutoPrimeLogTable
+              rows={logRows}
+              total={logTotal}
+              offset={logOffset}
+              limit={PRIME_LOG_PAGE_SIZE}
+              onOffsetChange={setLogOffset}
+            />
           ) : (
             <p className="text-sm text-muted-foreground">
               {t('auto_session.no_activity')}

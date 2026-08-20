@@ -1,6 +1,6 @@
 use tauri::AppHandle;
 
-use crate::auto_switch::{store, AutoSwitchConfig, AutoSwitchLogEntry};
+use crate::auto_switch::{store, AutoSwitchConfig, AutoSwitchLogPage};
 
 /// Current auto-switch rule configuration (defaults when never configured).
 #[tauri::command]
@@ -14,8 +14,12 @@ pub fn set_auto_switch_config(app: AppHandle, config: AutoSwitchConfig) -> Resul
     store::save(&app, &config)
 }
 
-/// Automatic-switch activity, newest entry first.
+/// One page of automatic-switch activity, newest entry first.
 #[tauri::command]
-pub fn get_auto_switch_history(app: AppHandle) -> Vec<AutoSwitchLogEntry> {
-    store::read_history(&app)
+pub async fn get_auto_switch_history(
+    app: AppHandle,
+    offset: usize,
+    limit: usize,
+) -> AutoSwitchLogPage {
+    store::history_page(&app, offset, limit)
 }

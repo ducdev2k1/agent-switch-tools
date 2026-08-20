@@ -61,6 +61,11 @@
     "messages": {
       "token_refreshed": "Làm mới mã xác thực thành công",
       "token_refresh_failed": "Làm mới token thất bại: {{message}}"
+    },
+    "pagination": {
+      "range": "{{from}}–{{to}} / {{total}}",
+      "prev": "Trang trước",
+      "next": "Trang sau"
     }
   },
   "dashboard": {
@@ -90,7 +95,7 @@
         "step_4_label": "4. Quay lại ứng dụng & Lưu"
       },
       "claude_running_title": "Claude Code đang chạy",
-      "claude_running_warning": "Phiên hoạt động sẽ tiếp tục sử dụng tài khoản hiện tại. Các phiên mới sẽ sử dụng tài khoản đã chuyển đổi.",
+      "claude_running_warning": "Phiên đang chạy sẽ bị trừ quota sang tài khoản mới ngay, nhưng vẫn hiển thị tài khoản cũ. Mở phiên mới để thấy đúng.",
       "delete_confirm": "Hành động này không thể hoàn tác. Hồ sơ \"{{name}}\" sẽ bị xóa vĩnh viễn khỏi thiết bị này.",
       "no_credentials": "Không tìm thấy thông tin đăng nhập. Vui lòng đăng nhập vào Claude CLI trước.",
       "no_saved_profiles": "Không có hồ sơ đã lưu",

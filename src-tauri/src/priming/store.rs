@@ -1,11 +1,15 @@
 use std::collections::BTreeMap;
-use std::io::Write;
 use std::path::PathBuf;
 
 use tauri::AppHandle;
 
+use crate::modules::shared::activity_log;
 use crate::modules::shared::paths::claude_data_dir;
-use crate::priming::{AutoPrimeSetting, DayStat, PrimeResult};
+use crate::priming::{AutoPrimeSetting, DayStat, PrimeLogEntry, PrimeLogPage, PrimeResult};
+
+/// Fields per log line: timestamp | profile | result | detail.
+/// `detail` is free text that may itself contain " | ", so the split stops here.
+const LOG_FIELDS: usize = 4;
 
 type Settings = BTreeMap<String, AutoPrimeSetting>;
 
@@ -60,38 +64,59 @@ fn append_log(app: &AppHandle, name: &str, result: &PrimeResult) {
     let Ok(path) = log_path(app) else {
         return;
     };
-    let stamp = chrono::Local::now().format("%Y-%m-%d %H:%M:%S");
     let detail = match result {
         PrimeResult::Success { reset_at } => format!("reset {reset_at}"),
         PrimeResult::Hold { reset_at } => format!("running, reset {reset_at}"),
         PrimeResult::Failed { reason } => reason.clone(),
         PrimeResult::Skipped { reason } => reason.clone(),
     };
-    let line = format!("{stamp} | {name} | {} | {detail}\n", result.keyword());
-    if let Ok(mut f) = std::fs::OpenOptions::new().create(true).append(true).open(&path) {
-        let _ = f.write_all(line.as_bytes());
-    }
+    activity_log::append(&path, &[name, result.keyword(), &detail]);
 }
 
-/// Full activity log, newest entries last (empty string when no log yet).
-pub fn read_log(app: &AppHandle) -> String {
-    log_path(app)
-        .ok()
-        .and_then(|p| std::fs::read_to_string(p).ok())
-        .unwrap_or_default()
+/// One page of the activity log, newest first, with the total line count.
+pub fn log_page(app: &AppHandle, offset: usize, limit: usize) -> PrimeLogPage {
+    let Ok(path) = log_path(app) else {
+        return PrimeLogPage { rows: vec![], total: 0 };
+    };
+    let (lines, total) = activity_log::page(&path, offset, limit);
+    let rows = lines
+        .iter()
+        .filter_map(|line| {
+            let parts = activity_log::split_line(line, LOG_FIELDS);
+            if parts.len() < LOG_FIELDS {
+                return None;
+            }
+            Some(PrimeLogEntry {
+                timestamp: parts[0].clone(),
+                profile: parts[1].clone(),
+                result: parts[2].clone(),
+                detail: parts[3].clone(),
+            })
+        })
+        .collect();
+    PrimeLogPage { rows, total }
+}
+
+/// Truncate the log if a previous version let it grow past the cap.
+pub fn enforce_log_cap(app: &AppHandle) {
+    if let Ok(path) = log_path(app) {
+        activity_log::enforce_cap(&path);
+    }
 }
 
 /// Per-day outcome counts derived from the activity log, newest day first.
 pub fn stats(app: &AppHandle) -> Vec<DayStat> {
-    let log = read_log(app);
+    let Ok(path) = log_path(app) else {
+        return vec![];
+    };
     let mut by_day: BTreeMap<String, DayStat> = BTreeMap::new();
-    for line in log.lines() {
-        let parts: Vec<&str> = line.split('|').map(|p| p.trim()).collect();
+    for line in activity_log::lines(&path) {
+        let parts = activity_log::split_line(&line, LOG_FIELDS);
         if parts.len() < 3 {
             continue;
         }
         let date: String = parts[0].chars().take(10).collect();
-        let keyword = parts[2];
+        let keyword = parts[2].as_str();
         let day = by_day.entry(date.clone()).or_default();
         day.date = date;
         match keyword {

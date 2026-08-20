@@ -1,7 +1,10 @@
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Switch } from '@/components/ui/switch'
-import { useAutoSwitchConfig } from '@/hooks/use-auto-switch-config'
+import {
+  SWITCH_HISTORY_PAGE_SIZE,
+  useAutoSwitchConfig,
+} from '@/hooks/use-auto-switch-config'
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { AutoSwitchHistoryTable } from './auto-switch-history-table'
@@ -90,7 +93,15 @@ function NumberRow({
 
 export function AutoSwitchPanel() {
   const { t } = useTranslation()
-  const { config, history, loading, save } = useAutoSwitchConfig()
+  const {
+    config,
+    history,
+    historyTotal,
+    historyOffset,
+    setHistoryOffset,
+    loading,
+    save,
+  } = useAutoSwitchConfig()
 
   // Threshold and cooldown only matter while the rule is armed.
   const numbersDisabled = loading || !config.enabled
@@ -163,12 +174,18 @@ export function AutoSwitchPanel() {
         <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2 px-1">
           {t('settings.auto_switch.history.title')}
         </h3>
-        {history.length === 0 ? (
+        {historyTotal === 0 ? (
           <p className="px-1 text-sm text-muted-foreground">
             {t('settings.auto_switch.history.empty')}
           </p>
         ) : (
-          <AutoSwitchHistoryTable entries={history} />
+          <AutoSwitchHistoryTable
+            entries={history}
+            total={historyTotal}
+            offset={historyOffset}
+            limit={SWITCH_HISTORY_PAGE_SIZE}
+            onOffsetChange={setHistoryOffset}
+          />
         )}
       </div>
     </div>

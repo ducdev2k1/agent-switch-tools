@@ -52,3 +52,22 @@ pub struct DayStat {
     pub hold: u32,
     pub skip: u32,
 }
+
+/// One parsed activity-log line for the priming table.
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct PrimeLogEntry {
+    pub timestamp: String,
+    pub profile: String,
+    /// One of the `PrimeResult::keyword()` values.
+    pub result: String,
+    pub detail: String,
+}
+
+/// A page of the priming activity log, newest first, plus the full line count.
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct PrimeLogPage {
+    pub rows: Vec<PrimeLogEntry>,
+    pub total: usize,
+}
