@@ -114,6 +114,7 @@
     "tabs": {
       "general": "General",
       "auto_session": "Auto Session",
+      "auto_switch": "Auto Switch",
       "webhook": "Webhook",
       "about": "About"
     },
@@ -135,6 +136,36 @@
       "check_now": "Check now",
       "update_available": "New version v{{version}} available",
       "up_to_date": "You're on the latest version"
+    },
+    "auto_switch": {
+      "title": "Auto Switch Rule",
+      "description": "Automatically move Claude Code to another profile when the active one runs out of five-hour quota.",
+      "enabled": "Enable Auto Switch Rule",
+      "enabled_hint": "While on, the app checks quota on every refresh and switches to the profile with the most quota left.",
+      "threshold": "Switch Threshold",
+      "threshold_hint": "Switch as soon as the active profile's five-hour usage reaches this level. Allowed range: 50–99%.",
+      "cooldown": "Cooldown",
+      "cooldown_hint": "Minimum wait between two automatic switches. Allowed range: 5–120 minutes.",
+      "minutes": "minutes",
+      "restart_warning": "Restart Claude Code after a switch. A running session keeps using the old credential until it is restarted.",
+      "history": {
+        "title": "Switch History",
+        "empty": "No automatic switch has happened yet.",
+        "col_time": "Time",
+        "col_from": "From",
+        "col_to": "To",
+        "col_utilization": "Usage at switch",
+        "col_result": "Result"
+      },
+      "result": {
+        "switched": "Switched",
+        "exhausted": "No quota left"
+      },
+      "toast": {
+        "switched": "Switched from {{from}} to {{to}} ({{utilization}}% used).",
+        "switched_restart": "Switched from {{from}} to {{to}} ({{utilization}}% used). Restart Claude Code to pick up the new credential.",
+        "exhausted": "{{profile}} reached {{utilization}}% and no other profile has quota left."
+      }
     },
     "webhook": {
       "title": "Webhook Configuration",

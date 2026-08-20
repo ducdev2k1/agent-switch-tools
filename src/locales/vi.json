@@ -114,6 +114,7 @@
     "tabs": {
       "general": "Chung",
       "auto_session": "Phiên tự động",
+      "auto_switch": "Tự động đổi",
       "webhook": "Webhook",
       "about": "Giới thiệu"
     },
@@ -135,6 +136,36 @@
       "check_now": "Kiểm tra",
       "update_available": "Có phiên bản mới v{{version}}",
       "up_to_date": "Bạn đang dùng phiên bản mới nhất"
+    },
+    "auto_switch": {
+      "title": "Quy tắc tự động đổi",
+      "description": "Tự động chuyển Claude Code sang tài khoản khác khi tài khoản đang dùng cạn quota chu kỳ 5 giờ.",
+      "enabled": "Bật quy tắc tự động đổi",
+      "enabled_hint": "Khi bật, ứng dụng kiểm tra quota ở mỗi lần làm mới và đổi sang tài khoản còn nhiều quota nhất.",
+      "threshold": "Ngưỡng đổi",
+      "threshold_hint": "Đổi ngay khi mức dùng chu kỳ 5 giờ của tài khoản đang dùng chạm mức này. Cho phép: 50–99%.",
+      "cooldown": "Thời gian chờ",
+      "cooldown_hint": "Khoảng chờ tối thiểu giữa hai lần tự động đổi. Cho phép: 5–120 phút.",
+      "minutes": "phút",
+      "restart_warning": "Hãy khởi động lại Claude Code sau khi đổi. Phiên đang chạy vẫn dùng credential cũ cho tới khi được khởi động lại.",
+      "history": {
+        "title": "Lịch sử đổi",
+        "empty": "Chưa có lần đổi tự động nào.",
+        "col_time": "Thời điểm",
+        "col_from": "Từ",
+        "col_to": "Đến",
+        "col_utilization": "% lúc đổi",
+        "col_result": "Kết quả"
+      },
+      "result": {
+        "switched": "Đã đổi",
+        "exhausted": "Hết quota"
+      },
+      "toast": {
+        "switched": "Đã đổi từ {{from}} sang {{to}} (đã dùng {{utilization}}%).",
+        "switched_restart": "Đã đổi từ {{from}} sang {{to}} (đã dùng {{utilization}}%). Hãy khởi động lại Claude Code để nhận credential mới.",
+        "exhausted": "{{profile}} đã dùng {{utilization}}% và không còn tài khoản nào còn quota."
+      }
     },
     "webhook": {
       "title": "Cấu hình Webhook",

@@ -118,6 +118,9 @@ pub fn spawn_quota_worker(app: AppHandle) {
                 crate::modules::quota::store_profile_usage(&all_usage);
                 crate::tray::refresh_tray_menu(&app);
                 let _ = app.emit("all-profiles-usage-updated", &all_usage);
+                // Piggybacks on this cycle's snapshot: the auto-switch rule needs no
+                // extra quota calls of its own.
+                crate::auto_switch::evaluate::evaluate_and_switch(&app, &all_usage).await;
             }
 
             // Signal the usage/cost view to refetch its report on the same cadence.
