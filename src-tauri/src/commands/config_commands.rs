@@ -182,7 +182,7 @@ pub async fn switch_credential_profile(
     config::write_meta(&claude_data, &meta)?;
 
     let message = if claude_was_running {
-        "Switched credentials. Restart Claude Code to use new account.".to_string()
+        "Switched credentials. A running session bills the new account right away; the account it displays updates on the next session.".to_string()
     } else if target_was_expired {
         "Switched to expired credentials. Token may auto-refresh on next use.".to_string()
     } else {

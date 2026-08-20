@@ -147,7 +147,7 @@
       "cooldown": "Cooldown",
       "cooldown_hint": "Minimum wait between two automatic switches. Allowed range: 5–120 minutes.",
       "minutes": "minutes",
-      "restart_warning": "Restart Claude Code after a switch. A running session keeps using the old credential until it is restarted.",
+      "restart_warning": "A running Claude Code session uses the new account right away — quota is charged to it correctly. Only the account shown inside that session stays stale; open a new session to see it update.",
       "history": {
         "title": "Switch History",
         "empty": "No automatic switch has happened yet.",
@@ -163,7 +163,6 @@
       },
       "toast": {
         "switched": "Switched from {{from}} to {{to}} ({{utilization}}% used).",
-        "switched_restart": "Switched from {{from}} to {{to}} ({{utilization}}% used). Restart Claude Code to pick up the new credential.",
         "exhausted": "{{profile}} reached {{utilization}}% and no other profile has quota left."
       }
     },

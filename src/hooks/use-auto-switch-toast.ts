@@ -7,7 +7,6 @@ interface SwitchPerformedPayload {
   from: string
   to: string
   utilization: number
-  claudeWasRunning: boolean
 }
 
 interface SwitchExhaustedPayload {
@@ -27,11 +26,8 @@ export function useAutoSwitchToast() {
     const performed = listen<SwitchPerformedPayload>(
       'auto-switch-performed',
       ({ payload }) => {
-        const key = payload.claudeWasRunning
-          ? 'settings.auto_switch.toast.switched_restart'
-          : 'settings.auto_switch.toast.switched'
         toast.success(
-          t(key, {
+          t('settings.auto_switch.toast.switched', {
             from: payload.from,
             to: payload.to,
             utilization: Math.round(payload.utilization),

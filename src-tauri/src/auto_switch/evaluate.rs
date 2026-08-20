@@ -18,7 +18,6 @@ struct SwitchPerformed {
     from: String,
     to: String,
     utilization: f64,
-    claude_was_running: bool,
 }
 
 #[derive(Serialize, Clone)]
@@ -134,7 +133,7 @@ pub async fn evaluate_and_switch(app: &AppHandle, usage: &HashMap<String, UsageL
     )
     .await
     {
-        Ok(result) => {
+        Ok(_) => {
             store::record_switch(app, &active_name, &target_name, active_util);
             let _ = app.emit(
                 "auto-switch-performed",
@@ -142,13 +141,12 @@ pub async fn evaluate_and_switch(app: &AppHandle, usage: &HashMap<String, UsageL
                     from: active_name.clone(),
                     to: target_name.clone(),
                     utilization: active_util,
-                    claude_was_running: result.claude_was_running,
                 },
             );
-            let mut body = format!("{active_name} reached {active_util:.0}%.");
-            if result.claude_was_running {
-                body.push_str(" Restart Claude Code to apply.");
-            }
+            // A running Claude Code session reads the credential file per request, so the
+            // new account is billed immediately; only the account it displays stays stale
+            // until a new session starts. Nothing needs restarting for the switch to apply.
+            let body = format!("{active_name} reached {active_util:.0}%.");
             notify(app, &format!("Switched to {target_name}"), &body);
         }
         // No cooldown is started on failure, so the next cycle retries.

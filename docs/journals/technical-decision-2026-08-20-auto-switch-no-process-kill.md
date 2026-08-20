@@ -1,29 +1,44 @@
-# Auto Switch Rule không kill Claude Code đang chạy
+# Auto Switch Rule không can thiệp vào Claude Code đang chạy
 
-**Ngày**: 2026-08-20
+**Ngày**: 2026-08-20 (sửa lại cùng ngày sau khi kiểm chứng thực tế)
 **Thành phần**: Auto Switch Rule, credential switching, quota worker
-**Trạng thái**: Accepted (chốt trước khi triển khai)
+**Trạng thái**: Accepted
 **Commit**: (chưa commit)
 
 ## Quyết Định
 
-Khi Auto Switch Rule kích hoạt mà process `claude` đang chạy, ứng dụng **vẫn ghi credential của Fallback Profile và không can thiệp vào process đang chạy**. Session Claude Code hiện tại tiếp tục dùng credential cũ cho tới khi user tự restart; ứng dụng chỉ thông báo rằng đã đổi và cần restart để có hiệu lực.
+Khi Auto Switch Rule kích hoạt, ứng dụng **chỉ ghi credential của Fallback Profile** và không can thiệp vào process `claude` đang chạy — không kill, không restart, không chờ nó tắt.
 
-## Bối Cảnh
+## Hành Vi Thực Tế Của Claude Code
 
-Việc đổi Active Profile chỉ là ghi lại credential vào Credential Source. Process `claude` đọc credential lúc khởi động, nên **một session đang chạy không nhận credential mới** — đây là sự thật của tầng dưới, không phải lựa chọn thiết kế (`src-tauri/src/commands/config_commands.rs`, nhánh `claude_was_running`).
+Điểm này ban đầu bị hiểu sai, cần ghi lại cho rõ vì nó chi phối toàn bộ thiết kế và mọi câu thông báo cho người dùng.
 
-Với switch thủ công, hạn chế này chấp nhận được: user chủ động bấm nên biết mình vừa làm gì. Với switch **tự động** thì khác — nó xảy ra trong lúc user không nhìn app, thậm chí app đang ở tray.
+Ứng dụng ghi credential vào `~/.claude/.credentials.json` — đúng file mà Claude Code CLI dùng. CLI đọc file này **theo từng request** (nó cũng tự ghi lại file đó khi refresh OAuth token, nên file là state dùng chung, không phải bản copy nạp một lần lúc khởi động).
+
+Hệ quả, kiểm chứng bằng quan sát trực tiếp trên máy thật:
+
+- **Quota**: phiên đang chạy dùng credential mới **ngay**. Tài khoản mới bị trừ quota đúng, không cần restart gì.
+- **Thông tin hiển thị**: phiên đang chạy vẫn hiện tài khoản **cũ**. Phần này được CLI cache lúc mở phiên. Mở phiên mới thì hiển thị đúng.
+
+Nói cách khác, việc đổi có hiệu lực tức thì ở chỗ quan trọng (ai bị trừ quota) và trễ ở chỗ không quan trọng (nhãn hiển thị).
+
+## Sai Sót Ban Đầu
+
+Bản đầu của ADR này khẳng định phiên đang chạy **không** nhận credential mới và người dùng **phải** restart Claude Code. Nguồn của khẳng định đó là một chuỗi có sẵn trong `config_commands.rs` (*"Switched credentials. Restart Claude Code to use new account."*) được coi là đúng mà không kiểm chứng.
+
+Nó sai, và cái sai đó đã lan ra 5 chỗ: callout trong tab Auto Switch, một biến thể toast riêng, phần thân desktop notification, mục tính năng trong docs, và ADR này. Chuỗi gốc trong `config_commands.rs` cũng đã được sửa cùng lúc — nó hiện trên mọi lần switch tay, không riêng auto-switch.
+
+Bài học: một chuỗi text có sẵn trong repo không phải bằng chứng về hành vi của hệ thống bên ngoài. Nó chỉ là điều một người nào đó từng tin.
 
 ## Các Lựa Chọn Đã Cân Nhắc
 
-1. **Vẫn switch, chỉ thông báo** — đã chọn.
-2. **Hoãn switch, chỉ cảnh báo, đợi user bấm xác nhận.** Loại: biến "tự động" thành "nhắc thủ công", làm mất gần hết giá trị của tính năng. Người dùng bật rule chính là để không phải tự theo dõi.
-3. **Tự kill process `claude` rồi khởi động lại.** Loại: `check_claude_running()` chỉ là `pgrep -f claude` — nó không phân biệt được session nào, cũng không biết session đó đang làm gì. Kill có thể phá công việc đang dở của user. Cái giá của một lần kill sai lớn hơn nhiều so với lợi ích "credential có hiệu lực ngay".
+1. **Ghi credential rồi để process yên** — đã chọn. Việc đổi có hiệu lực ngay về mặt quota, nên không có gì phải bù đắp.
+2. **Kill rồi khởi động lại `claude`.** Loại. Trước đây phương án này bị loại vì rủi ro phá công việc đang dở; giờ nó còn **vô nghĩa** nữa, vì credential đã có hiệu lực mà không cần restart. `check_claude_running()` cũng chỉ là `pgrep -f claude` — không phân biệt được phiên nào đang làm gì.
+3. **Hoãn switch tới khi process tắt.** Loại: làm mất đúng cái giá trị mà tính năng đem lại, để đổi lấy một nhãn hiển thị đúng sớm hơn.
 
 ## Hệ Quả
 
-- Auto Switch Rule là cơ chế **eventual**: đảm bảo lần chạy Claude Code *tiếp theo* dùng profile còn quota, không đảm bảo session *hiện tại*.
-- Vì hiệu lực bị hoãn tới lần restart, thông báo là phần bắt buộc của tính năng, không phải tuỳ chọn trang trí — nếu user không thấy thông báo thì họ sẽ tiếp tục làm việc trên profile đã cạn và không hiểu vì sao.
-- Đây là lý do desktop notification được thêm vào (app có autostart + start-minimized, nên chỉ toast trong app là không đủ).
-- Nếu về sau muốn hiệu lực tức thì, hướng đúng **không phải** kill process, mà là chờ Claude Code hỗ trợ nạp lại credential khi đang chạy.
+- Auto Switch Rule có hiệu lực **tức thì** về quota, kể cả khi người dùng đang làm việc giữa phiên.
+- Vì vậy thông báo càng quan trọng: tài khoản bị trừ quota đã đổi mà người dùng không làm gì, và phiên đang chạy vẫn hiện tên tài khoản cũ nên bản thân phiên đó không nói cho họ biết. Desktop notification + toast là kênh duy nhất cho họ biết chuyện gì vừa xảy ra.
+- Mọi câu chữ hướng người dùng đi restart Claude Code đều là thông tin sai — trừ khi mục đích là để nhãn hiển thị khớp lại, và khi đó phải nói đúng lý do đó.
+- `claude_was_running` từ `SwitchResult` không còn được Auto Switch Rule dùng để phân nhánh thông báo.

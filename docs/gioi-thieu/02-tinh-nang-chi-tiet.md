@@ -380,11 +380,16 @@ Vì rule chạy nền, thông báo là phần bắt buộc của tính năng:
 - Toast trong app (mọi trang, không riêng tab Auto Switch)
 - Menu tray cập nhật lại
 
-### Giới hạn quan trọng: phải khởi động lại Claude Code
+### Hiệu lực với phiên Claude Code đang chạy
 
-Việc chuyển chỉ **ghi lại credential**. Một phiên `claude` đang chạy đã đọc credential lúc khởi động, nên nó vẫn dùng tài khoản cũ cho tới khi được khởi động lại. App **không** tự tắt Claude Code — lệnh phát hiện tiến trình không phân biệt được phiên nào đang làm gì, nên tắt tự động có thể phá công việc đang dở.
+Việc chuyển chỉ **ghi lại credential** vào `~/.claude/.credentials.json` — đúng file mà Claude Code CLI dùng. CLI đọc file này theo từng request, nên:
 
-Nghĩa là Auto Switch Rule đảm bảo **lần chạy Claude Code tiếp theo** dùng tài khoản còn hạn mức, không đảm bảo phiên đang chạy.
+- **Quota có hiệu lực ngay.** Phiên đang chạy dùng tài khoản mới lập tức, tài khoản mới bị trừ quota đúng. Không cần khởi động lại.
+- **Thông tin hiển thị thì trễ.** Phiên đang chạy vẫn hiện tên tài khoản cũ, vì CLI cache phần đó lúc mở phiên. Mở phiên mới sẽ thấy đúng.
+
+App **không** tự tắt Claude Code. Việc đó vừa không cần thiết (credential đã có hiệu lực), vừa rủi ro: lệnh phát hiện tiến trình không phân biệt được phiên nào đang làm gì, nên tắt tự động có thể phá công việc đang dở.
+
+Vì hiệu lực là tức thì và phiên đang chạy lại hiển thị sai tên tài khoản, **thông báo là kênh duy nhất** cho bạn biết việc chuyển đã xảy ra.
 
 ### Lịch sử
 

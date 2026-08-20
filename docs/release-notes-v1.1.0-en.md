@@ -27,7 +27,7 @@ Because the rule runs in the background, telling you about it is part of the fea
 - **In-app toast** — appears on any page, not only while the Auto Switch tab is open.
 - **Tray menu** refreshes to show the new account.
 
-If Claude Code was running at the time, the message tells you to **restart Claude Code**. This matters: switching only rewrites the credential, and a running `claude` session keeps using the old one until it restarts. The app does **not** kill Claude Code for you — doing so could destroy work in progress.
+This matters more than it sounds. Switching rewrites `~/.claude/.credentials.json`, the file Claude Code reads per request — so a session you are in the middle of **starts billing the new account immediately**, while the account it *displays* stays the old one until you open a new session. The running session therefore cannot tell you what happened; the notification is the only thing that can. The app does **not** kill Claude Code for you: that is unnecessary (the switch already took effect) and could destroy work in progress.
 
 ### 4. When every account is already spent
 
@@ -44,6 +44,7 @@ The Auto Switch tab records every automatic switch: when it happened, which acco
 - Applies to **Claude Code** only. Cursor, Windsurf and Antigravity are not covered in this release.
 - At least **two saved accounts** are required for the rule to switch anything. With a single account it can only notify you that the account is spent.
 - Quota is refreshed every 5 minutes, so a switch can land up to 5 minutes after you actually cross the threshold.
+- No restart is needed for a switch to apply. Restart only if you want the account name shown inside a running session to match.
 - The cooldown is stored on disk, so closing and reopening the app does not reset it.
 
 _v1.1.0 turns manual quota watching into something the app does for you — and it always tells you what it did._

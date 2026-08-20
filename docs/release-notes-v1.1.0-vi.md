@@ -27,7 +27,7 @@ Vì rule chạy nền, việc thông báo là bắt buộc chứ không phải t
 - **Toast trong app** — hiện ở bất kỳ trang nào, không cần đang mở tab Auto Switch.
 - **Menu tray** được cập nhật để hiển thị tài khoản mới.
 
-Nếu Claude Code đang chạy lúc chuyển, thông báo sẽ nhắc **khởi động lại Claude Code**. Đây là điều quan trọng cần biết: việc chuyển chỉ ghi lại credential, còn một phiên `claude` đang chạy vẫn dùng credential cũ cho tới khi bạn khởi động lại nó. App **không** tự tắt Claude Code của bạn — làm vậy có thể phá công việc đang dở.
+Điều này quan trọng hơn nghe tưởng. Việc chuyển ghi lại `~/.claude/.credentials.json` — file mà Claude Code đọc theo từng request — nên phiên bạn đang làm giữa dở **bị trừ quota sang tài khoản mới ngay lập tức**, trong khi tên tài khoản nó *hiển thị* vẫn là tài khoản cũ cho tới khi bạn mở phiên mới. Nghĩa là chính phiên đó không nói cho bạn biết chuyện gì vừa xảy ra; chỉ thông báo mới làm được. App **không** tự tắt Claude Code của bạn: việc đó vừa không cần thiết (credential đã có hiệu lực) vừa có thể phá công việc đang dở.
 
 ### 4. Khi mọi tài khoản đều đã cạn
 
@@ -44,6 +44,7 @@ Tab Auto Switch lưu lại mọi lần chuyển: thời điểm, tài khoản r�
 - Chỉ áp dụng cho **Claude Code**. Cursor, Windsurf và Antigravity chưa được hỗ trợ trong bản này.
 - Cần tối thiểu **2 tài khoản đã lưu** để rule có thể chuyển. Nếu chỉ có một tài khoản, app sẽ chỉ thông báo khi nó cạn.
 - Vì hạn mức được cập nhật mỗi 5 phút, việc chuyển có thể diễn ra chậm tối đa 5 phút sau khi bạn thực sự vượt ngưỡng.
+- Không cần khởi động lại để việc chuyển có hiệu lực. Chỉ khởi động lại nếu bạn muốn tên tài khoản hiển thị trong phiên đang chạy khớp lại.
 - Khoảng chờ được lưu xuống đĩa, nên tắt rồi mở lại app không làm nó về 0.
 
 _v1.1.0 biến việc theo dõi hạn mức thủ công thành việc app tự làm, và luôn nói cho bạn biết nó đã làm gì._

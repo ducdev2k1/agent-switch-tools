@@ -147,7 +147,7 @@
       "cooldown": "Thời gian chờ",
       "cooldown_hint": "Khoảng chờ tối thiểu giữa hai lần tự động đổi. Cho phép: 5–120 phút.",
       "minutes": "phút",
-      "restart_warning": "Hãy khởi động lại Claude Code sau khi đổi. Phiên đang chạy vẫn dùng credential cũ cho tới khi được khởi động lại.",
+      "restart_warning": "Phiên Claude Code đang chạy dùng tài khoản mới ngay — quota trừ đúng tài khoản mới. Chỉ thông tin tài khoản hiển thị trong phiên đó còn là tài khoản cũ; mở phiên mới sẽ thấy đúng.",
       "history": {
         "title": "Lịch sử đổi",
         "empty": "Chưa có lần đổi tự động nào.",
@@ -163,7 +163,6 @@
       },
       "toast": {
         "switched": "Đã đổi từ {{from}} sang {{to}} (đã dùng {{utilization}}%).",
-        "switched_restart": "Đã đổi từ {{from}} sang {{to}} (đã dùng {{utilization}}%). Hãy khởi động lại Claude Code để nhận credential mới.",
         "exhausted": "{{profile}} đã dùng {{utilization}}% và không còn tài khoản nào còn quota."
       }
     },
