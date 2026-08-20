@@ -333,4 +333,67 @@ Thông tin này được đính kèm trong webhook payload để phân biệt b�
 
 ---
 
+## 11. Tự động chuyển tài khoản khi cạn hạn mức (Auto Switch Rule) *(từ v1.1.0)*
+
+### Vấn đề
+
+Hạn mức 5 giờ của Claude Code cạn giữa lúc đang làm việc. Bạn có nhiều tài khoản, nhưng phải tự để ý con số phần trăm rồi tự bấm chuyển — thường là phát hiện ra khi đã bị chặn.
+
+### Giải pháp
+
+Bật **Auto Switch Rule** trong Cài đặt → Auto Switch. Mặc định **tắt**.
+
+| Cấu hình | Mặc định | Khoảng cho phép |
+|---|---|---|
+| Bật/tắt | Tắt | — |
+| Ngưỡng chuyển | 90% | 50–99% |
+| Khoảng chờ | 5 phút | 5–120 phút |
+
+### Điều kiện kích hoạt
+
+Cả 4 điều kiện phải đúng:
+
+1. Rule đang bật.
+2. Tài khoản đang dùng có mức sử dụng **hạn mức 5 giờ** ≥ ngưỡng.
+3. Tồn tại tài khoản khác còn **dưới** ngưỡng.
+4. Đã qua khoảng chờ kể từ lần chuyển tự động gần nhất.
+
+Chỉ hạn mức 5 giờ được xét. Hạn mức 7 ngày và 7 ngày Sonnet bị bỏ qua có chủ đích: tài khoản đã cạn cả tuần thì chuyển đi năm phút cũng không giải quyết được gì.
+
+### Chọn tài khoản đích
+
+Tài khoản có mức sử dụng 5 giờ **thấp nhất** trong số các tài khoản còn dưới ngưỡng. Dữ liệu lấy từ chính snapshot mà background worker đã fetch mỗi 5 phút, nên không phát sinh thêm API call nào.
+
+Tài khoản không đọc được hạn mức (fetch thất bại) bị loại. Tài khoản có credential hết hạn **không** bị loại — token tự refresh được, nên fetch thành công đã đủ chứng tỏ credential còn dùng được.
+
+Sau khi chuyển, app ở lại tài khoản mới. Không có cơ chế tự quay về tài khoản cũ khi hạn mức của nó reset.
+
+### Khi mọi tài khoản đều vượt ngưỡng
+
+Không chuyển gì, chỉ thông báo **một lần**. Cờ chống lặp tự đặt lại ngay khi có tài khoản tụt xuống dưới ngưỡng — nhờ vậy bạn không bị nhắc lại mỗi 5 phút suốt cả buổi.
+
+### Thông báo
+
+Vì rule chạy nền, thông báo là phần bắt buộc của tính năng:
+
+- Thông báo hệ thống (thấy được cả khi app ở tray)
+- Toast trong app (mọi trang, không riêng tab Auto Switch)
+- Menu tray cập nhật lại
+
+### Giới hạn quan trọng: phải khởi động lại Claude Code
+
+Việc chuyển chỉ **ghi lại credential**. Một phiên `claude` đang chạy đã đọc credential lúc khởi động, nên nó vẫn dùng tài khoản cũ cho tới khi được khởi động lại. App **không** tự tắt Claude Code — lệnh phát hiện tiến trình không phân biệt được phiên nào đang làm gì, nên tắt tự động có thể phá công việc đang dở.
+
+Nghĩa là Auto Switch Rule đảm bảo **lần chạy Claude Code tiếp theo** dùng tài khoản còn hạn mức, không đảm bảo phiên đang chạy.
+
+### Lịch sử
+
+Mọi lần chuyển tự động được ghi lại: thời điểm, tài khoản rời đi, tài khoản đích, mức sử dụng đã kích hoạt. Xem trong bảng ở tab Auto Switch.
+
+### Phạm vi
+
+Chỉ Claude Code. Cursor, Windsurf, Antigravity chưa được hỗ trợ.
+
+---
+
 **Tiếp theo**: [Tương tác với Claude — Giải thích kỹ thuật](03-tuong-tac-voi-claude.md)
