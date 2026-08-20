@@ -132,6 +132,29 @@ export interface PrimeDayStat {
   skip: number
 }
 
+/** Auto Switch Rule configuration — swaps the Active Profile when quota runs low. */
+export interface AutoSwitchConfig {
+  enabled: boolean
+  /** Five-Hour Window utilization (%) that triggers the rule. Range 50–99. */
+  threshold: number
+  /** Minimum minutes between two automatic switches. Range 5–120. */
+  cooldownMinutes: number
+  /** RFC3339 stamp of the last automatic switch, persisted across restarts. */
+  lastAutoSwitchAt: string | null
+  /** Set once the "every profile exhausted" notice was shown, to avoid spam. */
+  allExhaustedNotified: boolean
+}
+
+/** One recorded Auto Switch Rule evaluation that produced a user-visible outcome. */
+export interface AutoSwitchLogEntry {
+  timestamp: string
+  from: string
+  to: string
+  /** Utilization of the source profile at switch time, when known. */
+  utilization: number | null
+  reason: 'switched' | 'exhausted'
+}
+
 export interface UsageReport {
   total: TokenBreakdown
   totalCostUsd: number | null

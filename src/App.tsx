@@ -1,6 +1,7 @@
 import { ThemeProvider } from '@/components/theme-provider'
 import { UpdateNotificationDialog } from '@/components/update-notification-dialog'
 import { useAppUpdater } from '@/hooks/use-app-updater'
+import { useAutoSwitchToast } from '@/hooks/use-auto-switch-toast'
 import { useWebhookSender } from '@/hooks/use-webhook-sender'
 import { Dashboard } from '@/pages/dashboard'
 import { SettingsPage } from '@/pages/settings-page'
@@ -40,15 +41,24 @@ function AppContent({
   // Mount webhook sender globally for startup/on_change triggers
   useWebhookSender()
 
+  // Auto-switch happens in a background worker — surface it wherever the user is
+  useAutoSwitchToast()
+
   // App updater — shared between modal (auto) and settings (manual)
   const updater = useAppUpdater()
 
   return (
     <>
       {page === 'dashboard' ? (
-        <Dashboard onOpenSettings={() => setPage('settings')} updater={updater} />
+        <Dashboard
+          onOpenSettings={() => setPage('settings')}
+          updater={updater}
+        />
       ) : (
-        <SettingsPage onBack={() => setPage('dashboard')} updater={updater} />
+        <SettingsPage
+          onBack={() => setPage('dashboard')}
+          updater={updater}
+        />
       )}
 
       {/* Update notification modal — shows once per new version */}

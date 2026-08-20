@@ -2,6 +2,7 @@ use tauri::Manager;
 use tauri_plugin_autostart::MacosLauncher;
 use tauri_plugin_store::StoreExt;
 
+mod auto_switch;
 mod commands;
 pub mod modules;
 mod priming;
@@ -24,6 +25,7 @@ pub fn run() {
         .plugin(tauri_plugin_store::Builder::default().build())
         .plugin(tauri_plugin_updater::Builder::new().build())
         .plugin(tauri_plugin_process::init())
+        .plugin(tauri_plugin_notification::init())
         .plugin(tauri_plugin_autostart::init(
             MacosLauncher::LaunchAgent,
             Some(vec![]),
@@ -129,6 +131,10 @@ pub fn run() {
             commands::priming_commands::get_auto_prime_settings,
             commands::priming_commands::get_auto_prime_log,
             commands::priming_commands::get_auto_prime_stats,
+            // Auto switch rule
+            commands::auto_switch_commands::get_auto_switch_config,
+            commands::auto_switch_commands::set_auto_switch_config,
+            commands::auto_switch_commands::get_auto_switch_history,
             // System info
             commands::system_info_commands::get_system_info,
             // Metadata

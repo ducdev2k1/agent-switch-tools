@@ -22,6 +22,7 @@ agent-switch-tools/
 │   │   │   ├── sqlite_auth.rs    ← Đọc/ghi auth keys từ SQLite
 │   │   │   └── profile_commands.rs ← Tauri commands cho IDE profiles
 │   │   ├── tray.rs               ← System tray menu (đa agent)
+│   │   ├── auto_switch/          ← Auto Switch Rule (config, log, quyết định)
 │   │   ├── quota_refresh_worker.rs ← Background worker
 │   │   ├── lib.rs                ← Cấu hình Tauri, đăng ký commands
 │   │   └── main.rs               ← Entry point Rust
@@ -107,6 +108,13 @@ invoke("list_profiles")  ────►    fn list_credential_profiles()
 | `get_manager_metadata` | Đọc active profile, lịch sử switch |
 | `update_manager_metadata` | Cập nhật metadata |
 
+#### `commands/auto_switch_commands.rs` — Auto Switch Rule *(từ v1.1.0)*
+| Command | Chức năng |
+|---|---|
+| `get_auto_switch_config` | Đọc cấu hình rule (bật/tắt, ngưỡng, khoảng chờ) |
+| `set_auto_switch_config` | Lưu cấu hình, tự ép ngưỡng/khoảng chờ về khoảng hợp lệ |
+| `get_auto_switch_history` | Lịch sử chuyển tự động, mới nhất trước |
+
 ### Module `modules/` — Tái cấu trúc từ v1.0.11
 
 Từ v1.0.11, toàn bộ logic backend tách thành 4 nhóm rõ ràng thay cho thư mục `ide/` cũ:
@@ -160,6 +168,8 @@ src-tauri/src/modules/
 | `main.rs` | Entry point — gọi `lib.rs` |
 | `tray.rs` | Tạo và quản lý System Tray menu |
 | `quota_refresh_worker.rs` | Background task chạy mỗi 5 phút, fetch quota tự động |
+| `auto_switch/store.rs` | Đọc/ghi `auto-switch.json` và activity log `auto-switch.log` |
+| `auto_switch/evaluate.rs` | Quyết định có chuyển hay không, dùng lại luồng switch thủ công |
 | `commands/path_helpers.rs` | Helper functions cho đường dẫn file (home dir, profile dir...) |
 
 ---
@@ -189,6 +199,8 @@ src-tauri/src/modules/
 | `components/session-usage-webhook-panel.tsx` | Panel cấu hình session usage webhook |
 | `components/device-settings-panel.tsx` | Panel quản lý device name |
 | `components/update-notification-dialog.tsx` | Modal thông báo có bản cập nhật mới |
+| `components/auto-switch/auto-switch-panel.tsx` | Panel cấu hình Auto Switch Rule |
+| `components/auto-switch/auto-switch-history-table.tsx` | Bảng lịch sử chuyển tự động |
 | `components/mode-toggle.tsx` | Nút chuyển Light/Dark mode |
 | `components/theme-provider.tsx` | Provider quản lý theme context |
 
@@ -207,6 +219,8 @@ React hooks đóng gói logic phức tạp để components dùng lại.
 | `hooks/use-app-updater.ts` | Check updates, download, install |
 | `hooks/use-auto-update-config.ts` | Bật/tắt auto-update |
 | `hooks/use-autostart-config.ts` | Bật/tắt tự khởi động cùng OS |
+| `hooks/use-auto-switch-config.ts` | Load/save cấu hình Auto Switch Rule + lịch sử |
+| `hooks/use-auto-switch-toast.ts` | Toast khi rule chuyển tài khoản, mount ở app gốc |
 
 ### Libraries
 

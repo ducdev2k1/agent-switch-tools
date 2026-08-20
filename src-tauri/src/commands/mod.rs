@@ -1,3 +1,4 @@
+pub mod auto_switch_commands;
 pub mod changelog_commands;
 pub mod config_commands;
 pub mod device_commands;
